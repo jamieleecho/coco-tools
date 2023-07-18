@@ -238,6 +238,7 @@ class TestMaxToPPM(unittest.TestCase):
             "would be 6144 bytes\n"
         )
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4.max"
@@ -246,11 +247,12 @@ class TestMaxToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/maxtoppm.py",
+                    "coco/maxtoppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -269,12 +271,14 @@ class TestMaxToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/maxtoppm.py"],
+            [sys.executable, "coco/maxtoppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_converts_max_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4.max"
@@ -283,15 +287,18 @@ class TestMaxToPPM(unittest.TestCase):
             __name__, "fixtures/eye4.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/maxtoppm.py", infilename],
+            [sys.executable, "coco/maxtoppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/maxtoppm.py", "-h"],
+                [sys.executable, "coco/maxtoppm.py", "-h"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -301,19 +308,23 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegex(output, self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/maxtoppm.py", "--version"],
+                [sys.executable, "coco/maxtoppm.py", "--version"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
         self.assertRegex(output, self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/maxtoppm.py", "--oops"],
+                [sys.executable, "coco/maxtoppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -322,10 +333,12 @@ class TestMaxToPPM(unittest.TestCase):
             r"maxtoppm.py: error: unrecognized arguments: --oops",
         )
 
+    @unix_only
     def test_conflicting_arguments(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/maxtoppm.py", "-br", "-rb"],
+                [sys.executable, "coco/maxtoppm.py", "-br", "-rb"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

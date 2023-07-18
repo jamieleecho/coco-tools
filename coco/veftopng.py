@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #
 # veftopng.py: Convert OS-9 VEF images to PNG
-# Copyright (C) 2018  Travis Poppe <tlp@lickwid.net>
-# Copyright (C) 2020  Jamie Cho
+# Copyright (c) 2018  Travis Poppe <tlp@lickwid.net>
+# Copyright (c) 2020  Jamie Cho
 #
 # Version 2020.03.28
 #
@@ -65,8 +65,8 @@ def unsquash(data, count, orig_len):
 
 
 DESCRIPTION = """Convert OS-9 VEF images to PNG
-Copyright (C) 2018-2020  Travis Poppe <tlp@lickwid.net>
-Copyright (C) 2020  Jamie Cho
+Copyright (c) 2018-2020  Travis Poppe <tlp@lickwid.net>
+Copyright (c) 2020  Jamie Cho
 Version: {}""".format(
     __version__
 )

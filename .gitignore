@@ -100,3 +100,9 @@ src/static
 
 # Random Stuff
 .bash*
+cfg/
+.coverage*
+os9boot.dsk
+snap/
+*~
+*.tmp

@@ -45,6 +45,7 @@ class TestCM3ToPPM(unittest.TestCase):
         coco.cm3toppm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.cm3"
@@ -53,11 +54,12 @@ class TestCM3ToPPM(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/cm3toppm.py",
+                    "coco/cm3toppm.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -76,12 +78,14 @@ class TestCM3ToPPM(unittest.TestCase):
         os.write(write, infile.read())
         os.close(write)
         subprocess.check_call(
-            [sys.executable, "src/coco/cm3toppm.py"],
+            [sys.executable, "coco/cm3toppm.py"],
+            env={"PYTHONPATH": "."},
             stdin=read,
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_converts_cm3_to_ppm_via_stdin(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.cm3"
@@ -90,14 +94,17 @@ class TestCM3ToPPM(unittest.TestCase):
             __name__, "fixtures/clip1.ppm"
         )
         subprocess.check_call(
-            [sys.executable, "src/coco/cm3toppm.py", infilename],
+            [sys.executable, "coco/cm3toppm.py", infilename],
+            env={"PYTHONPATH": "."},
             stdout=self.outfile,
         )
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_help(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/cm3toppm.py", "-h"],
+            [sys.executable, "coco/cm3toppm.py", "-h"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), "Convert RS-DOS CM3 images to PPM")
@@ -106,17 +113,21 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/cm3toppm.py", "--version"],
+            [sys.executable, "coco/cm3toppm.py", "--version"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/cm3toppm.py", "--oops"],
+                [sys.executable, "coco/cm3toppm.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

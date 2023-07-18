@@ -56,6 +56,7 @@ class TestVEFToPNG(unittest.TestCase):
         coco.veftopng.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.vef"
@@ -64,11 +65,12 @@ class TestVEFToPNG(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/veftopng.py",
+                    "coco/veftopng.py",
                     infilename,
                     self.outfile.name,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -77,9 +79,11 @@ class TestVEFToPNG(unittest.TestCase):
             r"veftopng.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_help(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/veftopng.py", "-h"],
+            [sys.executable, "coco/veftopng.py", "-h"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), "Convert OS-9 VEF images to PNG")
@@ -88,13 +92,16 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertRegex(iotostr(output), self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = subprocess.check_output(
-            [sys.executable, "src/coco/veftopng.py", "--version"],
+            [sys.executable, "coco/veftopng.py", "--version"],
+            env={"PYTHONPATH": "."},
             stderr=subprocess.STDOUT,
         )
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.vef"
@@ -103,11 +110,12 @@ class TestVEFToPNG(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/veftopng.py",
+                    "coco/veftopng.py",
                     infilename,
                     self.outfile.name,
                     "--oops",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)

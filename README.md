@@ -17,6 +17,28 @@ python3 setup.py
 
 ## Tools
 
+### decb-to-b09
+
+```
+usage: decb-to-b09 [-h] [--version] [-l] [-z] program.bas program.b09
+
+Convert a Color BASIC program to a BASIC09 program
+Copyright (c) 2023 by Jamie Cho
+Version: 0.7
+
+positional arguments:
+  program.bas           input DECB text program file
+  program.b09           output BASIC09 text program file
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+  -l, --filter-unused-linenum
+                        Filter out line numbers not referenced by the program
+  -z, --dont-initialize-vars
+                        Don't pre-initialize all variables
+```
+
 ### cm3toppm
 
 ```
@@ -24,7 +46,7 @@ usage: cm3toppm [-h] [--version] [image.cm3] [image.ppm]
 
 Convert RS-DOS CM3 images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
-Copyright (C) 2018-2020 by Jamie Cho
+Copyright (c) 2018-2020 by Jamie Cho
 Version: 0.6
 
 positional arguments:
@@ -111,7 +133,7 @@ usage: mgetoppm [-h] [--version] [image.mge] [image.ppm]
 
 Convert RS-DOS MGE images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
-Copyright (C) 2018-2020 by Jamie Cho
+Copyright (c) 2018-2020 by Jamie Cho
 Version: 0.6
 
 positional arguments:
@@ -182,8 +204,8 @@ options:
 usage: veftopng [-h] [--version] image.vef image.png
 
 Convert OS-9 VEF images to PNG
-Copyright (C) 2018-2020  Travis Poppe <tlp@lickwid.net>
-Copyright (C) 2020  Jamie Cho
+Copyright (c) 2018-2020  Travis Poppe <tlp@lickwid.net>
+Copyright (c) 2020  Jamie Cho
 Version: 0.6
 
 positional arguments:

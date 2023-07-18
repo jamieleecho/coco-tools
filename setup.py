@@ -43,23 +43,25 @@ setuptools.setup(
     ],
 
     install_requires=[
+        'parsimonious>=0.10.0',
         'Pillow>=7.0.0',
         'pypng>=0.0.18',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.6  ',
 
     # What does your project relate to?
     keywords='coco image conversion trs-80 tandy',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=setuptools.find_packages(where='src'),
+    packages=setuptools.find_packages(where='.'),
     package_dir={
-        '': 'src',
+        '': '.',
     },
 
     entry_points={
         'console_scripts': [
+            'decb-to-b09=coco.decb_to_b09:main',
             'cm3toppm=coco.cm3toppm:main',
             'hrstoppm=coco.hrstoppm:main',
             'maxtoppm=coco.maxtoppm:main',

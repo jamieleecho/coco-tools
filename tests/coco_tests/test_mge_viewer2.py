@@ -23,6 +23,7 @@ class TestMGE_Viewer2(unittest.TestCase):
     )
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
+    @unix_only
     def test_too_many_arguments(self):
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/dragon1.mge"
@@ -31,10 +32,11 @@ class TestMGE_Viewer2(unittest.TestCase):
             subprocess.check_output(
                 [
                     sys.executable,
-                    "src/coco/mge_viewer2.py",
+                    "coco/mge_viewer2.py",
                     infilename,
                     "baz",
                 ],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
@@ -43,10 +45,12 @@ class TestMGE_Viewer2(unittest.TestCase):
             r"mge_viewer2.py: error: unrecognized arguments: baz",
         )
 
+    @unix_only
     def test_help(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "-h"],
+                [sys.executable, "coco/mge_viewer2.py", "-h"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
@@ -56,19 +60,23 @@ class TestMGE_Viewer2(unittest.TestCase):
         self.assertRegex(output, self.POSITIONAL_ARGS_REGEX)
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
+    @unix_only
     def test_version(self):
         output = iotostr(
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "--version"],
+                [sys.executable, "coco/mge_viewer2.py", "--version"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         )
         self.assertRegex(output, self.VERSION_REGEX)
 
+    @unix_only
     def test_unknown_argument(self):
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
-                [sys.executable, "src/coco/mge_viewer2.py", "--oops"],
+                [sys.executable, "coco/mge_viewer2.py", "--oops"],
+                env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
