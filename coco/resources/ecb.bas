@@ -33,17 +33,17 @@ procedure ecb_cls
     param color: integer
     dim a, b, ii: integer
     dim c: byte
-    if color = 1 or color > 8 then 
+    if color = 1 or color > 8 then
         c = $0c
         put #1, c
         if color > 8 then
             print("MICROSOFT")
         endif
-    else 
+    else
         c = $01
         put #1,c
         run ecb_text_address(a)
-        if a <> -1 then 
+        if a <> -1 then
             b = a + 511
             if color = 0 then
                 c = 128
@@ -53,11 +53,11 @@ procedure ecb_cls
             for ii = a to b
                 poke ii,c
             next ii
-        endif 
+        endif
     endif
 
 
-procedure ecb_hex(v, str)
+procedure ecb_hex
     param v: real
     param str: string
     dim ival: integer

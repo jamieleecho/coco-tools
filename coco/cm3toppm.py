@@ -98,10 +98,7 @@ def convert(input_image_stream, output_image_stream):
                         if bity < 0:
                             bity = 7
                             y = y + 1
-                        if cc == 0:
-                            a = linbuf[x]
-                        else:
-                            a = ord(iotostr(f.read(1)))
+                        a = linbuf[x] if cc == 0 else ord(iotostr(f.read(1)))
                 linbuf[x] = a
                 dump(a >> 4)
                 dump(a & 15)

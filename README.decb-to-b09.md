@@ -32,6 +32,7 @@ RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, -,
 TAB, TAN, THEN, TO, VAL
 
 ## Supported constructs that need some explanation
+* String literals must be closed.
 * Variables can have no more than 2 characters (3 including the $) and cannot
   be keywords including `IN`, `ON` or `TO`.
 * By default variables are not DIMensioned and assumed to be STRING or REAL.

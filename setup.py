@@ -47,18 +47,20 @@ setuptools.setup(
         'Pillow>=7.0.0',
         'pypng>=0.0.18',
     ],
-    python_requires='>=3.6  ',
+    python_requires='>=3.7',
 
     # What does your project relate to?
     keywords='coco image conversion trs-80 tandy',
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=setuptools.find_packages(where='.'),
+    packages=setuptools.find_packages('.', exclude=['tests.coco_tests']),
     package_dir={
         '': '.',
     },
-
+    package_data={
+        'coco.resources': ['*.bas'],
+    },
     entry_points={
         'console_scripts': [
             'decb-to-b09=coco.decb_to_b09:main',

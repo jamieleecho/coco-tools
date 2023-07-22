@@ -5,16 +5,31 @@ from coco import b09
 
 
 class TestB09(unittest.TestCase):
-    def get_resource(name):
-        resource_path = pkg_resources.resource_filename(
-            __name__, f'fixtures/{name}'
-        )
-        with open(resource_path, 'r') as resource_file:
-            return resource_file.read()
+    def test_convert_with_dependencies(self):
+        program = b09.convert('10 CLS B', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              output_dependencies=True)
+        assert program.endswith('procedure do_cls\nB = 0\nRUN ecb_cls(B)')
+        assert program.startswith('procedure ecb_cls\n')
 
-    simple_prog = get_resource('simple.bas')
-    simple2_prog = get_resource('simple2.bas')
-    simple3_prog = get_resource('simple3.bas')
+    def test_convert_no_header_with_dependencies(self):
+        program = b09.convert('10 CLS B', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=True,
+                              output_dependencies=True)
+        assert program == 'B = 0\nRUN ecb_cls(B)'
+
+    def test_convert_header_no_name_with_dependencies(self):
+        program = b09.convert('10 CLS B',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              output_dependencies=True)
+        assert program.endswith('procedure program\nB = 0\nRUN ecb_cls(B)')
+        assert program.startswith('procedure ecb_cls\n')
 
     def test_basic_assignment(self):
         var = b09.BasicVar('HW')
@@ -93,13 +108,15 @@ class TestB09(unittest.TestCase):
         target = b09.BasicOperator('*')
         assert target.basic09_text(2) == '*'
 
-    def generic_test_parse(self, progin, progout,
-                           filter_unused_linenum=False,
-                           initialize_vars=False):
+    def generic_test_parse(
+            self, progin, progout,
+            filter_unused_linenum=False,
+            initialize_vars=False):
         b09_prog = b09.convert(
             progin,
             filter_unused_linenum=filter_unused_linenum,
-            initialize_vars=initialize_vars
+            initialize_vars=initialize_vars,
+            skip_procedure_headers=True
         )
         assert b09_prog == progout
 
@@ -157,6 +174,11 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 A$ = "A" + "Z"\n20B$=A$+B$',
             '10 A$ = "A" + "Z"\n20 B$ = A$ + B$')
+
+    def test_parse_str_expression2(self):
+        self.generic_test_parse(
+            '10 IF A$<>"" THEN 10',
+            '10 IF A$ <> "" THEN 10')
 
     def test_parse_multi_expression(self):
         self.generic_test_parse(
@@ -217,6 +239,12 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '11 PRINT A$ + B$',
             '11 PRINT A$ + B$'
+        )
+
+    def test_simple_print_statement4(self):
+        self.generic_test_parse(
+            '11 PRINT"TIME"T/10;',
+            '11 PRINT "TIME"; T / 10;'
         )
 
     def test_print_multi(self):
@@ -442,8 +470,8 @@ class TestB09(unittest.TestCase):
     def test_str_functions_to_statements(self):
         for ecb_func, b09_func in b09.STR_FUNCTIONS_TO_STATEMENTS.items():
             self.generic_test_parse(
-                f'11X$={ecb_func}(1)',
-                f'11 {b09_func}(1, X$)',
+                f'11X$={ecb_func}',
+                f'11 {b09_func}(X$)',
             )
 
     def test_joystk(self):
@@ -536,6 +564,12 @@ class TestB09(unittest.TestCase):
             'GOTO 10\n'
             '100 (* *)',
             filter_unused_linenum=True
+        )
+
+    def test_clear_statement(self):
+        self.generic_test_parse(
+            '10 CLEAR\n20CLEAR 200',
+            '10 (* CLEAR *)\n20 (* CLEAR 200 *)'
         )
 
     def test_initializes_vars(self):

@@ -17,7 +17,7 @@ python3 setup.py
 
 ## Tools
 
-### decb-to-b09
+### [decb-to-b09](README.decb-to-b09.md)
 
 ```
 usage: decb-to-b09 [-h] [--version] [-l] [-z] program.bas program.b09
