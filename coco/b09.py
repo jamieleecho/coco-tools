@@ -51,6 +51,7 @@ QUOTED_STR3_FUNCTION_NAMES = [f'"{name}"' for name in STR3_FUNCTIONS]
 
 STR_NUM_FUNCTIONS = {
     'VAL': 'VAL',
+    'LEN': 'LEN',
 }
 
 QUOTED_STR_NUM_FUNCTIONS_NAMES = [f'"{name}"' for name in STR_NUM_FUNCTIONS]

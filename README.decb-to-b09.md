@@ -40,10 +40,6 @@ TAB, TAN, THEN, TO, VAL
 * Arrays are limited to no more than 3 dimensions. The size of each dimension
   must be specified as a numeric literal.
 * When translated array names are prefixed with arr_.
-* Numeric literal expressions are assumed to be INTEGERs unless that have
-  a decimal point or exponent or cannot be represented by an INTEGER. So
-  PRINT 3 / 2 will print 1.5 in Color BASIC but the converted BASIC09 program
-  will print 1.
 * Hexadecimal literals of the form 0xABCDEF are supported. For values less
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
@@ -102,4 +98,9 @@ NEXT JJ
 
 ## Weird, unsupported Color BASIC constructs
 * Numeric literals must NOT have whitespace. For example, this is illegal: `12 34`
-* `10 PRINT AA SIN(1)` and constructs like this are NOT allowed.
+
+## Known broken conversions
+* Passing a hex literal value to something that results in a procedure call
+  generate incorrect code.
+* DIM of multiple values in a single statement does not work.
+* It is not possible to READ from a DATA statement into an array reference.

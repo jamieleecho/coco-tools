@@ -18,9 +18,13 @@ EXAMPLES_INPUTS=$(wildcard $(EXAMPLE_INPUT_DIR)/*.bas)
 EXAMPLE_OUTPUT_DIR=$(EXAMPLE_DIR)/b09
 EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES_INPUTS:.bas=.b09)}
 
-$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES)
+all: build $(TARGET)
+
+build:
 	pycodestyle coco tests setup.py
 	python3 setup.py install
+
+$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
 	bash -c 'for each in $(RESOURCE_DIR)/*.b09; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
 	bash -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
