@@ -59,7 +59,7 @@ setuptools.setup(
         '': '.',
     },
     package_data={
-        'coco.resources': ['*.bas'],
+        'coco.resources': ['*.b09'],
     },
     entry_points={
         'console_scripts': [

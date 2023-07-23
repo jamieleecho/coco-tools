@@ -1,11 +1,11 @@
 procedure ecb_at
-    param location: integer
+    param location: real
     run ecb_locate(land(location, 31), mod(location, 32))
 
 
 procedure ecb_button
-    param button: integer
-    param retval: integer
+    param button: real
+    param retval: real
     dim joystk, fire: integer
 
     if button < 2 then joystk = 0 else joystk = 1 \ endif
@@ -15,7 +15,7 @@ procedure ecb_button
 
 
 procedure ecb_joystk
-    param joystk, joy0x, joy0y, joy1x, joy1y, retval: integer
+    param joystk, joy0x, joy0y, joy1x, joy1y, retval: real
     dim fire: integer
 
     if joystk = 0 then
@@ -30,7 +30,7 @@ procedure ecb_joystk
 
 
 procedure ecb_cls
-    param color: integer
+    param color: real
     dim a, b, ii: integer
     dim c: byte
     if color = 1 or color > 8 then
@@ -42,7 +42,7 @@ procedure ecb_cls
     else
         c = $01
         put #1,c
-        run ecb_text_address(a)
+        run _ecb_text_address(a)
         if a <> -1 then
             b = a + 511
             if color = 0 then
@@ -86,7 +86,7 @@ procedure ecb_inkey
 
 
 procedure ecb_locate
-    param x, y: integer
+    param x, y: real
 
     dim tmp_buffer(3): byte
     tmp_buffer(1) = $02
@@ -96,15 +96,15 @@ procedure ecb_locate
 
 
 procedure ecb_point
-    param x, y, c0: integer
-    dim address, c: integer
-    run _ecb_get_point_info(x, y, address, c, c0)
+    param x, y, c0: real
+    dim address, c, cc: integer
+    run _ecb_get_point_info(x, y, address, c, cc)
     if address = -1 then
         error 52
     endif
-    if c0 > $80 then
-        if land(c, c0) <> 0 then
-            c0 = 1 + land($7f, c0) / 16
+    if cc > $80 then
+        if land(c, cc) <> 0 then
+            c0 = 1 + land($7f, cc) / 16
         else
             c0 = 0
         endif
@@ -114,7 +114,7 @@ procedure ecb_point
 
 
 procedure ecb_reset
-    param x, y: integer
+    param x, y: real
     dim address, c0, c1: integer
     run _ecb_get_point_info(x, y, address, c1, c0)
     if address = -1 then
@@ -129,7 +129,7 @@ procedure ecb_reset
 
 
 procedure ecb_set
-    param x, y, c: integer
+    param x, y, c: real
     dim address, c0, c1: integer
     if c < 0 or c > 8 then
         error 52
@@ -150,15 +150,16 @@ procedure ecb_set
 
 
 procedure ecb_sound
-    param f, d, v:integer
+    param f, d, v:real
+    dim fint:integer
     if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
         error 52
     endif
-    f = 1.0 / (-2.24219E-05 * f + 0.005961832)
-    run gfx2("tone", f, d, v)
+    fint = fix(1.0 / (-2.24219E-05 * f + 0.005961832))
+    run gfx2("tone", fint, fix(d), fix(v))
 
 
-procedure ecb_text_address
+procedure _ecb_text_address
     param address: integer
     type rregisters = cc, a, b, dp:byte; x, y, u:integer
     dim rregs: rregisters
@@ -177,7 +178,7 @@ procedure ecb_text_address
 
 
 procedure _ecb_hex_digit
-    param v: integer
+    param v: real
     param s: string
     if v < 10 then
         s = chr$(v + asc("0"))
@@ -187,14 +188,15 @@ procedure _ecb_hex_digit
 
 
 procedure _ecb_get_point_info
-    param x, y, address, mask, c0: integer
+    param x, y: real
+    param address, mask, c0: integer
     if x < 0 or x > 63 or y < 0 or y > 31 then
         error 52
     endif
-    run ecb_text_address(address)
+    run _ecb_text_address(address)
     if address = -1 then
         error 52
     endif
     address = address + (y / 2) * 32 + (x / 2)
     mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
-    c0 = peek(address)
+    c0 = peek(fix(address))

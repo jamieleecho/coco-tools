@@ -8,31 +8,32 @@ TMPTARGET=os9boot.tmp
 PLAYGROUND=playground
 OS9BOOTSOURCE=$(PLAYGROUND)/NOS9_6809_L2_v030300_coco3_80d.dsk
 
-RESOURCE_DIR=coco/resources/
-RESOURCES=$(wildcard $(RESOURCE_DIR)/*)
+RESOURCE_DIR=coco/resources
+RESOURCES=$(wildcard $(RESOURCE_DIR)/*.b09)
 
 EXAMPLE_DIR=examples
 EXAMPLE_INPUT_DIR=$(EXAMPLE_DIR)/decb
-EXAMPLES_INPUTS=$(wildcard $(EXAMPLE_INPUT_DIR)/*)
+EXAMPLES_INPUTS=$(wildcard $(EXAMPLE_INPUT_DIR)/*.bas)
 
 EXAMPLE_OUTPUT_DIR=$(EXAMPLE_DIR)/b09
-EXAMPLES_OUTPUTS=$(wildcard $(EXAMPLE_OUTPUT_DIR)/*)
+EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES_INPUTS:.bas=.b09)}
 
-
-$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUT_DIR)/.updated $(RESOURCES)
+$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES)
+	pycodestyle coco tests setup.py
+	python3 setup.py install
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
-	bash -c 'for each in $(RESOURCE_DIR)/*; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
-	bash -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	bash -c 'for each in $(RESOURCE_DIR)/*.b09; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	bash -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(OS9TOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
 	mv $(TMPTARGET) $(TARGET)
 
 $(TMPTARGET) :
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
 
-$(EXAMPLES_OUTPUT_DIR)/.updated : $(EXAMPLES_INPUTS)
-	bash -c 'for each in $(EXAMPLE_INPUT_DIR)/*; do decb-to-b09 $${each} ${EXAMPLE_OUTPUT_DIR}/`basename $${each}`; done'
+$(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas
+	decb-to-b09 $< $@
 
 clean :
-	rm -rf $(TARGET) $(TMPTARGET) build dist coco_tools.egg-info $(MODULE_DIR)/*~
+	rm -rf $(TARGET) $(TMPTARGET) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~
 
-run : $(TARGET)
+run :
 	$(MAME) coco3 -rompath $(MAME_DIR)/roms -speed 4 -window -ext:fdc:wd17xx:0 525qd -flop1 $(TARGET)

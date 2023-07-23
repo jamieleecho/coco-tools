@@ -245,6 +245,7 @@ grammar = Grammar(
     literal         = num_literal
     hex_literal     = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     num_literal     = ~r"([\+\- ]*(\d*\.\d*)( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d*\.\d*)|[\+\- ]*(\d+( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d+)"
+    int_literal     = ~r"(\d+)"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
@@ -288,9 +289,10 @@ grammar = Grammar(
     func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
-    dim1_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* ")" space*
-    dim2_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
-    dim3_statement      = "DIM" space* (str_var / var) space* "(" space* data_num_element0 space* "," space* data_num_element0 space* "," space* data_num_element0 space* ")" space*
+    dim_element0        = (int_literal / hex_literal)
+    dim1_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* ")" space*
+    dim2_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim3_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
     clear_statement     = "CLEAR" space* exp? space*
     """  # noqa
 )
@@ -873,7 +875,7 @@ class BasicSound(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}' \
             f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
-            f'{self._exp2.basic09_text(indent_level)}, 31)'
+            f'{self._exp2.basic09_text(indent_level)}, 31.0)'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -1034,14 +1036,14 @@ class BasicDimStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         for_statements = (
             BasicForStatement(
-                BasicVar(f'tmp{ii + 1}'),
+                BasicVar(f'tmp_{ii + 1}'),
                 BasicLiteral(1),
                 index
             )
             for ii, index in enumerate(self._array_ref.indices.exp_list)
         )
         next_statements = (
-            BasicNextStatement(BasicExpressionList([BasicVar(f'tmp{ii}')]))
+            BasicNextStatement(BasicExpressionList([BasicVar(f'tmp_{ii}')]))
             for ii in range(len(self._array_ref.indices.exp_list), 0, -1)
         )
         init_val = BasicLiteral(
@@ -1059,7 +1061,7 @@ class BasicDimStatement(AbstractBasicStatement):
                     var,
                     BasicExpressionList(
                         (
-                            BasicVar(f'tmp{ii}')
+                            BasicVar(f'tmp_{ii}')
                             for ii in range(
                                 1, len(self._array_ref.indices.exp_list) + 1
                             )
@@ -1147,7 +1149,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
                     BasicAssignment(
                         BasicVar(var, is_str_expr=(var[-1] == '$')),
                         BasicLiteral(
-                            '' if (var[-1] == '$') else 0,
+                            '' if (var[-1] == '$') else 0.0,
                             is_str_expr=(var[-1] == '$')
                         )
                     )
@@ -1366,8 +1368,11 @@ class BasicVisitor(NodeVisitor):
 
     def visit_num_literal(self, node, visited_children):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
-        val = float(num_literal)
-        return BasicLiteral(int(val) if val == int(val) else val)
+        return BasicLiteral(float(num_literal))
+
+    def visit_int_literal(self, node, visited_children):
+        num_literal = node.full_text[node.start:node.end].replace(' ', '')
+        return BasicLiteral(int(num_literal))
 
     def visit_hex_literal(self, node, visited_children):
         hex_literal = node.text[node.text.find('H') + 1:]
@@ -1521,6 +1526,9 @@ class BasicVisitor(NodeVisitor):
             parens=False
         )
 
+    def visit_dim_element0(self, node, visited_children):
+        return visited_children[0]
+
     def visit_data_element0(self, node, visited_children):
         _, _, data_element = visited_children
         return data_element
@@ -1665,7 +1673,7 @@ def convert(progin,
     program = basic_prog.basic09_text(0)
     if output_dependencies and procname:
         procedure_bank = ProcedureBank()
-        procedure_bank.add_from_resource('ecb.bas')
+        procedure_bank.add_from_resource('ecb.b09')
         procedure_bank.add_from_str(program)
         program = procedure_bank.get_procedure_and_dependencies(procname)
 
