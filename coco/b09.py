@@ -102,7 +102,7 @@ QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
 ]
 
 STR_FUNCTIONS_TO_STATEMENTS = {
-    'INKEY$': 'RUN ecb_inkey',
+    'INKEY$': 'RUN inkey',
 }
 
 QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
@@ -172,6 +172,7 @@ grammar = Grammar(
     statement       = if_else_stmnt
                     / if_stmnt
                     / print_at_statement
+                    / print_at_statement0
                     / print_statement
                     / num_assign
                     / str_assign
@@ -240,22 +241,22 @@ grammar = Grammar(
                     / joystk_to_statement
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
-    str_exp         = str_simple_exp space* ("+" space*
-                                             str_simple_exp space*)* 
-    str2_func_exp   = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
-    str3_func_exp   = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
-    num_str_func_exp= ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
+    str_exp          = str_simple_exp space* str_exp_elements
+    str_exp_elements = str_exp_element*
+    str_exp_element  = "+" space* str_simple_exp space*
+    str2_func_exp    = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
+    str3_func_exp    = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
+    num_str_func_exp = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
     num_str_func_exp_statements = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space*
-
-    str_simple_exp  = str_literal
-                    / str_array_ref_exp
-                    / str_var
-                    / str2_func_exp
-                    / str3_func_exp
-                    / num_str_func_exp
-                    / num_str_func_exp_statements
-                    / str_func_exp_statements
+    str_simple_exp   = str_literal
+                     / str_array_ref_exp
+                     / str_var
+                     / str2_func_exp
+                     / str3_func_exp
+                     / num_str_func_exp
+                     / num_str_func_exp_statements
+                     / str_func_exp_statements
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -272,6 +273,7 @@ grammar = Grammar(
     str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]?)\$"
     print_statement = ("PRINT"/"?") space* print_args space*
     print_at_statement = ("PRINT"/"?") space* "@" space* exp space* "," space* print_args space*
+    print_at_statement0 = ("PRINT"/"?") space* "@" space* exp space*
     print_args      = print_arg0*
     print_arg0      = print_arg1 space*
     print_arg1      = print_control
@@ -1697,12 +1699,28 @@ class BasicVisitor(NodeVisitor):
         return BasicOpExp('AND', exp)
 
     def visit_str_exp(self, node, visited_children):
-        if len(visited_children) < 4:
-            v1, v2, v3 = visited_children
-            if isinstance(v2, str) and isinstance(v3, str):
-                return visited_children[0]
-            return BasicBinaryExp(v1, v3.operator, v3.exp, is_str_expr=True)
-        return node
+        """
+        str_exp          = str_simple_exp space* str_exp_elements
+        str_exp_element  = "+" space* str_simple_exp space*
+        """
+        exp, _, exps = visited_children
+        if len(exps) == 0:
+            return exp
+        last_exp = exp
+        for exp in exps:
+            last_exp = BasicBinaryExp(
+                last_exp, '+', exp
+            )
+        return last_exp
+
+    def visit_str_exp_elements(self, node, visited_children):
+        """str_exp_elements = str_exp_element*"""
+        return visited_children
+
+    def visit_str_exp_element(self, node, visited_children):
+        """str_exp_element  = "+" space* str_simple_exp space*"""
+        _, _, exp, _ = visited_children
+        return exp
 
     def visit_str2_func_exp(self, node, visited_children):
         func, _, _, _, str_exp, _, _, _, exp, _, _, _ = visited_children
@@ -1861,6 +1879,10 @@ class BasicVisitor(NodeVisitor):
             [at_statement, print_statement],
             multi_line=False
         )
+
+    def visit_print_at_statement0(self, node, visited_children):
+        _, _, _, _, loc, _ = visited_children
+        return BasicRunCall('RUN ecb_at', BasicExpressionList([loc]))
 
     def visit_print_args(self, node, visited_children):
         return BasicPrintArgs(visited_children)

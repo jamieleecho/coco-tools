@@ -77,14 +77,6 @@ procedure ecb_hex
     str = str + tmp
 
 
-procedure ecb_inkey
-    param c: string
-
-    SHELL("tmode eko=0")
-    run INKEY(c)
-    SHELL("tmode eko=1")
-
-
 procedure ecb_locate
     param x, y: real
 
@@ -201,7 +193,11 @@ procedure ecb_str
     if mid$(valout, len(valout), 1) = "." then
         valout = " " + left$(valout, len(valout) - 1) + " "
     else
-        valout = " " + valout + " "
+        if valout = ".0" then
+            valout = " 0 "
+        else
+            valout = " " + valout + " "
+        endif
     endif
 
 
@@ -249,6 +245,7 @@ procedure _ecb_cursor_color
 
 procedure _ecb_start
     run _ecb_cursor_color(0)
+    SHELL("tmode pau=0")
 
 
 procedure _ecb_input_prefix
