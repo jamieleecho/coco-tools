@@ -735,3 +735,16 @@ class TestB09(unittest.TestCase):
             '  GOTO 130\n'
             'ENDIF'
         )
+
+    def test_empty_print_at(self):
+        self.generic_test_parse(
+            '130 PRINT@64',
+            '130 RUN ecb_at(64.0)'
+        )
+
+    def test_print_char(self):
+        self.generic_test_parse(
+            '130 PRINT@170,"*  "+CHR$(191)+"  " +CHR$(191)+ "  *"',
+            '130 RUN ecb_at(170.0) \\ PRINT "*  " + CHR$(191.0) + "  " + '
+            'CHR$(191.0) + "  *"'
+        )
