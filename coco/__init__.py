@@ -1,2 +1,2 @@
 # __version__ MUST be defined on line 2
-__version__ = "0.8"
+__version__ = "0.7"
