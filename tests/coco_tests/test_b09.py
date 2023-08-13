@@ -11,8 +11,10 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure do_cls\nB = 0.0\nRUN ecb_cls(B)')
-        assert program.startswith('procedure _ecb_text_address\n')
+        assert program.endswith('procedure do_cls\nB = 0.0\nbase 0\n'
+                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
+        assert program.startswith('procedure _ecb_cursor_color\n')
+        assert program.find('procedure _ecb_text_address\n') >= 0
 
     def test_convert_no_header_with_dependencies(self):
         program = b09.convert('10 CLS B', procname='do_cls',
@@ -20,7 +22,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=True,
                               output_dependencies=True)
-        assert program == 'B = 0.0\nRUN ecb_cls(B)'
+        assert program == 'B = 0.0\nbase 0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
 
     def test_convert_header_no_name_with_dependencies(self):
         program = b09.convert('10 CLS B',
@@ -28,8 +30,9 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure program\nB = 0.0\nRUN ecb_cls(B)')
-        assert program.startswith('procedure _ecb_text_address\n')
+        assert program.endswith('procedure program\nB = 0.0\nbase 0\n'
+                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
+        assert program.startswith('procedure _ecb_cursor_color\n')
 
     def test_basic_assignment(self):
         var = b09.BasicVar('HW')
@@ -115,14 +118,19 @@ class TestB09(unittest.TestCase):
     def generic_test_parse(
             self, progin, progout,
             filter_unused_linenum=False,
-            initialize_vars=False):
+            initialize_vars=False,
+            add_standard_prefix=False,
+            output_dependencies=False,
+            skip_procedure_headers=True,):
         b09_prog = b09.convert(
             progin,
             filter_unused_linenum=filter_unused_linenum,
             initialize_vars=initialize_vars,
-            skip_procedure_headers=True
+            skip_procedure_headers=skip_procedure_headers,
+            output_dependencies=output_dependencies,
+            add_standard_prefix=add_standard_prefix,
         )
-        assert b09_prog == progout
+        assert b09_prog == progout + '\n'
 
     def test_parse_array_ref(self):
         self.generic_test_parse(
@@ -294,10 +302,16 @@ class TestB09(unittest.TestCase):
             '11 RUN ecb_sound(100.0, A + B, 31.0)'
         )
 
+    def test_poke(self):
+        self.generic_test_parse(
+            '11 POKE65497,A+B',
+            '11 POKE 65497.0, A + B'
+        )
+
     def test_cls(self):
         self.generic_test_parse(
             '11 CLS A+B\n12 CLS',
-            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1)'
+            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1.0)'
         )
 
     def test_funcs(self):
@@ -309,23 +323,23 @@ class TestB09(unittest.TestCase):
 
     def test_hex_literal(self):
         self.generic_test_parse(
-            f'11 PRINT&H1234',
-            f'11 PRINT $1234',
+            '11 PRINT&H1234',
+            '11 run ecb_str($1234, tmp_1$) \\ PRINT tmp_1$',
         )
 
         self.generic_test_parse(
-            f'11 PRINT&HFFFFFF',
-            f'11 PRINT 16777215',
+            '11 PRINT&HFFFFFF',
+            '11 run ecb_str(16777215, tmp_1$) \\ PRINT tmp_1$',
         )
 
     def test_left_and_right(self):
         self.generic_test_parse(
-            f'11 AA$=LEFT$("HELLO" , 3)',
-            f'11 AA$ = LEFT$("HELLO", 3.0)'
+            '11 AA$=LEFT$("HELLO" , 3)',
+            '11 AA$ = LEFT$("HELLO", 3.0)'
         )
         self.generic_test_parse(
-            f'11 AA$=RIGHT$("HELLO" , 3.0)',
-            f'11 AA$ = RIGHT$("HELLO", 3.0)'
+            '11 AA$=RIGHT$("HELLO" , 3.0)',
+            '11 AA$ = RIGHT$("HELLO", 3.0)'
         )
 
     def test_mid(self):
@@ -376,7 +390,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 DATA 1,2,3,"",,"FOO","BAR", BAZ  \n'
             '20 DATA   , ',
-            '10 DATA 1.0, 2.0, 3.0, "", "", "FOO", "BAR", "BAZ  "\n'
+            '10 DATA "1.0", "2.0", "3.0", "", "", "FOO", "BAR", "BAZ  "\n'
             '20 DATA "", ""'
         )
 
@@ -446,7 +460,8 @@ class TestB09(unittest.TestCase):
             '50 PRINT "HELLO"',
             '10 FOR YY = 1.0 TO 20.0 STEP 1.0\n'
             '20   FOR XX = 1.0 TO 20.0 STEP 1.0\n'
-            '30     PRINT XX, YY\n'
+            '30     run ecb_str(XX, tmp_1$) \\ run ecb_str(YY, tmp_2$) \\ '
+            'PRINT tmp_1$, tmp_2$\n'
             '40 NEXT XX \\ NEXT YY\n'
             '50 PRINT "HELLO"'
         )
@@ -483,30 +498,37 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '11 PRINT JOYSTK(1)',
             'dim joy0x, joy0y, joy1x, joy0y: integer\n'
-            '11 RUN ecb_joystk(1.0, tmp1) \\ PRINT tmp1'
+            '11 RUN ecb_joystk(1.0, tmp_1) \\ run ecb_str(tmp_1, tmp_1$) \\ '
+            'PRINT tmp_1$'
         )
 
     def test_hex(self):
         self.generic_test_parse(
             '11 PRINT HEX$(1)',
-            '11 RUN ecb_hex(1.0, tmp1$) \\ PRINT tmp1$'
+            '11 RUN ecb_hex(1.0, tmp_1$) \\ PRINT tmp_1$'
         )
 
     def test_dim1(self):
         self.generic_test_parse(
-            '11 DIMA(12)',
-            '11 DIM arr_A(12) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
+            '11 DIMA(12),B(3),CC(20)',
+            '11 DIM arr_A(13), arr_B(4), arr_CC(21)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
             'arr_A(tmp_1) = 0 \\ '
+            'NEXT tmp_1\n'
+            'FOR tmp_1 = 0 TO 3 \\ '
+            'arr_B(tmp_1) = 0 \\ '
+            'NEXT tmp_1\n'
+            'FOR tmp_1 = 0 TO 20 \\ '
+            'arr_CC(tmp_1) = 0 \\ '
             'NEXT tmp_1'
         )
 
     def test_dim2(self):
         self.generic_test_parse(
             '11 DIMA(12,&H123)',
-            '11 DIM arr_A(12, $123) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
+            '11 DIM arr_A(13, $124)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
             'arr_A(tmp_1, tmp_2) = 0 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -515,10 +537,10 @@ class TestB09(unittest.TestCase):
     def test_dim3(self):
         self.generic_test_parse(
             '11 DIMA(12,&H123,55)',
-            '11 DIM arr_A(12, $123, 55) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
-            'FOR tmp_3 = 1 TO 55 \\ '
+            '11 DIM arr_A(13, $124, 56)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
+            'FOR tmp_3 = 0 TO 55 \\ '
             'arr_A(tmp_1, tmp_2, tmp_3) = 0 \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
@@ -528,8 +550,8 @@ class TestB09(unittest.TestCase):
     def test_str_dim1(self):
         self.generic_test_parse(
             '11 DIMA$(12)',
-            '11 DIM arr_A$(12) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
+            '11 DIM arr_A$(13)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
             'arr_A$(tmp_1) = "" \\ '
             'NEXT tmp_1'
         )
@@ -537,9 +559,9 @@ class TestB09(unittest.TestCase):
     def test_str_dim2(self):
         self.generic_test_parse(
             '11 DIMA$(12,&H123)',
-            '11 DIM arr_A$(12, $123) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
+            '11 DIM arr_A$(13, $124)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
             'arr_A$(tmp_1, tmp_2) = "" \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -548,14 +570,20 @@ class TestB09(unittest.TestCase):
     def test_str_dim3(self):
         self.generic_test_parse(
             '11 DIMA$(12,&H123,55)',
-            '11 DIM arr_A$(12, $123, 55) \\ '
-            'FOR tmp_1 = 1 TO 12 \\ '
-            'FOR tmp_2 = 1 TO $123 \\ '
-            'FOR tmp_3 = 1 TO 55 \\ '
+            '11 DIM arr_A$(13, $124, 56)\n'
+            'FOR tmp_1 = 0 TO 12 \\ '
+            'FOR tmp_2 = 0 TO $123 \\ '
+            'FOR tmp_3 = 0 TO 55 \\ '
             'arr_A$(tmp_1, tmp_2, tmp_3) = "" \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
+        )
+
+    def test_dim_misc(self):
+        self.generic_test_parse(
+            '11 DIMA$,B',
+            '11 DIM A$, B'
         )
 
     def test_line_filter(self):
@@ -595,4 +623,115 @@ class TestB09(unittest.TestCase):
             'ON NN GOTO 11, 22, 33, 44\n'
             'ON MM GOSUB 100',
             filter_unused_linenum=True,
+        )
+
+    def test_simple_read(self):
+        self.generic_test_parse(
+            '10 READA$,B,D(II,JJ),E$(XX)',
+            '10 READ A$, B, arr_D(II, JJ), arr_E$(XX)')
+
+    def test_mars_data(self):
+        self.generic_test_parse(
+            '120 DATAA CONTROL ROOM,AN ENGINE ROOM,A BARREN FIELD,A MOAT',
+            '120 DATA "A CONTROL ROOM", "AN ENGINE ROOM", '
+            '"A BARREN FIELD", "A MOAT"')
+
+    def test_input(self):
+        self.generic_test_parse(
+            '10 INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
+            '10 RUN _ecb_input_prefix \\ '
+            'INPUT "HELLO WORLD? ", A$, arr_B(1.0, 2.0, 3.0), C, '
+            'arr_D$(3.0) \\ RUN _ecb_input_suffix')
+
+    def test_input_no_message(self):
+        self.generic_test_parse(
+            '10 INPUT A$,B(1,2,3)',
+            '10 RUN _ecb_input_prefix \\ '
+            'INPUT "? ", A$, arr_B(1.0, 2.0, 3.0) \\ '
+            'RUN _ecb_input_suffix')
+
+    def test_mars_if(self):
+        self.generic_test_parse(
+            '480 IFL(4)<>11ORL(6)<>11ORL(32)<>11'
+            'ORL(30)<>11ORGR=0THEN500',
+            '480 IF arr_L(4.0) <> 11.0 '
+            'OR arr_L(6.0) <> 11.0 '
+            'OR arr_L(32.0) <> 11.0 '
+            'OR arr_L(30.0) <> 11.0 OR GR = 0.0 THEN 500')
+
+    def test_multi_and_or(self):
+        self.generic_test_parse(
+            '480 Z=A ANDB ORC ANDD ORC',
+            '480 Z = LOR(LOR(LAND(A, B), LAND(C, D)), C)')
+
+    def test_multi_arithmetic(self):
+        self.generic_test_parse(
+            '480 Z=A+B*C-D/C',
+            '480 Z = A + B * C - D / C')
+
+    def test_num_if(self):
+        self.generic_test_parse(
+            '480 IFA THEN100',
+            '480 IF A <> 0.0 THEN 100')
+
+    def test_read_empty_data(self):
+        self.generic_test_parse(
+            '10 READ A,B$,C\n'
+            '20 DATA ,FOO,',
+            '10 READ tmp_1$, B$, tmp_2$ \\ '
+            'RUN ecb_read_filter(tmp_1$, A) \\ '
+            'RUN ecb_read_filter(tmp_2$, C)\n'
+            '20 DATA "", "FOO", ""'
+        )
+
+    def test_filter_line_zero(self):
+        self.generic_test_parse(
+            '0 CLS\n',
+            'RUN ecb_cls(1.0)'
+        )
+
+    def test_does_not_filter_line_zero(self):
+        self.generic_test_parse(
+            '0 CLS:GOTO 0\n',
+            '0 RUN ecb_cls(1.0)\n'
+            'GOTO 0'
+        )
+
+    def test_handles_empty_next(self):
+        self.generic_test_parse(
+            '10 FORX=1TO10\n'
+            '20 FORY=1TO10\n'
+            '30 NEXT\n'
+            '40 NEXT\n'
+            '50 NEXT\n',
+            '10 FOR X = 1.0 TO 10.0\n'
+            '20   FOR Y = 1.0 TO 10.0\n'
+            '30   NEXT Y\n'
+            '40 NEXT X\n'
+            '50 NEXT'
+        )
+
+    def test_adds_standard_prefix(self):
+        program = b09.convert('10 REM', procname='do_cls',
+                              initialize_vars=True,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=False,
+                              add_standard_prefix=True,
+                              output_dependencies=True)
+        assert program.startswith('procedure _ecb_cursor_color\n')
+        assert 'procedure _ecb_start' in program
+        assert program.endswith('procedure do_cls\nbase 0\nRUN _ecb_start\n'
+                                '(* *)\n')
+
+    def test_multiple_print_ats(self):
+        self.generic_test_parse(
+            '130 PRINT@64,"COLOR (1-8)";: INPUT CO\n'
+            '140 IF (CO<1 OR CO>8) THEN PRINT@64," ": GOTO 130\n',
+            '130 RUN ecb_at(64.0) \\ PRINT "COLOR (1-8)";\n'
+            'RUN _ecb_input_prefix \\ INPUT "? ", CO \\ '
+            'RUN _ecb_input_suffix\n'
+            '140 IF (CO < 1.0 OR CO > 8.0) THEN\n'
+            '  RUN ecb_at(64.0) \\ PRINT " "\n'
+            '  GOTO 130\n'
+            'ENDIF'
         )

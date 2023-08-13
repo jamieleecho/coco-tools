@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+
+if [[ $* = *[!\ ]* ]]; then
+  params=( "$*" )
+else
+  params=( bash )
+fi
+
+COCO_DEV_IMAGE=jamieleecho/coco-dev:latest
+
+case "$(uname -s)" in
+
+   Darwin)
+     docker run -it --rm -w "$(pwd | sed -e s#^/[Uu][Ss][Ee][Rr][Ss]#/home#)" -v "$HOME"/..:/home -e HOME=/home/"$USER" ${COCO_DEV_IMAGE} ${params[@]}
+     ;;
+
+   Linux)
+     docker run -it --rm -w "$(pwd)" -v "$HOME"/..:/home -e HOME=/home/"$USER" ${COCO_DEV_IMAGE} ${params[@]}
+     ;;
+
+   CYGWIN*|MINGW32*|MSYS*)
+     echo 'MS Windows not supported yet'
+     ;;
+
+   # Add here more strings to compare
+   # See correspondence table at the bottom of this answer
+
+   *)
+     echo 'Unknown OS not supported' 
+     ;;
+esac
+

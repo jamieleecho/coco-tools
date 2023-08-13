@@ -1,4 +1,4 @@
-OS9TOOL=~/coco/coco-dev/coco-dev imgtool
+OS9TOOL=./coco-dev imgtool
 MAME_DIR=~/Applications/mame
 MAME=$(MAME_DIR)/mame
 
@@ -34,6 +34,7 @@ $(TMPTARGET) :
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
 
 $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas
+	mkdir -p $(EXAMPLE_OUTPUT_DIR)
 	decb-to-b09 $< $@
 
 clean :

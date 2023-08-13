@@ -9,6 +9,7 @@ from .procbank import ProcedureBank
 PROCNAME_REGEX = re.compile(r'[a-zA-Z0-9_-]+')
 
 SINGLE_KEYWORD_STATEMENTS = {
+    'END': 'END',
     'RETURN': 'RETURN',
     'RESTORE': 'RESTORE',
 }
@@ -19,11 +20,9 @@ QUOTED_SINGLE_KEYWORD_STATEMENTS = [
 
 FUNCTIONS = {
     'ABS': 'ABS',
-    'ASC': 'ASC',
     'ATN': 'ATN',
     'COS': 'COS',
     'EXP': 'EXP',
-    'INT': 'INT',
     'LEN': 'LEN',
     'LOG': 'LOG',
     'PEEK': 'PEEK',
@@ -50,6 +49,7 @@ STR3_FUNCTIONS = {
 QUOTED_STR3_FUNCTION_NAMES = [f'"{name}"' for name in STR3_FUNCTIONS]
 
 STR_NUM_FUNCTIONS = {
+    'ASC': 'ASC',
     'VAL': 'VAL',
     'LEN': 'LEN',
 }
@@ -77,6 +77,7 @@ QUOTED_STATEMENTS3_NAMES = [f'"{name}"' for name in STATEMENTS3]
 
 FUNCTIONS_TO_STATEMENTS = {
     'BUTTON': 'RUN ecb_button',
+    'INT': 'RUN ecb_int',
 }
 
 QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
@@ -93,6 +94,7 @@ QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES = [
 
 NUM_STR_FUNCTIONS_TO_STATEMENTS = {
     'HEX$': 'RUN ecb_hex',
+    'STR$': 'RUN ecb_str',
 }
 
 QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
@@ -112,19 +114,22 @@ KEYWORDS = '|'.join(
         'AND',
         'DIM',
         'CLS',
-        'CLEAR'
+        'CLEAR',
         'ELSE',
         'FOR',
         'GOSUB',
         'GOTO',
         'IF',
+        'INPUT',
         'JOYSTK',
         'NOT',
         'OR',
         'PRINT',
+        'READ',
         'REM',
         'SOUND',
         'STEP',
+        'THEN',
     ), SINGLE_KEYWORD_STATEMENTS.keys(),
         FUNCTIONS.keys(),
         STR2_FUNCTIONS.keys(),
@@ -173,6 +178,7 @@ grammar = Grammar(
                     / arr_assign
                     / str_arr_assign
                     / sound
+                    / poke_statement
                     / cls
                     / go_statement
                     / on_n_go_statement
@@ -183,26 +189,38 @@ grammar = Grammar(
                     / for_step_statement
                     / for_statement
                     / next_statement
-                    / dim3_statement
-                    / dim2_statement
-                    / dim1_statement
+                    / dim_statement
                     / clear_statement
-    statement2      =({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
+                    / read_statement
+                    / input_statement
+    statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
-    statements      = (statement? (comment/((":"/space)+
-                                            (comment / statements)))* space*)
-    statements_else = (statement? (space* ":" statements)* space*)
+    statements           = statement? space* statements_elements space* comment?
+    statements_elements  = statements_element*
+    statements_element   = ":" space* statement? space*
+    statements_else      = statements
     exp             = "NOT"? space* num_exp space*
     if_exp          = bool_exp
                     / num_exp
-    bool_exp        = "NOT"? space* bool_val_exp space* (("AND" / "OR") space* bool_val_exp space*)*
+    bool_exp              = "NOT"? space* bool_or_exp
+    bool_or_exp           = bool_and_exp space* bool_or_exp_elements
+    bool_or_exp_elements  = bool_or_exp_element*
+    bool_or_exp_element   = "OR" space* bool_and_exp space*
+    bool_and_exp          = bool_val_exp space* bool_and_exp_elements
+    bool_and_exp_elements = bool_and_exp_element*
+    bool_and_exp_element  = "AND" space* bool_val_exp space*
     bool_val_exp    = bool_paren_exp
                     / bool_str_exp
                     / bool_bin_exp
     bool_paren_exp  = "(" space* bool_exp space* ")"
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
     bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
-    num_exp         = num_gtle_exp space* (("AND" / "OR") space* num_gtle_exp space*)*
+    num_exp              = num_and_exp space* num_exp_elements
+    num_exp_elements     = num_exp_element*
+    num_exp_element      = "OR" space* num_and_exp space*
+    num_and_exp          = num_gtle_exp space* num_and_exp_elements
+    num_and_exp_elements = num_and_exp_element*
+    num_and_exp_element  = "AND" space* num_gtle_exp space*
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
     num_sum_exp     = num_prod_exp space* (("+" / "-") space*
                                            num_prod_exp space*)*
@@ -262,9 +280,10 @@ grammar = Grammar(
                     / str_exp
     print_control   = ~r"(;|,)"
     sound           = "SOUND" space* exp space* "," space* exp space*
+    poke_statement  = "POKE" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
-    on_n_go_statement   = "ON" space* var space* ("GOTO" / "GOSUB") space* linenum_list space*
+    on_n_go_statement   = "ON" space* exp space* ("GOTO" / "GOSUB") space* linenum_list space*
     linenum_list        = linenum space* linenum_list0
     linenum_list0       = linenum_list_elem*
     linenum_list_elem   = "," space* linenum space*
@@ -279,11 +298,13 @@ grammar = Grammar(
     data_str_element    = data_str_element0 / data_str_element1
     data_str_element0   = space* str_literal space*
     data_str_element1   = space* data_str_literal
-    data_str_literal    = ~r'[^",\n]*'
+    data_str_literal    = ~r'[^",:\n]*'
     single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
     for_statement       = "FOR" space* var space* "=" space* exp space* "TO" space* exp space*
     for_step_statement  = "FOR" space* var space* "=" space* exp space* "TO" space* exp space* "STEP" space* exp space*
-    next_statement      = "NEXT" space* var_list space*
+    next_statement      = next_var_statement / next_empty_statement
+    next_var_statement  = "NEXT" space* var_list space*
+    next_empty_statement= "NEXT" space*
     var_list            = var space* var_list_elements
     var_list_elements   = var_list_element*
     var_list_element    = "," space* var space*
@@ -291,43 +312,121 @@ grammar = Grammar(
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
     dim_element0        = (int_literal / hex_literal)
-    dim1_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* ")" space*
-    dim2_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
-    dim3_statement      = "DIM" space* (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim_var             = (dim_array_var / str_var / var)
+    dim_array_var       = dim_array_var3 / dim_array_var2 / dim_array_var1
+    dim_array_var1      = (str_var / var) space* "(" space* dim_element0 space* ")" space*
+    dim_array_var2      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim_array_var3      = (str_var / var) space* "(" space* dim_element0 space* "," space* dim_element0 space* "," space* dim_element0 space* ")" space*
+    dim_array_var_list  = dim_var space* dim_array_var_list_elements
+    dim_array_var_list_elements = dim_array_var_list_element*
+    dim_array_var_list_element = "," space* dim_var space*
+    dim_statement       = "DIM" space* dim_array_var_list
     clear_statement     = "CLEAR" space* exp? space*
+    read_statement      = "READ" space* rhs space* rhs_list_elements
+    rhs_list_elements   = rhs_list_element*
+    rhs_list_element    = "," space* rhs space*
+    rhs                 = array_ref_exp / str_array_ref_exp / str_var / var
+    input_statement     = "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
+    input_str_literal   = str_literal space* ';' space*
     """  # noqa
 )
 
 
 class BasicConstructVisitor():
-    def visit_program(self, line):
+    def visit_array_ref(self, array_ref):
+        """
+        Invoked when an array reference is encountered.
+        """
         pass
 
-    def visit_line(self, line):
-        pass
-
-    def visit_statement(self, statement):
+    def visit_data_statement(self, for_statement):
+        """
+        Invoked when a DATA statement is encountered.
+        """
         pass
 
     def visit_exp(self, exp):
-        pass
-
-    def visit_var(self, var):
-        pass
-
-    def visit_array_ref(self, var):
-        pass
-
-    def visit_go_statement(self, go_statement):
+        """
+        Invoked when an expression is encountered.
+        """
         pass
 
     def visit_for_statement(self, for_statement):
+        """
+        Invoked when a FOR statement is encountered.
+        """
         pass
 
-    def visit_next_statement(self, for_statement):
+    def visit_go_statement(self, go_statement):
+        """
+        Invoked when a [ON] GOTO/GOSUB statement is encountered.
+        """
         pass
+
+    def visit_input_statement(self, statement):
+        """
+        Args:
+            statement (BasicInputStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
 
     def visit_joystk(self, joystk_exp):
+        """
+        Invoked when a JOYSTK function is encountered.
+        """
+        pass
+
+    def visit_line(self, line):
+        """
+        Invoked when a new line is encountered.
+        """
+        pass
+
+    def visit_next_statement(self, next_statement):
+        """
+        Invoked when a NEXT statement is encountered.
+        """
+        pass
+
+    def visit_print_statement(self, statement):
+        """
+        Args:
+            statement (BasicPrintStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
+
+    def visit_program(self, line):
+        """
+        Invoked when a program is encountered.
+        """
+        pass
+
+    def visit_read_statement(self, statement):
+        """
+        Args:
+            statement (BasicReadStatement): input statement to transform.
+
+        Returns:
+            BasicStatement: BasicStatement to replace statement.
+        """
+        return statement
+
+    def visit_statement(self, statement):
+        """
+        Invoked when a statement is encountered.
+        """
+        pass
+
+    def visit_var(self, var):
+        """
+        Invoked when a variable is encountered.
+        """
         pass
 
 
@@ -373,10 +472,10 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 
     def get_new_temp(self, is_str_exp):
         if is_str_exp:
-            val = f'tmp{len(self._temps) + 1}$'
+            val = f'tmp_{len(self._str_temps) + 1}$'
             self._str_temps.add(val)
         else:
-            val = f'tmp{len(self._temps) + 1}'
+            val = f'tmp_{len(self._temps) + 1}'
             self._temps.add(val)
 
         return BasicVar(val, is_str_expr=is_str_exp)
@@ -502,7 +601,9 @@ class BasicExpressionList(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         exp_list_text = ', '.join(
             exp.basic09_text(indent_level) for exp in self._exp_list)
-        return f'({exp_list_text})' if self._parens else f'{exp_list_text}'
+        if self._parens:
+            return f'({exp_list_text})' if exp_list_text else ''
+        return exp_list_text
 
     def visit(self, visitor):
         for exp in self.exp_list:
@@ -553,9 +654,9 @@ class BasicGoto(AbstractBasicStatement):
 
 
 class BasicOnGoStatement(AbstractBasicStatement):
-    def __init__(self, var, linenums, is_gosub=False):
+    def __init__(self, exp, linenums, is_gosub=False):
         super().__init__()
-        self._var = var
+        self._exp = exp
         self._linenums = linenums
         self._is_gosub = is_gosub
 
@@ -566,15 +667,16 @@ class BasicOnGoStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         if self._is_gosub:
             return f'{super().basic09_text(indent_level)}' \
-                f'ON {self._var.basic09_text(indent_level)} GOSUB ' + \
+                f'ON {self._exp.basic09_text(indent_level)} GOSUB ' + \
                 ', '.join((str(linenum) for linenum in self.linenums))
         return f'{super().basic09_text(indent_level)}' \
-            f'ON {self._var.basic09_text(indent_level)} GOTO ' + \
+            f'ON {self._exp.basic09_text(indent_level)} GOTO ' + \
             ', '.join((str(linenum) for linenum in self.linenums))
 
     def visit(self, visitor):
         visitor.visit_statement(self)
         visitor.visit_go_statement(self)
+        self._exp.visit(visitor)
 
 
 class BasicIf(AbstractBasicStatement):
@@ -634,6 +736,15 @@ class BasicLiteral(AbstractBasicExpression):
         super().__init__(is_str_expr=is_str_expr)
         self._literal = literal
 
+    @property
+    def literal(self):
+        return self._literal
+
+    @literal.setter
+    def literal(self, val):
+        self._literal = val
+        self._is_str_expr = isinstance(val, str)
+
     def basic09_text(self, indent_level):
         return (f'"{self._literal}"' if type(self._literal) is str
                 else f'{self._literal}')
@@ -645,12 +756,16 @@ class BasicLiteral(AbstractBasicExpression):
 class HexLiteral(AbstractBasicExpression):
     def __init__(self, literal):
         super().__init__(is_str_expr=False)
-        self._literal = literal
+        self._literal = int(f'0x{literal}', 16)
+
+    @property
+    def literal(self):
+        return self._literal
 
     def basic09_text(self, indent_level):
-        val = int(f'0x{self._literal}', 16)
-        return f'${self._literal}' if val < 0x8000 \
-            else f'{val}'
+        return f'${hex(self._literal)[2:].upper()}' \
+          if self._literal < 0x8000 \
+          else f'{self._literal}'
 
     def visit(self, visitor):
         visitor.visit_exp(self)
@@ -729,6 +844,9 @@ class BasicProg(AbstractBasicConstruct):
     def extend_prefix_lines(self, prefix_lines):
         self._prefix_lines.extend(prefix_lines)
 
+    def insert_line_at_beginning(self, line):
+        self._lines.insert(0, line)
+
     def basic09_text(self, indent_level):
         lines = []
         if self._procname:
@@ -775,7 +893,7 @@ class Basic09CodeStatement(AbstractBasicStatement):
 class BasicStatements(AbstractBasicStatement):
     def __init__(self, statements, multi_line=True):
         super().__init__()
-        self._statements = statements
+        self._statements = list(statements)
         self._multi_line = multi_line
 
     @property
@@ -785,16 +903,30 @@ class BasicStatements(AbstractBasicStatement):
     def set_statements(self, statements):
         self._statements = statements
 
-    def basic09_text(self, indent_level):
-        joiner = ('\n' + self.indent_spaces(indent_level)) \
-            if self._multi_line else r' \ '
+    def basic09_text(self, indent_level, pre_indent=True):
+        joiner = '\n' if self._multi_line else r' \ '
         net_indent_level = indent_level if self._multi_line else 0
-        return joiner.join(statement.basic09_text(net_indent_level)
-                           for statement in self._statements)
+
+        prefix = self.indent_spaces(indent_level) \
+            if pre_indent and self._statements and \
+            isinstance(self._statements[0], BasicStatements) \
+            else ''
+
+        return prefix + \
+            joiner.join(statement.basic09_text(indent_level, pre_indent=False)
+                        if isinstance(statement, BasicStatements)
+                        else statement.basic09_text(net_indent_level)
+                        for statement in self._statements)
 
     def visit(self, visitor):
-        for statement in self.statements:
+        for idx, statement in enumerate(self.statements):
             statement.visit(visitor)
+            if isinstance(statement, BasicPrintStatement):
+                self.statements[idx] = visitor.visit_print_statement(statement)
+            elif isinstance(statement, BasicReadStatement):
+                self.statements[idx] = visitor.visit_read_statement(statement)
+            elif isinstance(statement, BasicInputStatement):
+                self.statements[idx] = visitor.visit_input_statement(statement)
 
 
 class BasicVar(AbstractBasicExpression):
@@ -816,6 +948,10 @@ class BasicPrintStatement(AbstractBasicStatement):
     def __init__(self, print_args):
         super().__init__()
         self._print_args = print_args
+
+    @property
+    def print_args(self):
+        return self._print_args
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + \
@@ -842,6 +978,10 @@ class BasicPrintArgs(AbstractBasicConstruct):
     def args(self):
         return self._args
 
+    @args.setter
+    def set_args(self, args):
+        self._args = args
+
     def basic09_text(self, indent_level):
         processed_args = []
 
@@ -867,21 +1007,30 @@ class BasicPrintArgs(AbstractBasicConstruct):
             arg.visit(visitor)
 
 
-class BasicSound(AbstractBasicStatement):
+class Basic2ParamStatement(AbstractBasicStatement):
     def __init__(self, exp1, exp2):
         super().__init__()
         self._exp1 = exp1
         self._exp2 = exp2
 
+    def visit(self, visitor):
+        visitor.visit_statement(self)
+        self._exp1.visit(visitor)
+        self._exp2.visit(visitor)
+
+
+class BasicSound(Basic2ParamStatement):
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}' \
             f'RUN ecb_sound({self._exp1.basic09_text(indent_level)}, ' \
             f'{self._exp2.basic09_text(indent_level)}, 31.0)'
 
-    def visit(self, visitor):
-        visitor.visit_statement(self)
-        self._exp1.visit(visitor)
-        self._exp2.visit(visitor)
+
+class BasicPoke(Basic2ParamStatement):
+    def basic09_text(self, indent_level):
+        return f'{super().basic09_text(indent_level)}' \
+            f'POKE {self._exp1.basic09_text(indent_level)}, ' \
+            f'{self._exp2.basic09_text(indent_level)}'
 
 
 class BasicCls(AbstractBasicStatement):
@@ -892,7 +1041,7 @@ class BasicCls(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) \
             + (f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
-               if self._exp else 'RUN ecb_cls(1)')
+               if self._exp else 'RUN ecb_cls(1.0)')
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -916,12 +1065,17 @@ class BasicDataStatement(AbstractBasicStatement):
         super().__init__()
         self._exp_list = exp_list
 
+    @property
+    def exp_list(self):
+        return self._exp_list
+
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level)}DATA ' \
             f'{self._exp_list.basic09_text(indent_level)}'
 
     def visit(self, visitor):
         visitor.visit_statement(self)
+        visitor.visit_data_statement(self)
 
 
 class BasicKeywordStatement(AbstractBasicStatement):
@@ -943,6 +1097,10 @@ class BasicForStatement(AbstractBasicStatement):
         self._start_exp = start_exp
         self._end_exp = end_exp
         self._step_exp = step_exp
+
+    @property
+    def var(self):
+        return self._var
 
     def basic09_text(self, indent_level):
         return f'{super().basic09_text(indent_level - 1)}FOR ' \
@@ -974,7 +1132,7 @@ class BasicNextStatement(AbstractBasicStatement):
         vlist = [
             f'NEXT {var.basic09_text(indent_level)}'
             for var in self.var_list.exp_list
-        ]
+        ] if self.var_list.exp_list else ['NEXT']
         return super().basic09_text(indent_level) + r' \ '.join(vlist)
 
     def visit(self, visitor):
@@ -1014,6 +1172,9 @@ class BasicFunctionalExpression(AbstractBasicExpression):
             self._statement.visit(visitor)
             self._var.visit(visitor)
         else:
+            for arg in self._args.exp_list:
+                arg.visit(visitor)
+
             visitor.visit_exp(self)
 
 
@@ -1028,32 +1189,45 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 
 
 class BasicDimStatement(AbstractBasicStatement):
-    def __init__(self, var, sizes):
+    def __init__(self, dim_vars):
         super().__init__()
-        self._array_ref = BasicArrayRef(
-            var, sizes, is_str_expr=var.is_str_expr
-        )
+        self._dim_vars = [
+            var if isinstance(var, BasicVar) else
+            BasicArrayRef(
+              BasicVar(var.var.name()[4:], is_str_expr=var.is_str_expr),
+              BasicExpressionList(
+                [BasicLiteral(index.literal + 1)
+                 if isinstance(index, BasicLiteral)
+                 else HexLiteral(hex(index.literal + 1)[2:])
+                 for index in var.indices.exp_list]
+              ),
+              is_str_expr=var.is_str_expr
+            )
+            for var in dim_vars
+        ]
 
-    def basic09_text(self, indent_level):
+    def init_text_for_var(self, dim_var):
         for_statements = (
             BasicForStatement(
                 BasicVar(f'tmp_{ii + 1}'),
-                BasicLiteral(1),
-                index
+                BasicLiteral(0),
+                BasicLiteral(index.literal - 1)
+                if isinstance(index, BasicLiteral)
+                else HexLiteral(hex(index.literal - 1)[2:])
             )
-            for ii, index in enumerate(self._array_ref.indices.exp_list)
+            for ii, index in enumerate(dim_var.indices.exp_list)
         )
         next_statements = (
             BasicNextStatement(BasicExpressionList([BasicVar(f'tmp_{ii}')]))
-            for ii in range(len(self._array_ref.indices.exp_list), 0, -1)
+            for ii in range(len(dim_var.indices.exp_list), 0, -1)
         )
         init_val = BasicLiteral(
-            '' if self._array_ref.is_str_expr else 0,
-            is_str_expr=self._array_ref.is_str_expr
+            '' if dim_var.is_str_expr else 0,
+            is_str_expr=dim_var.is_str_expr
         )
         var = BasicVar(
-            self._array_ref._var.name()[4:],
-            self._array_ref._var.is_str_expr
+            dim_var._var.name()[4:],
+            dim_var._var.is_str_expr
         )
 
         assignment = \
@@ -1064,7 +1238,7 @@ class BasicDimStatement(AbstractBasicStatement):
                         (
                             BasicVar(f'tmp_{ii}')
                             for ii in range(
-                                1, len(self._array_ref.indices.exp_list) + 1
+                                1, len(dim_var.indices.exp_list) + 1
                             )
                         )
                     )
@@ -1072,14 +1246,53 @@ class BasicDimStatement(AbstractBasicStatement):
                 init_val
             )
 
-        init = BasicStatements(
+        return BasicStatements(
             chain(for_statements, (assignment, ), next_statements),
             multi_line=False
-        )
+        ).basic09_text(0)
+
+    def basic09_text(self, indent_level):
+        dim_var_text = ', '.join((
+            dim_var.basic09_text(indent_level) for dim_var in self._dim_vars
+        ))
+        init_text = '\n'.join((
+            self.init_text_for_var(dim_var) for dim_var in self._dim_vars
+            if isinstance(dim_var, BasicArrayRef)
+        ))
+        init_text = '\n' + init_text if init_text else ''
 
         return f'{super().basic09_text(indent_level)}' \
-            f'DIM {self._array_ref.basic09_text(indent_level)} \\ ' \
-            f'{init.basic09_text(0)}'
+            f'DIM {dim_var_text}' + init_text
+
+
+class BasicReadStatement(BasicStatement):
+    def __init__(self, rhs_list):
+        super().__init__(None)
+        self._rhs_list = rhs_list
+
+    @property
+    def rhs_list(self):
+        return self._rhs_list
+
+    def basic09_text(self, indent_level):
+        return self.indent_spaces(indent_level) + \
+               'READ ' + \
+               ', '.join(rhs.basic09_text(indent_level)
+                         for rhs in self._rhs_list)
+
+
+class BasicInputStatement(BasicStatement):
+    def __init__(self, message, rhs_list):
+        self._message = message
+        self._rhs_list = rhs_list
+
+    def basic09_text(self, indent_level):
+        prefix = self.indent_spaces(indent_level) + \
+                 'INPUT ' + self._message.basic09_text(indent_level) + ', ' \
+                 if self._message else 'INPUT '
+        return prefix + ', '.join((
+            rhs.basic09_text(indent_level) for rhs in self._rhs_list
+        ))
 
 
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
@@ -1137,6 +1350,15 @@ class LineNumberFilterVisitor(BasicConstructVisitor):
         line.set_is_referenced(line.num in self._references)
 
 
+class LineZeroFilterVisitor(BasicConstructVisitor):
+    def __init__(self, references):
+        self._references = references
+
+    def visit_line(self, line):
+        if line.num == 0:
+            line.set_is_referenced(line.num in self._references)
+
+
 class VarInitializerVisitor(BasicConstructVisitor):
     def __init__(self):
         self._vars = set()
@@ -1175,6 +1397,121 @@ class JoystickVisitor(BasicConstructVisitor):
 
     def visit_joystk(self, joystk_exp):
         self._uses_joystk = True
+
+
+class BasicEmptyDataElementVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self._has_empty_data_elements = False
+
+    @property
+    def has_empty_data_elements(self):
+        return self._has_empty_data_elements
+
+    def visit_data_statement(self, statement):
+        for exp in statement.exp_list.exp_list:
+            self._has_empty_data_elements = \
+                self._has_empty_data_elements or exp.literal == ''
+
+
+class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_data_statement(self, statement):
+        for exp in statement.exp_list.exp_list:
+            if not isinstance(exp.literal, str):
+                exp.literal = str(exp.literal)
+
+    def visit_read_statement(self, statement):
+        """
+        Transform the READ statement so that READ statements that read into
+        REAL vars properly handle empty strings. This means:
+        1. Changing the statement into a BasicStatements
+        2. Changing the READ statement to read into temp strings
+        3. Calling functions to convert the string temps into the REAL
+        """
+
+        # Map REAL vars to temp string vars
+        rhs_to_temp = {
+            rhs: statement.get_new_temp(True)
+            for rhs in statement.rhs_list
+            if not rhs.is_str_expr
+        }
+
+        # Transform the READ REAL vars to the temp string vars
+        for idx, rhs in enumerate(statement.rhs_list):
+            statement.rhs_list[idx] = rhs_to_temp.get(
+                rhs, rhs
+            )
+
+        # Create statements for reading into the REAL vars
+        filter_statements = [
+            BasicRunCall(
+              'RUN ecb_read_filter',
+              BasicExpressionList((
+                inval,
+                outval)))
+              for outval, inval in rhs_to_temp.items()
+        ]
+
+        return BasicStatements(
+            [statement] + filter_statements,
+            multi_line=False
+        )
+
+
+class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_input_statement(self, statement):
+        """
+        Transform the INPUT statement so that the cursor and full duplex are
+        enabled before the statement and disabled after the statement.
+        """
+
+        # Create statements for reading into the REAL vars
+        filter_statements = [
+            BasicRunCall(
+              'RUN _ecb_input_prefix',
+              BasicExpressionList([])),
+            statement,
+            BasicRunCall(
+              'RUN _ecb_input_suffix',
+              BasicExpressionList([])),
+        ]
+
+        return BasicStatements(
+            filter_statements,
+            multi_line=False
+        )
+
+
+class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
+    def visit_print_statement(self, statement):
+        """
+        Transform the PRINT statement so that non string expressions are
+        converted to strings via STR.
+        """
+
+        # Create statements for reading into the REAL vars
+        print_args = [
+            arg if not isinstance(arg, AbstractBasicExpression)
+            or arg.is_str_expr
+            else BasicFunctionalExpression(
+                  'run ecb_str',
+                  BasicExpressionList([arg]), is_str_expr=True
+                 )
+            for arg in statement.print_args.args
+        ]
+
+        return BasicPrintStatement(BasicPrintArgs(print_args))
+
+
+class BasicNextPatcherVisitor(BasicConstructVisitor):
+    def __init__(self):
+        self.for_stack = []
+
+    def visit_for_statement(self, for_statement):
+        self.for_stack.append(for_statement.var)
+
+    def visit_next_statement(self, next_statement):
+        if self.for_stack and len(next_statement.var_list.exp_list) == 0:
+            next_statement.var_list.exp_list.append(self.for_stack.pop())
 
 
 class BasicVisitor(NodeVisitor):
@@ -1254,17 +1591,47 @@ class BasicVisitor(NodeVisitor):
 
     def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
+        is_bool = isinstance(exp, (BasicBooleanBinaryExp, BasicBooleanOpExp,
+                                   BasicBooleanParenExp))
+        exp = exp if is_bool else \
+            BasicBooleanBinaryExp(exp, '<>', BasicLiteral(0.0))
         return BasicIf(exp, statements)
 
     def visit_if_exp(self, node, visited_children):
         return visited_children[0]
 
     def visit_bool_exp(self, node, visited_children):
-        not_keyword, _, exp1, _, exp2 = visited_children
-        exp = exp1 if exp2 == '' \
-            else BasicBooleanBinaryExp(exp1, exp2.operator, exp2.exp)
-        return exp if not isinstance(not_keyword, BasicOperator) \
-            else BasicBooleanOpExp(not_keyword.operator, exp)
+        not_keyword, _, exp = visited_children
+        return BasicBooleanOpExp(not_keyword.operator, exp) \
+            if isinstance(not_keyword, BasicOperator) else exp
+
+    def visit_bool_or_exp(self, node, visited_children):
+        exp1, _, exp_ops = visited_children
+        if len(exp_ops) == 0:
+            return exp1
+        last_exp = exp1
+        for exp_op in exp_ops:
+            last_exp = BasicBooleanBinaryExp(
+                last_exp, exp_op.operator, exp_op.exp
+            )
+        return last_exp
+
+    def visit_bool_or_exp_elements(self, _, visited_children):
+        return visited_children
+
+    def visit_bool_or_exp_element(self, _, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicBooleanOpExp('OR', exp)
+
+    def visit_bool_and_exp(self, node, visited_children):
+        return self.visit_bool_or_exp(node, visited_children)
+
+    def visit_bool_and_exp_elements(self, _, visited_children):
+        return visited_children
+
+    def visit_bool_and_exp_element(self, _, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicBooleanOpExp('AND', exp)
 
     def visit_bool_val_exp(self, node, visited_children):
         return visited_children[0]
@@ -1302,7 +1669,32 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_num_exp(self, node, visited_children):
-        return self.visit_num_prod_exp(node, visited_children)
+        exp1, _, exp_ops = visited_children
+        if len(exp_ops) == 0:
+            return exp1
+        last_exp = exp1
+        for exp_op in exp_ops:
+            last_exp = BasicBinaryExp(
+                last_exp, exp_op.operator, exp_op.exp
+            )
+        return last_exp
+
+    def visit_num_exp_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_num_exp_element(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('OR', exp)
+
+    def visit_num_and_exp(self, node, visited_children):
+        return self.visit_num_exp(node, visited_children)
+
+    def visit_num_and_exp_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_num_and_exp_element(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicOpExp('AND', exp)
 
     def visit_str_exp(self, node, visited_children):
         if len(visited_children) < 4:
@@ -1422,8 +1814,23 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_statements(self, node, visited_children):
-        return BasicStatements([child for child in visited_children
-                                if isinstance(child, AbstractBasicConstruct)])
+        statement, _, statement_elements, _, basic_comment = visited_children
+        statement_elements = \
+            [statement] + statement_elements \
+            if statement else statement_elements
+        statement_elements = statement_elements + [basic_comment] \
+            if basic_comment else statement_elements
+        return BasicStatements(statement_elements)
+
+    def visit_statements_elements(self, node, visited_children):
+        return [statement for statement in visited_children if statement]
+
+    def visit_statements_element(self, node, visited_children):
+        _, _, statement, _ = visited_children
+        return statement or None
+
+    def visit_statements_else(self, node, visited_children):
+        return visited_children[0]
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(str(node.full_text[node.start+1:node.end-1]),
@@ -1433,9 +1840,7 @@ class BasicVisitor(NodeVisitor):
         return self.visit_num_prod_exp(node, visited_children)
 
     def visit_val_exp(self, node, visited_children):
-        if len(visited_children) < 2:
-            return visited_children[0]
-        return node
+        return visited_children[0] if len(visited_children) < 2 else node
 
     def visit_var(self, node, visited_children):
         return BasicVar(node.full_text[node.start:node.end])
@@ -1477,6 +1882,10 @@ class BasicVisitor(NodeVisitor):
         _, _, exp1, _, _, _, exp2, _ = visited_children
         return BasicSound(exp1, exp2)
 
+    def visit_poke_statement(self, node, visited_children):
+        _, _, exp1, _, _, _, exp2, _ = visited_children
+        return BasicPoke(exp1, exp2)
+
     def visit_cls(self, node, visited_children):
         _, _, exp, _ = visited_children
         return BasicCls(exp if isinstance(exp, AbstractBasicExpression)
@@ -1502,8 +1911,8 @@ class BasicVisitor(NodeVisitor):
         return BasicGoto(linenum, False, is_gosub=go.text == 'GOSUB')
 
     def visit_on_n_go_statement(self, node, visited_children):
-        _, _, var, _, go, _, lines, _ = visited_children
-        return BasicOnGoStatement(var, lines, is_gosub=(go.text == 'GOSUB'))
+        _, _, exp, _, go, _, lines, _ = visited_children
+        return BasicOnGoStatement(exp, lines, is_gosub=(go.text == 'GOSUB'))
 
     def visit_linenum_list(self, node, visited_children):
         linenum, _, linenums = visited_children
@@ -1529,6 +1938,36 @@ class BasicVisitor(NodeVisitor):
 
     def visit_dim_element0(self, node, visited_children):
         return visited_children[0]
+
+    def visit_dim_var(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_dim_array_var1(self, node, visited_children):
+        var, _, _, _, size1, _, _, _ = visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var2(self, node, visited_children):
+        var, _, _, _, size1, _, _, _, size2, _, _, _ = visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1, size2]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var3(self, node, visited_children):
+        var, _, _, _, size1, _, _, _, size2, \
+          _, _, _, size3, _, _, _ = visited_children
+        return BasicArrayRef(var, BasicExpressionList([size1, size2, size3]),
+                             is_str_expr=var.is_str_expr)
+
+    def visit_dim_array_var_list(self, node, visited_children):
+        dim_var, _, dim_vars = visited_children
+        return [dim_var] + dim_vars
+
+    def visit_dim_array_var_list_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_dim_array_var_list_element(self, node, visited_children):
+        _, _, dim_var, _ = visited_children
+        return dim_var
 
     def visit_data_element0(self, node, visited_children):
         _, _, data_element = visited_children
@@ -1575,8 +2014,15 @@ class BasicVisitor(NodeVisitor):
         return BasicForStatement(var, exp1, exp2, step_exp=exp3)
 
     def visit_next_statement(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_next_var_statement(self, node, visited_children):
         _, _, var_list, _ = visited_children
         return BasicNextStatement(var_list)
+
+    def visit_next_empty_statement(self, node, visited_children):
+        _, _ = visited_children
+        return BasicNextStatement(BasicExpressionList([]))
 
     def visit_var_list(self, node, visited_children):
         var, _, var_list = visited_children
@@ -1611,24 +2057,38 @@ class BasicVisitor(NodeVisitor):
             BasicExpressionList([exp])
         )
 
-    def visit_dim1_statement(self, node, visited_children):
-        _, _, var, _, _, _, size, _, _, _ = visited_children
-        return BasicDimStatement(var, BasicExpressionList([size]))
-
-    def visit_dim2_statement(self, node, visited_children):
-        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _ = visited_children
-        return BasicDimStatement(var, BasicExpressionList([size0, size1]))
-
-    def visit_dim3_statement(self, node, visited_children):
-        _, _, var, _, _, _, size0, _, _, _, size1, _, _, _, size2, \
-            _, _, _ = visited_children
-        return BasicDimStatement(
-            var,
-            BasicExpressionList([size0, size1, size2])
-        )
+    def visit_dim_statement(self, node, visited_children):
+        _, _, dim_var_list = visited_children
+        return BasicDimStatement(dim_var_list)
 
     def visit_clear_statement(self, node, visited_children):
         return BasicComment(f' {node.text.strip() }')
+
+    def visit_read_statement(self, node, visited_children):
+        _, _, rhs, _, rhs_list = visited_children
+        return BasicReadStatement([rhs] + rhs_list)
+
+    def visit_rhs_list_elements(self, node, visited_children):
+        return visited_children
+
+    def visit_rhs_list_element(self, node, visited_children):
+        _, _, rhs, _ = visited_children
+        return rhs
+
+    def visit_rhs(self, node, visited_children):
+        return visited_children[0]
+
+    def visit_input_statement(self, node, visited_children):
+        _, _, str_literal, _, rhs, _, rhs_list = visited_children
+        if isinstance(str_literal, BasicLiteral):
+            str_literal.literal = f'{str_literal.literal}? '
+        else:
+            str_literal = BasicLiteral('? ', is_str_expr=True)
+        return BasicInputStatement(str_literal, [rhs] + rhs_list)
+
+    def visit_input_str_literal(self, node, visited_children):
+        str_literal, _, _, _ = visited_children
+        return str_literal
 
 
 def convert(progin,
@@ -1636,10 +2096,21 @@ def convert(progin,
             filter_unused_linenum=False,
             initialize_vars=False,
             skip_procedure_headers=False,
-            output_dependencies=False):
+            output_dependencies=False,
+            add_standard_prefix=True):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
+
+    if add_standard_prefix:
+        basic_prog.insert_line_at_beginning(
+            BasicLine(None,
+                      BasicRunCall('RUN _ecb_start',
+                                   BasicExpressionList([])))
+        )
+        basic_prog.insert_line_at_beginning(
+            BasicLine(None, Basic09CodeStatement('base 0'))
+        )
 
     if skip_procedure_headers := skip_procedure_headers or \
        not output_dependencies:
@@ -1648,13 +2119,25 @@ def convert(progin,
         procname = procname if PROCNAME_REGEX.match(procname) else 'program'
     basic_prog.set_procname(procname)
 
-    # transform functions to proc calls
-    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
+    # Patch INPUT statements
+    basic_prog.visit(BasicInputStatementPatcherVisitor())
+
+    # Patch up READ statements to handle empty DATA elements
+    empty_data_elements_visitor = BasicEmptyDataElementVisitor()
+    basic_prog.visit(empty_data_elements_visitor)
+    if empty_data_elements_visitor.has_empty_data_elements:
+        basic_prog.visit(BasicReadStatementPatcherVisitor())
 
     # Update joystk stuff
     joystk_initializer = JoystickVisitor()
     basic_prog.visit(joystk_initializer)
     basic_prog.extend_prefix_lines(joystk_initializer.joystk_var_statements)
+
+    # Patch PRINT statements
+    basic_prog.visit(BasicPrintStatementPatcherVisitor())
+
+    # transform functions to proc calls
+    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
     # initialize variables
     if initialize_vars:
@@ -1663,14 +2146,17 @@ def convert(progin,
         basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
 
     # remove unused line numbers
-    if filter_unused_linenum:
-        line_ref_visitor = LineReferenceVisitor()
-        basic_prog.visit(line_ref_visitor)
-        line_num_filter = LineNumberFilterVisitor(
-            line_ref_visitor.references
-        )
-        basic_prog.visit(line_num_filter)
+    line_ref_visitor = LineReferenceVisitor()
+    basic_prog.visit(line_ref_visitor)
+    line_num_filter = LineNumberFilterVisitor(line_ref_visitor.references) \
+        if filter_unused_linenum \
+        else LineZeroFilterVisitor(line_ref_visitor.references)
+    basic_prog.visit(line_num_filter)
 
+    # try to patch up empty next statements
+    basic_prog.visit(BasicNextPatcherVisitor())
+
+    # output the program
     program = basic_prog.basic09_text(0)
     if output_dependencies and procname:
         procedure_bank = ProcedureBank()
@@ -1678,7 +2164,7 @@ def convert(progin,
         procedure_bank.add_from_str(program)
         program = procedure_bank.get_procedure_and_dependencies(procname)
 
-    return program
+    return program + '\n'
 
 
 def convert_file(input_program_file,
@@ -1686,7 +2172,8 @@ def convert_file(input_program_file,
                  procname='',
                  filter_unused_linenum=False,
                  initialize_vars=False,
-                 output_dependencies=False):
+                 output_dependencies=False,
+                 add_standard_prefix=True):
     progin = input_program_file.read()
     progout = convert(
         progin,
@@ -1694,6 +2181,7 @@ def convert_file(input_program_file,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
         output_dependencies=output_dependencies,
+        add_standard_prefix=add_standard_prefix
     )
     progout = progout.replace('\n', '\r')
     output_program_file.write(progout)
