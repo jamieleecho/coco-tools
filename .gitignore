@@ -103,6 +103,7 @@ src/static
 cfg/
 .coverage*
 os9boot.dsk
+basic.dsk
 snap/
 *~
 *.tmp
