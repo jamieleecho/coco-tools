@@ -77,14 +77,6 @@ procedure ecb_hex
     str = str + tmp
 
 
-procedure ecb_inkey
-    param c: string
-
-    SHELL("tmode eko=0")
-    run INKEY(c)
-    SHELL("tmode eko=1")
-
-
 procedure ecb_locate
     param x, y: real
 
