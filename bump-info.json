@@ -9,7 +9,7 @@
       "path": "Dockerfile",
       "line": 2
   }, {
-      "path": "src/coco/__init__.py",
+      "path": "./coco/__init__.py",
       "line": 2
   }],
   "rules": [{
