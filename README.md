@@ -229,3 +229,11 @@ docker-compose run test
 # Run tests using the source on the host computer
 docker-compose run testv
 ```
+
+## Credits
+The programs in the examples/decb directory are from the following sources:
+* alien4k0.bas -- https://github.com/jggames/trs80mc10/blob/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Arcade/4K/Alien4K/ALIEN4K0.TXT#L4
+* bach.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/bach.c10
+* banner.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/banner.c10
+* cadnza.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cadnza.c10
+* mars.bas -- https://github.com/jggames/trs80mc10/tree/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Text%20Adventures/WorkInProgress/Mars
