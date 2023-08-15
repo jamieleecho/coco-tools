@@ -666,6 +666,20 @@ class TestB09(unittest.TestCase):
             'INPUT "? ", A$, arr_B(1.0, 2.0, 3.0) \\ '
             'RUN _ecb_input_suffix')
 
+    def test_line_input(self):
+        self.generic_test_parse(
+            '10 LINE INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
+            '10 RUN _ecb_input_prefix \\ '
+            'INPUT "HELLO WORLD", A$, arr_B(1.0, 2.0, 3.0), C, '
+            'arr_D$(3.0) \\ RUN _ecb_input_suffix')
+
+    def test_line_input_no_message(self):
+        self.generic_test_parse(
+            '10 LINE INPUT A$,B(1,2,3)',
+            '10 RUN _ecb_input_prefix \\ '
+            'INPUT "", A$, arr_B(1.0, 2.0, 3.0) \\ '
+            'RUN _ecb_input_suffix')
+
     def test_mars_if(self):
         self.generic_test_parse(
             '480 IFL(4)<>11ORL(6)<>11ORL(32)<>11'

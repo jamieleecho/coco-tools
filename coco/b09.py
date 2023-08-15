@@ -330,7 +330,7 @@ grammar = Grammar(
     rhs_list_elements   = rhs_list_element*
     rhs_list_element    = "," space* rhs space*
     rhs                 = array_ref_exp / str_array_ref_exp / str_var / var
-    input_statement     = "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
+    input_statement     = "LINE"? space* "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
     input_str_literal   = str_literal space* ';' space*
     """  # noqa
 )
@@ -2109,11 +2109,13 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0]
 
     def visit_input_statement(self, node, visited_children):
-        _, _, str_literal, _, rhs, _, rhs_list = visited_children
+        line, _, _, _, str_literal, _, rhs, _, rhs_list = visited_children
         if isinstance(str_literal, BasicLiteral):
-            str_literal.literal = f'{str_literal.literal}? '
+            str_literal.literal = str_literal.literal if line != '' \
+                                else f'{str_literal.literal}? '
         else:
-            str_literal = BasicLiteral('? ', is_str_expr=True)
+            str_literal = BasicLiteral('' if line != '' else '? ',
+                                       is_str_expr=True)
         return BasicInputStatement(str_literal, [rhs] + rhs_list)
 
     def visit_input_str_literal(self, node, visited_children):
