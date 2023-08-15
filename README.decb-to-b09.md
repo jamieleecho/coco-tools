@@ -26,10 +26,10 @@ The utility provides a best effort for conversion which means:
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
 include: ABS, +, AND, ASC, ATN, BUTTON, CHR$, CLS, COS, DATA, DIM, /,
-END, ELSE, =, EXP, FOR, GOTO, GOSUB, >, IF, INKEY$, INPUT, INT, JOYSTK, LEFT$,
-LEN, <, LET, LOG, MID$, *, NEXT, NOT, OPEN, OR, PRINT, READ, REM, RESET,
-RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, -,
-TAB, TAN, THEN, TO, VAL
+END, ELSE, =, EXP, FIX, FOR, GOTO, GOSUB, >, IF, INKEY$, INPUT, INT, JOYSTK,
+LEFT$, LEN, <, LET, LOG, MID$, *, NEXT, NOT, OPEN, OR, PRINT, READ, REM,
+RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP,
+STR$, -, TAB, TAN, THEN, TO, VAL
 
 ## Supported constructs that need some explanation
 * String literals must be closed.

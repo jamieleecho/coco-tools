@@ -10,8 +10,9 @@ PROCNAME_REGEX = re.compile(r'[a-zA-Z0-9_-]+')
 
 SINGLE_KEYWORD_STATEMENTS = {
     'END': 'END',
-    'RETURN': 'RETURN',
     'RESTORE': 'RESTORE',
+    'RETURN': 'RETURN',
+    'STOP': 'STOP',
 }
 
 QUOTED_SINGLE_KEYWORD_STATEMENTS = [
@@ -23,6 +24,7 @@ FUNCTIONS = {
     'ATN': 'ATN',
     'COS': 'COS',
     'EXP': 'EXP',
+    'FIX': 'FIX',
     'LEN': 'LEN',
     'LOG': 'LOG',
     'PEEK': 'PEEK',
@@ -150,9 +152,9 @@ grammar = Grammar(
     multi_line_elements = multi_line_element*
     multi_line_element  = eol+ line space*
     array_ref_exp   = var space* exp_list
-    arr_assign      = array_ref_exp space* "=" space* exp
+    arr_assign      = "LET"? space* array_ref_exp space* "=" space* exp
     str_array_ref_exp   = str_var space* exp_list
-    str_arr_assign  = str_array_ref_exp space* "=" space* str_exp
+    str_arr_assign  = "LET"? space* str_array_ref_exp space* "=" space* str_exp
     comment         = comment_token comment_text
     exp_list        = "(" space* exp space* exp_sublist ")"
     exp_sublist     = exp_sublist_mbr*
@@ -167,8 +169,8 @@ grammar = Grammar(
                     / statements
     line_or_stmnts2 = linenum
                     / statements_else
-    str_assign      = str_var space* "=" space* str_exp
-    num_assign      = var space* "=" space* exp
+    str_assign      = "LET"? space* str_var space* "=" space* str_exp
+    num_assign      = "LET"? space* var space* "=" space* exp
     statement       = if_else_stmnt
                     / if_stmnt
                     / print_at_statement
@@ -525,8 +527,9 @@ class BasicArrayRef(AbstractBasicExpression):
 
 
 class BasicAssignment(AbstractBasicStatement):
-    def __init__(self, var, exp):
+    def __init__(self, var, exp, let_kw=False):
         super().__init__()
+        self._let_kw = let_kw
         self._var = var
         self._exp = exp
 
@@ -543,8 +546,11 @@ class BasicAssignment(AbstractBasicStatement):
             return f'{super().basic09_text(indent_level)}' \
                 f'{self._exp.statement.basic09_text(indent_level)}'
 
+        prefix = 'LET ' if self._let_kw else ''
+
         return f'{super().basic09_text(indent_level)}' \
-            f'{self._var.basic09_text(indent_level)} = ' \
+            f'{prefix}' \
+            f'{self._var.basic09_text(indent_level)} := ' \
             f'{self._exp.basic09_text(indent_level)}'
 
     def visit(self, visitor):
@@ -1553,16 +1559,17 @@ class BasicVisitor(NodeVisitor):
         return BasicProg(visited_children[0])
 
     def visit_arr_assign(self, node, visited_children):
-        array_ref_exp, _, _, _, val_exp = visited_children
-        return BasicAssignment(array_ref_exp, val_exp)
+        let_kw, _, array_ref_exp, _, _, _, val_exp = visited_children
+        return BasicAssignment(array_ref_exp, val_exp, let_kw=let_kw != '')
 
     def visit_array_ref_exp(self, node, visited_children):
         var, _, exp_list = visited_children
         return BasicArrayRef(var, exp_list)
 
     def visit_str_arr_assign(self, node, visited_children):
-        str_array_ref_exp, _, _, _, str_exp = visited_children
-        return BasicAssignment(str_array_ref_exp, str_exp)
+        let_kw, _, str_array_ref_exp, _, _, _, str_exp = visited_children
+        return BasicAssignment(str_array_ref_exp, str_exp,
+                               let_kw=let_kw != '')
 
     def visit_str_array_ref_exp(self, node, visited_children):
         str_var, _, exp_list = visited_children
@@ -1820,10 +1827,11 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_num_assign(self, node, visited_children):
-        return BasicAssignment(visited_children[0], visited_children[4])
+        let_kw, _, var, _, _, _, val = visited_children
+        return BasicAssignment(var, val, let_kw=let_kw != '')
 
     def visit_str_assign(self, node, visited_children):
-        return BasicAssignment(visited_children[0], visited_children[4])
+        return self.visit_num_assign(node, visited_children)
 
     def visit_space(self, node, visited_children):
         return node.text

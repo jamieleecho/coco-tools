@@ -11,7 +11,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure do_cls\nB = 0.0\nbase 0\n'
+        assert program.endswith('procedure do_cls\nB := 0.0\nbase 0\n'
                                 'RUN _ecb_start\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_cursor_color\n')
         assert program.find('procedure _ecb_text_address\n') >= 0
@@ -22,7 +22,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=True,
                               output_dependencies=True)
-        assert program == 'B = 0.0\nbase 0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
+        assert program == 'B := 0.0\nbase 0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
 
     def test_convert_header_no_name_with_dependencies(self):
         program = b09.convert('10 CLS B',
@@ -30,7 +30,7 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure program\nB = 0.0\nbase 0\n'
+        assert program.endswith('procedure program\nB := 0.0\nbase 0\n'
                                 'RUN _ecb_start\nRUN ecb_cls(B)\n')
         assert program.startswith('procedure _ecb_cursor_color\n')
 
@@ -38,7 +38,7 @@ class TestB09(unittest.TestCase):
         var = b09.BasicVar('HW')
         exp = b09.BasicLiteral(123.0)
         target = b09.BasicAssignment(var, exp)
-        assert target.basic09_text(1) == '  HW = 123.0'
+        assert target.basic09_text(1) == '  HW := 123.0'
 
     def test_basic_binary_exp(self):
         var = b09.BasicVar('HW')
@@ -135,22 +135,31 @@ class TestB09(unittest.TestCase):
     def test_parse_array_ref(self):
         self.generic_test_parse(
             '10 A = B(123 - 1 - (2/2),1,2)\n',
-            '10 A = arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)')
+            '10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)')
 
     def test_parse_array_assignment(self):
         self.generic_test_parse(
             '10 A (123 - 1 - (2/2),1,2)=123+64',
-            '10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) = 123.0 + 64.0')
+            '10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := 123.0 + 64.0')
+
+        self.generic_test_parse(
+            '10 LETA (123 - 1 - (2/2),1,2)=123+64',
+            '10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := '
+            '123.0 + 64.0')
 
     def test_parse_str_array_ref(self):
         self.generic_test_parse(
             '10 A$ = B$(123 - 1 - (2/2),1,2)',
-            '10 A$ = arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)')
+            '10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)')
+
+        self.generic_test_parse(
+            '10 LETA$ = B$(123 - 1 - (2/2),1,2)',
+            '10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)')
 
     def test_parse_str_array_assignment(self):
         self.generic_test_parse(
             '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
-            '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) = "123" + "64"')
+            '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "123" + "64"')
 
     def test_parse_comment_program(self):
         self.generic_test_parse(
@@ -165,27 +174,34 @@ class TestB09(unittest.TestCase):
     def test_parse_simple_assignment(self):
         self.generic_test_parse(
             '10 A = 123\n20 B=123.4\n30C$="HELLO"\n35D$=C$',
-            '10 A = 123.0\n20 B = 123.4\n30 C$ = "HELLO"\n35 D$ = C$')
+            '10 A := 123.0\n20 B := 123.4\n30 C$ := "HELLO"\n35 D$ := C$')
+
+        self.generic_test_parse(
+            '10 LETA = 123\n20 B=123.4\n30C$="HELLO"\n35D$=C$',
+            '10 LET A := 123.0\n20 B := 123.4\n30 C$ := "HELLO"\n35 D$ := C$')
 
     def test_parse_paren_expression(self):
         self.generic_test_parse(
             '10 A = (AB)',
-            '10 A = (AB)')
+            '10 A := (AB)')
 
     def test_parse_prod_expression(self):
         self.generic_test_parse(
             '10 A = 64 * 32\n20 B = 10/AB',
-            '10 A = 64.0 * 32.0\n20 B = 10.0 / AB')
+            '10 A := 64.0 * 32.0\n20 B := 10.0 / AB')
 
     def test_parse_add_expression(self):
         self.generic_test_parse(
             '10 A = 64 + 32\n20 B = 10-AB+32',
-            '10 A = 64.0 + 32.0\n20 B = 10.0 - AB + 32.0')
+            '10 A := 64.0 + 32.0\n20 B := 10.0 - AB + 32.0')
 
     def test_parse_str_expression(self):
         self.generic_test_parse(
             '10 A$ = "A" + "Z"\n20B$=A$+B$',
-            '10 A$ = "A" + "Z"\n20 B$ = A$ + B$')
+            '10 A$ := "A" + "Z"\n20 B$ := A$ + B$')
+        self.generic_test_parse(
+            '10 LETA$ = "A" + "Z"\n20B$=A$+B$',
+            '10 LET A$ := "A" + "Z"\n20 B$ := A$ + B$')
 
     def test_parse_str_expression2(self):
         self.generic_test_parse(
@@ -195,46 +211,46 @@ class TestB09(unittest.TestCase):
     def test_parse_multi_expression(self):
         self.generic_test_parse(
             '10 A = 64 + 32*10 / AB -1',
-            '10 A = 64.0 + 32.0 * 10.0 / AB - 1.0')
+            '10 A := 64.0 + 32.0 * 10.0 / AB - 1.0')
 
     def test_parse_gtle_expression(self):
         self.generic_test_parse(
             '10 A = 4 < 2\n15 B=4>2\n20C=A<>B',
-            '10 A = 4.0 < 2.0\n15 B = 4.0 > 2.0\n20 C = A <> B')
+            '10 A := 4.0 < 2.0\n15 B := 4.0 > 2.0\n20 C := A <> B')
 
     def test_parse_multi_expression2(self):
         self.generic_test_parse(
             '10 A=(64+32)*10/(AB-1)',
-            '10 A = (64.0 + 32.0) * 10.0 / (AB - 1.0)')
+            '10 A := (64.0 + 32.0) * 10.0 / (AB - 1.0)')
 
     def test_parse_multi_expression3(self):
         # Note that the output is not a legal Basic09 construct
         self.generic_test_parse(
             '10 A = A + 2 AND 3 < 3',
-            '10 A = LAND(A + 2.0, 3.0 < 3.0)')
+            '10 A := LAND(A + 2.0, 3.0 < 3.0)')
 
     def test_parse_multi_statement(self):
         self.generic_test_parse(
             '10 A=A+2:B=B+1',
-            '10 A = A + 2.0\nB = B + 1.0')
+            '10 A := A + 2.0\nB := B + 1.0')
 
     def test_simple_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
-            '1 IF A = 1.0 THEN 2\n2 IF A < 10.0 THEN\n  B = B - 2.0 * 1.0'
+            '1 IF A = 1.0 THEN 2\n2 IF A < 10.0 THEN\n  B := B - 2.0 * 1.0'
             '\nENDIF')
 
     def test_binary_if_statement(self):
         self.generic_test_parse(
             '1 IF A=1 AND B=2 THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF A = 1.0 AND B = 2.0 THEN 2\n2 IF A < 10.0 THEN\n'
-            '  B = B - 2.0 * 1.0\nENDIF')
+            '  B := B - 2.0 * 1.0\nENDIF')
 
     def test_paren_if_statement(self):
         self.generic_test_parse(
             '1 IF (A=1 AND B=2) THEN 2\n2 IF A<10 THEN B = B - 2 * 1',
             '1 IF (A = 1.0 AND B = 2.0) THEN 2\n2 IF A < 10.0 THEN\n'
-            '  B = B - 2.0 * 1.0\nENDIF')
+            '  B := B - 2.0 * 1.0\nENDIF')
 
     def test_simple_print_statement(self):
         self.generic_test_parse(
@@ -281,13 +297,13 @@ class TestB09(unittest.TestCase):
     def test_lor(self):
         self.generic_test_parse(
             '11 Z = A=B OR F=Z',
-            '11 Z = LOR(A = B, F = Z)'
+            '11 Z := LOR(A = B, F = Z)'
         )
 
     def test_lnot(self):
         self.generic_test_parse(
             '11 Z = NOT A=B',
-            '11 Z = LNOT(A = B)'
+            '11 Z := LNOT(A = B)'
         )
 
     def test_if_not(self):
@@ -318,7 +334,7 @@ class TestB09(unittest.TestCase):
         for ecb_func, b09_func in b09.FUNCTIONS.items():
             self.generic_test_parse(
                 f'11X={ecb_func}(1)',
-                f'11 X = {b09_func}(1.0)',
+                f'11 X := {b09_func}(1.0)',
             )
 
     def test_hex_literal(self):
@@ -335,30 +351,30 @@ class TestB09(unittest.TestCase):
     def test_left_and_right(self):
         self.generic_test_parse(
             '11 AA$=LEFT$("HELLO" , 3)',
-            '11 AA$ = LEFT$("HELLO", 3.0)'
+            '11 AA$ := LEFT$("HELLO", 3.0)'
         )
         self.generic_test_parse(
             '11 AA$=RIGHT$("HELLO" , 3.0)',
-            '11 AA$ = RIGHT$("HELLO", 3.0)'
+            '11 AA$ := RIGHT$("HELLO", 3.0)'
         )
 
     def test_mid(self):
         self.generic_test_parse(
             f'11 AA$=MID$("HELLO" , 3,2)',
-            f'11 AA$ = MID$("HELLO", 3.0, 2.0)'
+            f'11 AA$ := MID$("HELLO", 3.0, 2.0)'
         )
 
     def test_val(self):
         self.generic_test_parse(
             f'11 AA = VAL("2334")',
-            f'11 AA = VAL("2334")'
+            f'11 AA := VAL("2334")'
         )
 
     def test_num_str_funcs(self):
         for ecb_func, b09_func in b09.NUM_STR_FUNCTIONS.items():
             self.generic_test_parse(
                 f'11X$={ecb_func}(1)',
-                f'11 X$ = {b09_func}(1.0)',
+                f'11 X$ := {b09_func}(1.0)',
             )
 
     def test_builtin_statements(self):
@@ -436,7 +452,7 @@ class TestB09(unittest.TestCase):
             '10 PRINT "HELLO"\n'
             '20 A = 2',
             '10 PRINT "HELLO"\n'
-            '20 A = 2.0'
+            '20 A := 2.0'
         )
 
     def test_multiline2(self):
@@ -448,7 +464,7 @@ class TestB09(unittest.TestCase):
             '10 (* Hello World *)\n'
             '20 RUN ecb_cls(5.0)\n'
             '30 PRINT "HELLO"\n'
-            '40 B = 2.0'
+            '40 B := 2.0'
         )
 
     def test_for_next(self):
@@ -513,13 +529,13 @@ class TestB09(unittest.TestCase):
             '11 DIMA(12),B(3),CC(20)',
             '11 DIM arr_A(13), arr_B(4), arr_CC(21)\n'
             'FOR tmp_1 = 0 TO 12 \\ '
-            'arr_A(tmp_1) = 0 \\ '
+            'arr_A(tmp_1) := 0 \\ '
             'NEXT tmp_1\n'
             'FOR tmp_1 = 0 TO 3 \\ '
-            'arr_B(tmp_1) = 0 \\ '
+            'arr_B(tmp_1) := 0 \\ '
             'NEXT tmp_1\n'
             'FOR tmp_1 = 0 TO 20 \\ '
-            'arr_CC(tmp_1) = 0 \\ '
+            'arr_CC(tmp_1) := 0 \\ '
             'NEXT tmp_1'
         )
 
@@ -529,7 +545,7 @@ class TestB09(unittest.TestCase):
             '11 DIM arr_A(13, $124)\n'
             'FOR tmp_1 = 0 TO 12 \\ '
             'FOR tmp_2 = 0 TO $123 \\ '
-            'arr_A(tmp_1, tmp_2) = 0 \\ '
+            'arr_A(tmp_1, tmp_2) := 0 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
         )
@@ -541,7 +557,7 @@ class TestB09(unittest.TestCase):
             'FOR tmp_1 = 0 TO 12 \\ '
             'FOR tmp_2 = 0 TO $123 \\ '
             'FOR tmp_3 = 0 TO 55 \\ '
-            'arr_A(tmp_1, tmp_2, tmp_3) = 0 \\ '
+            'arr_A(tmp_1, tmp_2, tmp_3) := 0 \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -552,7 +568,7 @@ class TestB09(unittest.TestCase):
             '11 DIMA$(12)',
             '11 DIM arr_A$(13)\n'
             'FOR tmp_1 = 0 TO 12 \\ '
-            'arr_A$(tmp_1) = "" \\ '
+            'arr_A$(tmp_1) := "" \\ '
             'NEXT tmp_1'
         )
 
@@ -562,7 +578,7 @@ class TestB09(unittest.TestCase):
             '11 DIM arr_A$(13, $124)\n'
             'FOR tmp_1 = 0 TO 12 \\ '
             'FOR tmp_2 = 0 TO $123 \\ '
-            'arr_A$(tmp_1, tmp_2) = "" \\ '
+            'arr_A$(tmp_1, tmp_2) := "" \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
         )
@@ -574,7 +590,7 @@ class TestB09(unittest.TestCase):
             'FOR tmp_1 = 0 TO 12 \\ '
             'FOR tmp_2 = 0 TO $123 \\ '
             'FOR tmp_3 = 0 TO 55 \\ '
-            'arr_A$(tmp_1, tmp_2, tmp_3) = "" \\ '
+            'arr_A$(tmp_1, tmp_2, tmp_3) := "" \\ '
             'NEXT tmp_3 \\ '
             'NEXT tmp_2 \\ '
             'NEXT tmp_1'
@@ -608,9 +624,9 @@ class TestB09(unittest.TestCase):
     def test_initializes_vars(self):
         self.generic_test_parse(
             '10 PRINT A+B, A$',
-            'A = 0.0\n'
-            'A$ = ""\n'
-            'B = 0.0\n'
+            'A := 0.0\n'
+            'A$ := ""\n'
+            'B := 0.0\n'
             '10 PRINT A + B, A$',
             filter_unused_linenum=False,
             initialize_vars=True
@@ -662,12 +678,12 @@ class TestB09(unittest.TestCase):
     def test_multi_and_or(self):
         self.generic_test_parse(
             '480 Z=A ANDB ORC ANDD ORC',
-            '480 Z = LOR(LOR(LAND(A, B), LAND(C, D)), C)')
+            '480 Z := LOR(LOR(LAND(A, B), LAND(C, D)), C)')
 
     def test_multi_arithmetic(self):
         self.generic_test_parse(
             '480 Z=A+B*C-D/C',
-            '480 Z = A + B * C - D / C')
+            '480 Z := A + B * C - D / C')
 
     def test_num_if(self):
         self.generic_test_parse(
