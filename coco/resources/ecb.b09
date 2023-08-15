@@ -77,6 +77,29 @@ procedure ecb_hex
     str = str + tmp
 
 
+procedure ecb_instr
+    param index: real
+    param str0: string
+    param str1: string
+    param outindex: real
+    dim ii: integer
+
+    for ii = index to len(str0) - len(str1)
+        if str1 = mid(str0, ii, ii + len(str1)) then
+            outindex = ii
+        endif
+    next ii
+
+
+procedure ecb_int
+    param v, retval: real
+    if v >= 0 then
+        retval = int(v)
+    else
+        retval = int(v - 0.999999999)
+    endif
+
+
 procedure ecb_locate
     param x, y: real
 
@@ -168,6 +191,37 @@ procedure ecb_sound
     run gfx2("tone", fint, dint, vint)
 
 
+procedure ecb_str
+    param valin: real
+    param valout: string
+    valout = str$(valin)
+    if mid$(valout, len(valout), 1) = "." then
+        valout = " " + left$(valout, len(valout) - 1) + " "
+    else
+        if valout = ".0" then
+            valout = " 0 "
+        else
+            valout = " " + valout + " "
+        endif
+    endif
+
+
+procedure ecb_string
+    param count: real
+    param str: string
+    param strout: string
+    dim ii: integer
+
+    if count < 0 or len(str) = 0 then
+        error 52
+    endif
+
+    strout = ""
+    for ii=1 to count
+        strout = strout + mid$(str, 1, 1)
+    next ii
+
+
 procedure _ecb_text_address
     param address: integer
     type rregisters = cc, a, b, dp:byte; x, y, u:integer
@@ -183,21 +237,6 @@ procedure _ecb_text_address
         address = -1
     else
         address = rregs.x
-    endif
-
-
-procedure ecb_str
-    param valin: real
-    param valout: string
-    valout = str$(valin)
-    if mid$(valout, len(valout), 1) = "." then
-        valout = " " + left$(valout, len(valout) - 1) + " "
-    else
-        if valout = ".0" then
-            valout = " 0 "
-        else
-            valout = " " + valout + " "
-        endif
     endif
 
 
@@ -224,15 +263,6 @@ procedure _ecb_get_point_info
     address = address + (y / 2) * 32 + (x / 2)
     mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
     c0 = peek(fix(address))
-
-
-procedure ecb_int
-    param v, retval: real
-    if v >= 0 then
-        retval = int(v)
-    else
-        retval = int(v - 0.999999999)
-    endif
 
 
 procedure _ecb_cursor_color

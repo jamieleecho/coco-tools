@@ -778,3 +778,15 @@ class TestB09(unittest.TestCase):
             '130 RUN ecb_at(170.0) \\ PRINT "*  " + CHR$(191.0) + "  " + '
             'CHR$(191.0) + "  *"'
         )
+
+    def test_varptr(self):
+        self.generic_test_parse(
+            '10 A = VARPTR(A)\n'
+            '20 A = VARPTR(A$)\n'
+            '30 A = VARPTR(A(1,2))\n'
+            '40 A = VARPTR(A$(1,2))\n',
+            '10 A := ADDR(A)\n'
+            '20 A := ADDR(A$)\n'
+            '30 A := ADDR(arr_A(1.0, 2.0))\n'
+            '40 A := ADDR(arr_A$(1.0, 2.0))',
+        )

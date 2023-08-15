@@ -147,10 +147,11 @@ KEYWORDS = '|'.join(
 
 grammar = Grammar(
     rf"""
-    aaa_prog           = multi_line eol* eof
-    multi_line         = line space* multi_line_elements
+    aaa_prog            = multi_line eol* eof
+    multi_line          = line space* multi_line_elements
     multi_line_elements = multi_line_element*
     multi_line_element  = eol+ line space*
+    lhs             = str_array_ref_exp / str_var / array_ref_exp / var
     array_ref_exp   = var space* exp_list
     arr_assign      = "LET"? space* array_ref_exp space* "=" space* exp
     str_array_ref_exp   = str_var space* exp_list
@@ -234,13 +235,14 @@ grammar = Grammar(
                     / hex_literal
                     / paren_exp
                     / unop_exp
-                    / array_ref_exp
-                    / var
                     / func_exp
                     / func_str_exp
                     / func_to_statements
                     / func_to_statements2
                     / joystk_to_statement
+                    / varptr_expr
+                    / array_ref_exp
+                    / var
     unop_exp        = unop space* exp
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp          = str_simple_exp space* str_exp_elements
@@ -332,6 +334,7 @@ grammar = Grammar(
     rhs                 = array_ref_exp / str_array_ref_exp / str_var / var
     input_statement     = "LINE"? space* "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
     input_str_literal   = str_literal space* ';' space*
+    varptr_expr         = "VARPTR" space* "(" space* lhs space* ")" space*
     """  # noqa
 )
 
@@ -1303,6 +1306,20 @@ class BasicInputStatement(BasicStatement):
         ))
 
 
+class BasicVarptrExpression(AbstractBasicExpression):
+    def __init__(self, var):
+        super().__init__()
+        self._var = var
+
+    def basic09_text(self, indent_level):
+        return f'{self.indent_spaces(indent_level)}' \
+            f'ADDR({self._var.basic09_text(indent_level)})'
+
+    def visit(self, visitor):
+        visitor.visit_exp(self)
+        visitor.visit_exp(self._var)
+
+
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
@@ -1784,6 +1801,9 @@ class BasicVisitor(NodeVisitor):
         _, line, _ = visited_children
         return line
 
+    def visit_lhs(self, node, visited_children):
+        return visited_children[0]
+
     def visit_num_literal(self, node, visited_children):
         num_literal = node.full_text[node.start:node.end].replace(' ', '')
         return BasicLiteral(float(num_literal))
@@ -2121,6 +2141,10 @@ class BasicVisitor(NodeVisitor):
     def visit_input_str_literal(self, node, visited_children):
         str_literal, _, _, _ = visited_children
         return str_literal
+
+    def visit_varptr_expr(self, node, visited_children):
+        _, _, _, _, var, _, _, _ = visited_children
+        return BasicVarptrExpression(var)
 
 
 def convert(progin,
