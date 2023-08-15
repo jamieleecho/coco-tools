@@ -790,3 +790,15 @@ class TestB09(unittest.TestCase):
             '30 A := ADDR(arr_A(1.0, 2.0))\n'
             '40 A := ADDR(arr_A$(1.0, 2.0))',
         )
+
+    def test_instr(self):
+        self.generic_test_parse(
+            '10 A = INSTR(10,"HELLO","LL")\n',
+            '10 run ecb_instr(10.0, "HELLO", "LL", A)',
+        )
+
+    def test_string(self):
+        self.generic_test_parse(
+            '10 A = STRING$(10,"HELLO")\n',
+            '10 run ecb_string(10.0, "HELLO", A)',
+        )

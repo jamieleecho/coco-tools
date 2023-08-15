@@ -241,6 +241,8 @@ grammar = Grammar(
                     / func_to_statements2
                     / joystk_to_statement
                     / varptr_expr
+                    / instr_expr
+                    / string_expr
                     / array_ref_exp
                     / var
     unop_exp        = unop space* exp
@@ -335,6 +337,8 @@ grammar = Grammar(
     input_statement     = "LINE"? space* "INPUT" space* input_str_literal? space* rhs space* rhs_list_elements
     input_str_literal   = str_literal space* ';' space*
     varptr_expr         = "VARPTR" space* "(" space* lhs space* ")" space*
+    instr_expr          = "INSTR" space* "(" space* exp space* "," space* str_exp space* "," space* str_exp space* ")" space*
+    string_expr         = "STRING$" space* "(" space* exp space* "," space* str_exp space* ")" space*
     """  # noqa
 )
 
@@ -2145,6 +2149,17 @@ class BasicVisitor(NodeVisitor):
     def visit_varptr_expr(self, node, visited_children):
         _, _, _, _, var, _, _, _ = visited_children
         return BasicVarptrExpression(var)
+
+    def visit_instr_expr(self, node, visited_children):
+        _, _, _, _, index, _, _, _, str0, _, _, _, str1, _, _, _ \
+            = visited_children
+        return BasicFunctionalExpression(
+          'run ecb_instr', BasicExpressionList([index, str0, str1]))
+
+    def visit_string_expr(self, node, visited_children):
+        _, _, _, _, count, _, _, _, str, _, _, _ = visited_children
+        return BasicFunctionalExpression(
+          'run ecb_string', BasicExpressionList([count, str]))
 
 
 def convert(progin,
