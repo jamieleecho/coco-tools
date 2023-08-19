@@ -85,7 +85,7 @@ procedure ecb_instr
     dim ii: integer
 
     for ii = index to len(str0) - len(str1)
-        if str1 = mid(str0, ii, ii + len(str1)) then
+        if str1 = mid$(str0, ii, ii + len(str1)) then
             outindex = ii
         endif
     next ii
@@ -286,3 +286,111 @@ procedure _ecb_input_prefix
 procedure _ecb_input_suffix
     run _ecb_cursor_color(0)
     SHELL("tmode eko=0")
+
+
+procedure dup
+    param inpath, outpath: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    rregs.a = inpath
+    reqid = $82
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        error rregs.b
+    else
+        outpath = rregs.a
+    endif
+
+
+procedure devnm
+    param inpath: integer
+    param name: string
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+    dim ii, xx: integer
+
+    (* getstat SS.DevNm *)
+    rregs.a = inpath
+    rregs.b = $e
+    rregs.x = addr(name)
+    reqid = $8d
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        error rregs.b
+    else
+        xx = addr(name)
+        for ii=0 to 31
+            if peek(xx + ii) >= 128 then
+                poke xx + ii, land(peek(xx + ii), 127)
+                name = left$(name, ii + 1)
+                ii = 32
+            endif
+        next ii
+    endif
+
+
+procedure closeall
+    close #0
+    close #1
+    close #2
+
+
+procedure printit
+    dim pathname: string
+    run devnm(0, pathname)
+    print pathname
+
+
+procedure width
+    param width: real
+    dim path(3), path0, ii: integer
+    dim buffer(2): byte
+    dim pathname: string
+
+    (* Get the path to the next free descriptor *)
+    open #path(1), "/w":read
+    run devnm(path(1), pathname)
+    close #path(1)
+    pathname = "/" + pathname
+
+    (* Make sure it is the right type *)
+    shell("iniz " + pathname)
+    if width = 32 then
+        shell("xmode " + pathname + " par=1")
+    else
+        shell("xmode " + pathname + " par=80")
+    endif
+
+    (* Open it for real *)
+    open #path(1), pathname:read
+    open #path(2), pathname:write
+    open #path(3), pathname:write
+
+    (* Replace stdin, stdout and stderr *)
+    run closeall
+    for ii=1 to 3
+        run dup(path(ii), path0)
+        if (path0 <> ii - 1) then
+            error 52
+        endif
+    next ii
+
+    (* Display window *)
+    buffer(1) = $1b
+    buffer(2) = $21
+    put #1, buffer
+
+    (* Close old paths *)
+    for ii=1 to 3
+        close #path(ii)
+    next ii
+
+
+procedure doit
+    run width(32)
+    input a$
+    run width(80)
+    input a$
