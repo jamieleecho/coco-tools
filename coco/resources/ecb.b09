@@ -222,49 +222,6 @@ procedure ecb_string
     next ii
 
 
-procedure _ecb_text_address
-    param address: integer
-    type rregisters = cc, a, b, dp:byte; x, y, u:integer
-    dim rregs: rregisters
-    dim reqid: byte
-
-    (* getstat ss.alfas *)
-    rregs.a = 1
-    rregs.b = $1c
-    reqid = $8d
-    run syscall(reqid, rregs)
-    if land(rregs.cc, 1) <> 0 then
-        address = -1
-    else
-        address = rregs.x
-    endif
-
-
-procedure _ecb_hex_digit
-    param v: real
-    param s: string
-    if v < 10 then
-        s = chr$(v + asc("0"))
-    else
-        s = chr$(v + asc("A"))
-    endif
-
-
-procedure _ecb_get_point_info
-    param x, y: real
-    param address, mask, c0: integer
-    if x < 0 or x > 63 or y < 0 or y > 31 then
-        error 52
-    endif
-    run _ecb_text_address(address)
-    if address = -1 then
-        error 52
-    endif
-    address = address + (y / 2) * 32 + (x / 2)
-    mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
-    c0 = peek(fix(address))
-
-
 procedure _ecb_cursor_color
     param v: integer
     dim tmp_buffer(2): byte
@@ -273,38 +230,7 @@ procedure _ecb_cursor_color
     put #1, tmp_buffer
 
 
-procedure _ecb_start
-    run _ecb_cursor_color(0)
-    SHELL("tmode pau=0")
-
-
-procedure _ecb_input_prefix
-    run _ecb_cursor_color(1)
-    SHELL("tmode eko=1")
-
-
-procedure _ecb_input_suffix
-    run _ecb_cursor_color(0)
-    SHELL("tmode eko=0")
-
-
-procedure dup
-    param inpath, outpath: integer
-    type rregisters = cc, a, b, dp:byte; x, y, u:integer
-    dim rregs: rregisters
-    dim reqid: byte
-
-    rregs.a = inpath
-    reqid = $82
-    run syscall(reqid, rregs)
-    if land(rregs.cc, 1) <> 0 then
-        error rregs.b
-    else
-        outpath = rregs.a
-    endif
-
-
-procedure devnm
+procedure _ecb_devnm
     param inpath: integer
     param name: string
     type rregisters = cc, a, b, dp:byte; x, y, u:integer
@@ -332,65 +258,174 @@ procedure devnm
     endif
 
 
-procedure closeall
-    close #0
-    close #1
-    close #2
+procedure _ecb_dup
+    param inpath, outpath: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    rregs.a = inpath
+    reqid = $82
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        error rregs.b
+    else
+        outpath = rregs.a
+    endif
 
 
-procedure printit
+procedure _ecb_get_point_info
+    param x, y: real
+    param address, mask, c0: integer
+    if x < 0 or x > 63 or y < 0 or y > 31 then
+        error 52
+    endif
+    run _ecb_text_address(address)
+    if address = -1 then
+        error 52
+    endif
+    address = address + (y / 2) * 32 + (x / 2)
+    mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
+    c0 = peek(fix(address))
+
+
+procedure _ecb_hex_digit
+    param v: real
+    param s: string
+    if v < 10 then
+        s = chr$(v + asc("0"))
+    else
+        s = chr$(v + asc("A"))
+    endif
+
+
+procedure _ecb_input_prefix
+    run _ecb_cursor_color(1)
+    SHELL("tmode eko=1")
+
+
+procedure _ecb_input_suffix
+    run _ecb_cursor_color(0)
+    SHELL("tmode eko=0")
+
+
+procedure _ecb_start
+    run _ecb_cursor_color(0)
+    SHELL("tmode pau=0")
+
+
+procedure _ecb_text_address
+    param address: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    (* getstat ss.alfas *)
+    rregs.a = 1
+    rregs.b = $1c
+    reqid = $8d
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        address = -1
+    else
+        address = rregs.x
+    endif
+
+
+procedure _ecb_width
+    param width: integer
+    param inoutpath: integer
+    dim path, path0, ii: integer
+    dim buff2(2): byte
+    dim buff10(10): byte
     dim pathname: string
-    run devnm(0, pathname)
-    print pathname
 
-
-procedure width
-    param width: real
-    dim path(3), path0, ii: integer
-    dim buffer(2): byte
-    dim pathname: string
+    if width <> 32 and width <> 40 and width <> 80 then
+        error 52
+    endif
 
     (* Get the path to the next free descriptor *)
-    open #path(1), "/w":read
-    run devnm(path(1), pathname)
-    close #path(1)
+    open #path, "/w":update
+    run _ecb_devnm(path, pathname)
     pathname = "/" + pathname
+    close #path
 
     (* Make sure it is the right type *)
-    shell("iniz " + pathname)
     if width = 32 then
-        shell("xmode " + pathname + " par=1")
+        shell("xmode " + pathname + " par=0 pau=0 upc=0")
     else
         shell("xmode " + pathname + " par=80")
     endif
 
-    (* Open it for real *)
-    open #path(1), pathname:read
-    open #path(2), pathname:write
-    open #path(3), pathname:write
+    (* Open for reals *)
+    open #path, pathname:update
+
+    (* Set the window style *)
+    if width <> 32 then
+        buff10(1)  = $1b
+        buff10(2)  = $20
+        if width = 80 then
+            buff10(3)  = $02
+            buff10(6)  = $50
+        else
+            buff10(3)  = $01
+            buff10(6)  = $28
+        endif
+        buff10(4)  = $00
+        buff10(5)  = $00
+        buff10(7)  = $18
+        buff10(8)  = $00
+        buff10(9)  = $01
+        buff10(10) = $01
+        put #path, buff10
+    endif
+
+    (* Display window *)
+    buff2(1) = $1b
+    buff2(2) = $21
+    put #path, buff2
 
     (* Replace stdin, stdout and stderr *)
-    run closeall
     for ii=1 to 3
-        run dup(path(ii), path0)
+        close #(ii - 1)
+        run _ecb_dup(path, path0)
         if (path0 <> ii - 1) then
             error 52
         endif
     next ii
 
     (* Display window *)
-    buffer(1) = $1b
-    buffer(2) = $21
-    put #1, buffer
+    buff2(1) = $1b
+    buff2(2) = $21
+    put #path, buff2
 
     (* Close old paths *)
-    for ii=1 to 3
-        close #path(ii)
+    if (inoutpath > 0) then
+        run _ecb_devnm(inoutpath, pathname)
+        pathname = "/" + pathname
+        shell("xmode " + pathname + " par=80")
+        shell("deiniz " + pathname)
+        close #inoutpath
+    endif
+    inoutpath = path
+
+
+procedure testit
+    dim ii, screen_path: integer
+    screen_path = -1
+
+    for ii=1 to 10
+        run _ecb_width(32, screen_path)
+        run ecb_cls(4.0)
+        print screen_path
+        input "this is a VDG screen. press enter. ", a$
+
+        run _ecb_width(80, screen_path)
+        print screen_path
+        input "this is a windint screen. press enter. ", a$
+
+        run _ecb_width(40, screen_path)
+        print screen_path
+        input "this is a windint screen. press enter. ", a$
     next ii
 
-
-procedure doit
-    run width(32)
-    input a$
-    run width(80)
-    input a$
