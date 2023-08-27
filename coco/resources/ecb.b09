@@ -33,6 +33,7 @@ procedure ecb_cls
     param color: real
     dim a, b, ii: integer
     dim c: byte
+
     if color = 1 or color > 8 then
         c = $0c
         put #1, c
@@ -333,98 +334,152 @@ procedure _ecb_text_address
 
 
 procedure _ecb_width
+    type win_text_info_t = wpath, blink, underline, background, foreground: byte
+    type vdg_text_info_t = vpath: byte
     param width: integer
-    param inoutpath: integer
+    param win_text: win_text_info_t
+    param vdg_text: vdg_text_info_t
     dim path, path0, ii: integer
     dim buff2(2): byte
-    dim buff10(10): byte
+    dim buff12(12): byte
+    dim wintype: integer
     dim pathname: string
 
     if width <> 32 and width <> 40 and width <> 80 then
         error 52
     endif
 
-    (* Get the path to the next free descriptor *)
-    open #path, "/w":update
-    run _ecb_devnm(path, pathname)
-    pathname = "/" + pathname
-    close #path
+    path = $ff
+    buff2(1) = $1b
+    buff2(2) = $21
 
-    (* Make sure it is the right type *)
-    if width = 32 then
-        shell("xmode " + pathname + " par=0 pau=0 upc=0")
+    (* Cache the current path if needed... *)
+    run _ecb_wintype(1, wintype)
+    run _ecb_devnm(1, pathname)
+    pathname = "/" + pathname
+    if wintype = 0 then
+        if vdg_text.vpath = $ff then
+            open #path0, pathname:update
+            vdg_text.vpath = path0
+        endif
     else
-        shell("xmode " + pathname + " par=80")
+        if win_text.wpath = $ff then
+            open #path0, pathname:update
+            win_text.wpath = path0
+        endif
     endif
 
-    (* Open for reals *)
-    open #path, pathname:update
+    if width = 32 and vdg_text.vpath <> $ff then
+        path = vdg_text.vpath
+    endif
+    if width <> 32 and win_text.wpath <> $ff then
+        path = win_text.wpath
+    endif
+
+    if path = $ff then
+        (* Get the path to the next free descriptor *)
+        open #path, "/w":update
+        run _ecb_devnm(path, pathname)
+        pathname = "/" + pathname
+        close #path
+
+        (* Make sure it is the right type *)
+        if width = 32 then
+            shell("xmode " + pathname + " par=0 pau=0 upc=0")
+        else
+            shell("xmode " + pathname + " par=80")
+        endif
+
+        (* Open for reals *)
+        open #path, pathname:update
+    endif
 
     (* Set the window style *)
     if width <> 32 then
-        buff10(1)  = $1b
-        buff10(2)  = $20
+        buff12(1)  = $1b
+        buff12(2)  = $24
+        buff12(3)  = $1b
+        buff12(4)  = $20
         if width = 80 then
-            buff10(3)  = $02
-            buff10(6)  = $50
+            buff12(5)  = $02
+            buff12(8)  = $50
         else
-            buff10(3)  = $01
-            buff10(6)  = $28
+            buff12(5)  = $01
+            buff12(8)  = $28
         endif
-        buff10(4)  = $00
-        buff10(5)  = $00
-        buff10(7)  = $18
-        buff10(8)  = $00
-        buff10(9)  = $01
-        buff10(10) = $01
-        put #path, buff10
+        buff12(6)  = $00
+        buff12(7)  = $00
+        buff12(9)  = $18
+        buff12(10)  = $00
+        buff12(11)  = $01
+        buff12(12) = $01
+        put #path, buff12
+        win_text.wpath = path
+    else
+        vdg_text.vpath = path
     endif
 
     (* Display window *)
-    buff2(1) = $1b
-    buff2(2) = $21
     put #path, buff2
 
     (* Replace stdin, stdout and stderr *)
     for ii=1 to 3
         close #(ii - 1)
         run _ecb_dup(path, path0)
-        if (path0 <> ii - 1) then
+        if path0 <> ii - 1 then
             error 52
         endif
     next ii
 
-    (* Display window *)
-    buff2(1) = $1b
-    buff2(2) = $21
-    put #path, buff2
 
-    (* Close old paths *)
-    if (inoutpath > 0) then
-        run _ecb_devnm(inoutpath, pathname)
-        pathname = "/" + pathname
-        shell("xmode " + pathname + " par=80")
-        shell("deiniz " + pathname)
-        close #inoutpath
+procedure _ecb_wintype
+    param inpath, wintype: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    (* getstat SS.ScTyp *)
+    rregs.a = inpath
+    rregs.b = $93
+    reqid = $8d
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        if rregs.b = 208 then
+            wintype = 0
+        else
+            error rregs.b
+        endif
+    else
+        wintype = rregs.b
     endif
-    inoutpath = path
 
 
 procedure testit
-    dim ii, screen_path: integer
-    screen_path = -1
+    type win_text_info_t = wpath, blink, underline, background, foreground: byte
+    type vdg_text_info_t = vpath: byte
+    dim screen_path: integer
+    dim win_text: win_text_info_t
+    dim vdg_text: vdg_text_info_t
+    win_text.wpath = $ff
+    win_text.blink = 0
+    win_text.underline = 0
+    win_text.background = 0
+    win_text.foreground = 0
+    vdg_text.vpath = $ff
+
+    dim ii: integer
 
     for ii=1 to 10
-        run _ecb_width(32, screen_path)
+        run _ecb_width(32, win_text, vdg_text)
         run ecb_cls(4.0)
         print screen_path
         input "this is a VDG screen. press enter. ", a$
 
-        run _ecb_width(80, screen_path)
+        run _ecb_width(80, win_text, vdg_text)
         print screen_path
         input "this is a windint screen. press enter. ", a$
 
-        run _ecb_width(40, screen_path)
+        run _ecb_width(40, win_text, vdg_text)
         print screen_path
         input "this is a windint screen. press enter. ", a$
     next ii
