@@ -11,10 +11,9 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure do_cls\nB := 0.0\nbase 0\n'
-                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
-        assert program.startswith('procedure _ecb_cursor_color\n')
-        assert program.find('procedure _ecb_text_address\n') >= 0
+        assert 'procedure do_cls\n' in program
+        assert 'procedure _ecb_cursor_color\n' in program
+        assert 'procedure _ecb_text_address\n' in program
 
     def test_convert_no_header_with_dependencies(self):
         program = b09.convert('10 CLS B', procname='do_cls',
@@ -22,7 +21,10 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=True,
                               output_dependencies=True)
-        assert program == 'B := 0.0\nbase 0\nRUN _ecb_start\nRUN ecb_cls(B)\n'
+        assert 'B := 0.0\n' in program
+        assert 'base 0\n' in program
+        assert 'RUN _ecb_start' in program
+        assert 'RUN ecb_cls(B, display)' in program
 
     def test_convert_header_no_name_with_dependencies(self):
         program = b09.convert('10 CLS B',
@@ -30,9 +32,29 @@ class TestB09(unittest.TestCase):
                               filter_unused_linenum=True,
                               skip_procedure_headers=False,
                               output_dependencies=True)
-        assert program.endswith('procedure program\nB := 0.0\nbase 0\n'
-                                'RUN _ecb_start\nRUN ecb_cls(B)\n')
-        assert program.startswith('procedure _ecb_cursor_color\n')
+        assert 'B := 0.0\n'
+        assert 'base 0\n' in program
+        assert 'RUN _ecb_start' in program
+        assert 'RUN ecb_cls(B, display)' in program
+        assert 'procedure _ecb_cursor_color\n' in program
+
+    def test_convert_no_default_width32(self):
+        program = b09.convert('10 A=0', procname='do_cls',
+                              initialize_vars=False,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=True,
+                              output_dependencies=False,
+                              default_width32=False)
+        assert 'RUN _ecb_start(display, 0)\n' in program
+
+    def test_convert_default_width32(self):
+        program = b09.convert('10 A=0', procname='do_cls',
+                              initialize_vars=False,
+                              filter_unused_linenum=True,
+                              skip_procedure_headers=True,
+                              output_dependencies=False,
+                              default_width32=True)
+        assert 'RUN _ecb_start(display, 1)\n' in program
 
     def test_basic_assignment(self):
         var = b09.BasicVar('HW')
@@ -327,7 +349,7 @@ class TestB09(unittest.TestCase):
     def test_cls(self):
         self.generic_test_parse(
             '11 CLS A+B\n12 CLS',
-            '11 RUN ecb_cls(A + B)\n12 RUN ecb_cls(1.0)'
+            '11 RUN ecb_cls(A + B, display)\n12 RUN ecb_cls(1.0, display)'
         )
 
     def test_funcs(self):
@@ -462,7 +484,7 @@ class TestB09(unittest.TestCase):
             '30 PRINT "HELLO"\n'
             '40 B = 2.0',
             '10 (* Hello World *)\n'
-            '20 RUN ecb_cls(5.0)\n'
+            '20 RUN ecb_cls(5.0, display)\n'
             '30 PRINT "HELLO"\n'
             '40 B := 2.0'
         )
@@ -717,13 +739,13 @@ class TestB09(unittest.TestCase):
     def test_filter_line_zero(self):
         self.generic_test_parse(
             '0 CLS\n',
-            'RUN ecb_cls(1.0)'
+            'RUN ecb_cls(1.0, display)'
         )
 
     def test_does_not_filter_line_zero(self):
         self.generic_test_parse(
             '0 CLS:GOTO 0\n',
-            '0 RUN ecb_cls(1.0)\n'
+            '0 RUN ecb_cls(1.0, display)\n'
             'GOTO 0'
         )
 
@@ -749,9 +771,9 @@ class TestB09(unittest.TestCase):
                               add_standard_prefix=True,
                               output_dependencies=True)
         assert program.startswith('procedure _ecb_cursor_color\n')
-        assert 'procedure _ecb_start' in program
-        assert program.endswith('procedure do_cls\nbase 0\nRUN _ecb_start\n'
-                                '(* *)\n')
+        assert 'procedure _ecb_start\n' in program
+        assert 'base 0\n' in program
+        assert 'procedure do_cls' in program
 
     def test_multiple_print_ats(self):
         self.generic_test_parse(

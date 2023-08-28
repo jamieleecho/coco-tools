@@ -30,7 +30,9 @@ procedure ecb_joystk
 
 
 procedure ecb_cls
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
     param color: real
+    param display: display_state_t
     dim a, b, ii: integer
     dim c: byte
 
@@ -41,19 +43,31 @@ procedure ecb_cls
             print("MICROSOFT")
         endif
     else
-        c = $01
-        put #1,c
-        run _ecb_text_address(a)
-        if a <> -1 then
-            b = a + 511
-            if color = 0 then
-                c = 128
-            else
-                c = 143 + land(7, color - 1) * 16
+        run _ecb_wintype(1, a)
+
+        if a=0 then
+            c = $01
+            put #1,c
+            run _ecb_text_address(a)
+            if a <> -1 then
+                b = a + 511
+                if color = 0 then
+                    c = 128
+                else
+                    c = 143 + land(7, color - 1) * 16
+                endif
+                for ii = a to b
+                    poke ii,c
+                next ii
             endif
-            for ii = a to b
-                poke ii,c
-            next ii
+        else
+            display.background = color
+            display.border = color
+            a = display.foreground
+            b = color
+            run gfx2("color", a, b, b)
+            run gfx2("clear")
+            run gfx2("border", b)
         endif
     endif
 
@@ -310,9 +324,53 @@ procedure _ecb_input_suffix
     SHELL("tmode eko=0")
 
 
+procedure _ecb_palette
+    param address: integer
+    type rregisters = cc, a, b, dp:byte; x, y, u:integer
+    dim rregs: rregisters
+    dim reqid: byte
+
+    (* getstat ss.alfas *)
+    rregs.a = 1
+    rregs.b = $91
+    reqid = $8d
+    run syscall(reqid, rregs)
+    if land(rregs.cc, 1) <> 0 then
+        address = -1
+    else
+        address = rregs.x
+    endif
+
+
 procedure _ecb_start
+    base 0
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    param display: display_state_t
+    param w: integer
+    display.vpath = $ff
+    display.wpath = $ff
+    display.blink = 0
+    display.underline = 0
+    display.background = 0
+    display.foreground = 0
+    display.border = 0
+
+    dim ii, c: integer
+
+    for ii=0 to 15
+        read c
+        display.palette(ii) = c
+        run gfx2("palette", ii, c)
+    next ii
+
+    if w <> 0 then
+        run _ecb_width(32, display)
+    endif
+    shell("tmode pau=0 eko=0 upc=0")
     run _ecb_cursor_color(0)
-    SHELL("tmode pau=0")
+
+    data $12, $36, $09, $24, $3f, $1b, $2d, $26
+    data $00, $12, $00, $3f, $00, $12, $00, $26
 
 
 procedure _ecb_text_address
@@ -334,12 +392,11 @@ procedure _ecb_text_address
 
 
 procedure _ecb_width
-    type win_text_info_t = wpath, blink, underline, background, foreground: byte
-    type vdg_text_info_t = vpath: byte
+    base 0
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
     param width: integer
-    param win_text: win_text_info_t
-    param vdg_text: vdg_text_info_t
-    dim path, path0, ii: integer
+    param display: display_state_t
+    dim path, path0, ii, c, o: integer
     dim buff2(2): byte
     dim buff12(12): byte
     dim wintype: integer
@@ -350,44 +407,51 @@ procedure _ecb_width
     endif
 
     path = $ff
-    buff2(1) = $1b
-    buff2(2) = $21
 
     (* Cache the current path if needed... *)
     run _ecb_wintype(1, wintype)
     run _ecb_devnm(1, pathname)
     pathname = "/" + pathname
     if wintype = 0 then
-        if vdg_text.vpath = $ff then
+        if display.vpath = $ff then
             open #path0, pathname:update
-            vdg_text.vpath = path0
+            display.vpath = path0
         endif
     else
-        if win_text.wpath = $ff then
+        if display.wpath = $ff then
             open #path0, pathname:update
-            win_text.wpath = path0
+            display.wpath = path0
         endif
     endif
 
-    if width = 32 and vdg_text.vpath <> $ff then
-        path = vdg_text.vpath
+    if width = 32 and display.vpath <> $ff then
+        path = display.vpath
     endif
-    if width <> 32 and win_text.wpath <> $ff then
-        path = win_text.wpath
+    if width <> 32 and display.wpath <> $ff then
+        path = display.wpath
     endif
 
+    o = 2
+    buff2(0) = $1b
+    buff2(1) = $21
+    buff12(0)  = $1b
+    buff12(1)  = $24
     if path = $ff then
         (* Get the path to the next free descriptor *)
+        o = 0
+        buff12(10) = 0
+        buff12(11) = 0
         open #path, "/w":update
         run _ecb_devnm(path, pathname)
         pathname = "/" + pathname
         close #path
 
         (* Make sure it is the right type *)
+        run _ecb_input_suffix
         if width = 32 then
-            shell("xmode " + pathname + " par=0 pau=0 upc=0")
+            shell("xmode " + pathname + " par=0 pau=0 upc=0 eko=0")
         else
-            shell("xmode " + pathname + " par=80")
+            shell("xmode " + pathname + " par=80 pau=0 upc=0 eko=0")
         endif
 
         (* Open for reals *)
@@ -395,29 +459,27 @@ procedure _ecb_width
     endif
 
     (* Set the window style *)
-    if width <> 32 then
-        buff12(1)  = $1b
-        buff12(2)  = $24
-        buff12(3)  = $1b
-        buff12(4)  = $20
-        if width = 80 then
-            buff12(5)  = $02
-            buff12(8)  = $50
-        else
-            buff12(5)  = $01
-            buff12(8)  = $28
+    if width > 32 then
+        for ii=0 to 9
+            read c
+            buff12(ii + o) = c
+        next ii
+
+        if width = 40 then
+            buff12(2 + o)  = $01
+            buff12(5 + o)  = $28
         endif
-        buff12(6)  = $00
-        buff12(7)  = $00
-        buff12(9)  = $18
-        buff12(10)  = $00
-        buff12(11)  = $01
-        buff12(12) = $01
+
         put #path, buff12
-        win_text.wpath = path
+        display.wpath = path
     else
-        vdg_text.vpath = path
+        display.vpath = path
     endif
+
+    for ii=0 to 15
+        c = display.palette(ii)
+        run gfx2(path, "palette", ii, c)
+    next ii
 
     (* Display window *)
     put #path, buff2
@@ -430,6 +492,9 @@ procedure _ecb_width
             error 52
         endif
     next ii
+
+    data $1b, $20, $02, $00, $00, $50, $18, $00
+    data $00, $00
 
 
 procedure _ecb_wintype
@@ -452,35 +517,4 @@ procedure _ecb_wintype
     else
         wintype = rregs.b
     endif
-
-
-procedure testit
-    type win_text_info_t = wpath, blink, underline, background, foreground: byte
-    type vdg_text_info_t = vpath: byte
-    dim screen_path: integer
-    dim win_text: win_text_info_t
-    dim vdg_text: vdg_text_info_t
-    win_text.wpath = $ff
-    win_text.blink = 0
-    win_text.underline = 0
-    win_text.background = 0
-    win_text.foreground = 0
-    vdg_text.vpath = $ff
-
-    dim ii: integer
-
-    for ii=1 to 10
-        run _ecb_width(32, win_text, vdg_text)
-        run ecb_cls(4.0)
-        print screen_path
-        input "this is a VDG screen. press enter. ", a$
-
-        run _ecb_width(80, win_text, vdg_text)
-        print screen_path
-        input "this is a windint screen. press enter. ", a$
-
-        run _ecb_width(40, win_text, vdg_text)
-        print screen_path
-        input "this is a windint screen. press enter. ", a$
-    next ii
 

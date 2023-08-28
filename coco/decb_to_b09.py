@@ -59,6 +59,11 @@ def start(argv):
         action='store_true',
         help='Don\'t output required dependencies',
     )
+    parser.add_argument(
+        '-w', '--dont-run-width-32',
+        action='store_true',
+        help='if set don\'t run the default width 32',
+    )
 
     args = parser.parse_args(argv)
     procname = os.path.splitext(
@@ -69,7 +74,8 @@ def start(argv):
                      procname=procname,
                      filter_unused_linenum=args.filter_unused_linenum,
                      initialize_vars=not args.dont_initialize_vars,
-                     output_dependencies=not args.dont_output_dependencies)
+                     output_dependencies=not args.dont_output_dependencies,
+                     default_width32=not args.dont_run_width_32)
     args.input_decb_text_program_file.close()
     args.output_b09_text_program_file.close()
 

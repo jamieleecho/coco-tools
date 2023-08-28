@@ -1055,8 +1055,8 @@ class BasicCls(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) \
-            + (f'RUN ecb_cls({self._exp.basic09_text(indent_level)})'
-               if self._exp else 'RUN ecb_cls(1.0)')
+            + (f'RUN ecb_cls({self._exp.basic09_text(indent_level)}, display)'
+               if self._exp else 'RUN ecb_cls(1.0, display)')
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -2168,16 +2168,27 @@ def convert(progin,
             initialize_vars=False,
             skip_procedure_headers=False,
             output_dependencies=False,
-            add_standard_prefix=True):
+            add_standard_prefix=True,
+            default_width32=True):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog = bv.visit(tree)
 
     if add_standard_prefix:
         basic_prog.insert_line_at_beginning(
-            BasicLine(None,
-                      BasicRunCall('RUN _ecb_start',
-                                   BasicExpressionList([])))
+            BasicLine(
+              None,
+              BasicRunCall(
+                'RUN _ecb_start',
+                BasicExpressionList([BasicVar('display'),
+                                     BasicLiteral(1 if default_width32
+                                                  else 0)]))))
+        basic_prog.insert_line_at_beginning(
+            BasicLine(
+              None,
+              Basic09CodeStatement(
+                'type display_state_t = vpath, wpath, palette(16), blink, '
+                'underline, background, foreground, border: byte'))
         )
         basic_prog.insert_line_at_beginning(
             BasicLine(None, Basic09CodeStatement('base 0'))
@@ -2244,7 +2255,8 @@ def convert_file(input_program_file,
                  filter_unused_linenum=False,
                  initialize_vars=False,
                  output_dependencies=False,
-                 add_standard_prefix=True):
+                 add_standard_prefix=True,
+                 default_width32=True):
     progin = input_program_file.read()
     progout = convert(
         progin,
@@ -2252,7 +2264,8 @@ def convert_file(input_program_file,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
         output_dependencies=output_dependencies,
-        add_standard_prefix=add_standard_prefix
+        add_standard_prefix=add_standard_prefix,
+        default_width32=default_width32,
     )
     progout = progout.replace('\n', '\r')
     output_program_file.write(progout)
