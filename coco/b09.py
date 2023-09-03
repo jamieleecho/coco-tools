@@ -198,6 +198,7 @@ grammar = Grammar(
                     / read_statement
                     / input_statement
                     / width_statement
+                    / locate_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -341,6 +342,7 @@ grammar = Grammar(
     instr_expr          = "INSTR" space* "(" space* exp space* "," space* str_exp space* "," space* str_exp space* ")" space*
     string_expr         = "STRING$" space* "(" space* exp space* "," space* str_exp space* ")" space*
     width_statement     = "WIDTH" space* exp space*
+    locate_statement    = "LOCATE" space* exp space* "," space* exp space*
     """  # noqa
 )
 
@@ -2180,6 +2182,10 @@ class BasicVisitor(NodeVisitor):
     def visit_width_statement(self, node, visited_children):
         _, _, exp, _ = visited_children
         return BasicWidthStatement(exp)
+
+    def visit_locate_statement(self, node, visited_children):
+        _, _, col, _, _, _, row, _ = visited_children
+        return BasicRunCall('run ecb_locate', BasicExpressionList([col, row]))
 
 
 def convert(progin,

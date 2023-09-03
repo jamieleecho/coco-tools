@@ -27,9 +27,10 @@ Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
 include: ABS, +, AND, ASC, ATN, BUTTON, CHR$, CLS, COS, DATA, DIM, /,
 END, ELSE, =, EXP, FIX, FOR, GOTO, GOSUB, >, IF, INKEY$, INPUT, INSTR, INT,
-JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOG, MID$, *, NEXT, NOT, OPEN, OR,
-PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND,
-SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, VAL, VARPTR
+JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN,
+OR, PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN,
+SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, WIDTH, VAL,
+VARPTR
 
 ## Supported constructs that need some explanation
 * String literals must be closed.
@@ -77,11 +78,18 @@ SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, VAL, VARPTR
   NEXT AA
 NEXT BB
 ```
-* PEEK and POKE are supported ... but with great power comes great
+* `WIDTH` is supported, but use with caution as it really confuses BASIC09,
+  making it hard to actually debug programs interactively. `WIDTH` does not
+  cause issues if you don't have to switch between VDG and WIND windows. Use
+  the -w option if the program can run in 40 or 80 columns to avoid
+  unnecessary switching.
+* `PRINT @` will not result in an error on 40 or 80 columns screens but will
+  pretend that the screen is 32x16.
+* `PEEK` and `POKE` are supported ... but with great power comes great
   responsibility.
 
 * Some constructs require introducing an intermediary variable including
-  BUTTON, INKEY, JOYSTK and POINT.
+  `BUTTON`, `INKEY`, `JOYSTK` and `POINT`.
 10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10

@@ -20,11 +20,11 @@ python3 setup.py
 ### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
 
 ```
-usage: decb-to-b09 [-h] [--version] [-l] [-z] program.bas program.b09
+usage: decb-to-b09 [-h] [--version] [-l] [-z] [-D] [-w] program.bas program.b09
 
 Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
-Version: 0.7
+Version: 0.8
 
 positional arguments:
   program.bas           input DECB text program file
@@ -37,6 +37,10 @@ options:
                         Filter out line numbers not referenced by the program
   -z, --dont-initialize-vars
                         Don't pre-initialize all variables
+  -D, --dont-output-dependencies
+                        Don't output required dependencies
+  -w, --dont-run-width-32
+                        if set don't run the default width 32
 ```
 
 ### cm3toppm

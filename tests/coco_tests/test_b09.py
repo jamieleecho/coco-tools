@@ -830,3 +830,9 @@ class TestB09(unittest.TestCase):
             '10 WIDTH 80\n',
             '10 run _ecb_width(80.0, display)',
         )
+
+    def test_locate(self):
+        self.generic_test_parse(
+            '10 LOCATE 10, 5\n',
+            '10 run ecb_locate(10.0, 5.0)',
+        )
