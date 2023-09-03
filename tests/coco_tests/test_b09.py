@@ -824,3 +824,9 @@ class TestB09(unittest.TestCase):
             '10 A = STRING$(10,"HELLO")\n',
             '10 run ecb_string(10.0, "HELLO", A)',
         )
+
+    def test_width(self):
+        self.generic_test_parse(
+            '10 WIDTH 80\n',
+            '10 run _ecb_width(80.0, display)',
+        )

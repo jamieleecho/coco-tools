@@ -197,6 +197,7 @@ grammar = Grammar(
                     / clear_statement
                     / read_statement
                     / input_statement
+                    / width_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -339,6 +340,7 @@ grammar = Grammar(
     varptr_expr         = "VARPTR" space* "(" space* lhs space* ")" space*
     instr_expr          = "INSTR" space* "(" space* exp space* "," space* str_exp space* "," space* str_exp space* ")" space*
     string_expr         = "STRING$" space* "(" space* exp space* "," space* str_exp space* ")" space*
+    width_statement     = "WIDTH" space* exp space*
     """  # noqa
 )
 
@@ -859,8 +861,9 @@ class BasicProg(AbstractBasicConstruct):
     def extend_prefix_lines(self, prefix_lines):
         self._prefix_lines.extend(prefix_lines)
 
-    def insert_line_at_beginning(self, line):
-        self._lines.insert(0, line)
+    def insert_lines_at_beginning(self, lines):
+        for ii, line in enumerate(lines):
+            self._lines.insert(ii, line)
 
     def basic09_text(self, indent_level):
         lines = []
@@ -1324,6 +1327,17 @@ class BasicVarptrExpression(AbstractBasicExpression):
         visitor.visit_exp(self._var)
 
 
+class BasicWidthStatement(AbstractBasicStatement):
+    def __init__(self, expr):
+        super().__init__()
+        self._expr = expr
+
+    def basic09_text(self, indent_level):
+        return f'run _ecb_width(' \
+               f'{self._expr.basic09_text(indent_level=indent_level)}, ' \
+               f'display)'
+
+
 class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
@@ -1406,6 +1420,8 @@ class VarInitializerVisitor(BasicConstructVisitor):
                         )
                     )
                     for var in sorted(self._vars)
+                    if ((var.startswith('$') and len(var) <= 3)
+                        or len(var) <= 2)
                 ])
             )] if self._vars else []
 
@@ -2161,6 +2177,10 @@ class BasicVisitor(NodeVisitor):
         return BasicFunctionalExpression(
           'run ecb_string', BasicExpressionList([count, str]))
 
+    def visit_width_statement(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        return BasicWidthStatement(exp)
+
 
 def convert(progin,
             procname='',
@@ -2175,24 +2195,26 @@ def convert(progin,
     basic_prog = bv.visit(tree)
 
     if add_standard_prefix:
-        basic_prog.insert_line_at_beginning(
+        prefix_lines = [
+            BasicLine(None, Basic09CodeStatement('base 0')),
+            BasicLine(
+              None,
+              Basic09CodeStatement(
+                'type display_state_t = vpath, wpath, palette(16), blink, '
+                'underline, background, foreground, border: byte')),
+            BasicLine(
+              None,
+              Basic09CodeStatement(
+                'dim display: display_state_t')),
             BasicLine(
               None,
               BasicRunCall(
                 'RUN _ecb_start',
                 BasicExpressionList([BasicVar('display'),
                                      BasicLiteral(1 if default_width32
-                                                  else 0)]))))
-        basic_prog.insert_line_at_beginning(
-            BasicLine(
-              None,
-              Basic09CodeStatement(
-                'type display_state_t = vpath, wpath, palette(16), blink, '
-                'underline, background, foreground, border: byte'))
-        )
-        basic_prog.insert_line_at_beginning(
-            BasicLine(None, Basic09CodeStatement('base 0'))
-        )
+                                                  else 0)]))),
+        ]
+        basic_prog.insert_lines_at_beginning(prefix_lines)
 
     if skip_procedure_headers := skip_procedure_headers or \
        not output_dependencies:

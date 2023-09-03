@@ -394,7 +394,7 @@ procedure _ecb_text_address
 procedure _ecb_width
     base 0
     type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
-    param width: integer
+    param width: real
     param display: display_state_t
     dim path, path0, ii, c, o: integer
     dim buff2(2): byte
