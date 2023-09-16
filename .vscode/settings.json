@@ -15,4 +15,10 @@
         "editor.defaultFormatter": "ms-python.black-formatter"
     },
     "python.formatting.provider": "none",
+    "black-formatter.args": [
+        "--line-length",
+        "79"
+    ],
+    "black-formatter.importStrategy": "fromEnvironment",
+    "black-py.useIntegratedTerminal": true,
 }

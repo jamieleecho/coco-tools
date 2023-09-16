@@ -327,7 +327,8 @@ class BasicLine(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         if self._is_referenced and self._num is not None:
             return (
-                f"{self._num} " f"{self._statements.basic09_text(indent_level)}"
+                f"{self._num} "
+                f"{self._statements.basic09_text(indent_level)}"
             )
         return f"{self._statements.basic09_text(indent_level)}"
 

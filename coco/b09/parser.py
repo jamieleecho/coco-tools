@@ -119,7 +119,8 @@ class BasicVisitor(NodeVisitor):
             ):
                 exp1, exp2 = visited_children
                 return BasicOpExp(
-                    exp1.operator, BasicBinaryExp(exp1.exp, exp2.operator, exp2.exp)
+                    exp1.operator,
+                    BasicBinaryExp(exp1.exp, exp2.operator, exp2.exp),
                 )
             if (
                 isinstance(visited_children[0], Node)
@@ -174,9 +175,14 @@ class BasicVisitor(NodeVisitor):
     def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
         is_bool = isinstance(
-            exp, (BasicBooleanBinaryExp, BasicBooleanOpExp, BasicBooleanParenExp)
+            exp,
+            (BasicBooleanBinaryExp, BasicBooleanOpExp, BasicBooleanParenExp),
         )
-        exp = exp if is_bool else BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
+        exp = (
+            exp
+            if is_bool
+            else BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
+        )
         return BasicIf(exp, statements)
 
     def visit_if_exp(self, node, visited_children):
@@ -196,7 +202,9 @@ class BasicVisitor(NodeVisitor):
             return exp1
         last_exp = exp1
         for exp_op in exp_ops:
-            last_exp = BasicBooleanBinaryExp(last_exp, exp_op.operator, exp_op.exp)
+            last_exp = BasicBooleanBinaryExp(
+                last_exp, exp_op.operator, exp_op.exp
+            )
         return last_exp
 
     def visit_bool_or_exp_elements(self, _, visited_children):
@@ -310,7 +318,24 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_str3_func_exp(self, node, visited_children):
-        func, _, _, _, str_exp, _, _, _, exp1, _, _, _, exp2, _, _, _ = visited_children
+        (
+            func,
+            _,
+            _,
+            _,
+            str_exp,
+            _,
+            _,
+            _,
+            exp1,
+            _,
+            _,
+            _,
+            exp2,
+            _,
+            _,
+            _,
+        ) = visited_children
         return BasicFunctionCall(
             STR3_FUNCTIONS[func.text],
             BasicExpressionList([str_exp, exp1, exp2]),
@@ -320,7 +345,9 @@ class BasicVisitor(NodeVisitor):
     def visit_num_str_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(
-            NUM_STR_FUNCTIONS[func.text], BasicExpressionList([exp]), is_str_expr=True
+            NUM_STR_FUNCTIONS[func.text],
+            BasicExpressionList([exp]),
+            is_str_expr=True,
         )
 
     def visit_num_str_func_exp_statements(self, node, visited_children):
@@ -389,7 +416,9 @@ class BasicVisitor(NodeVisitor):
 
     def visit_func_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(FUNCTIONS[func.text], BasicExpressionList([exp]))
+        return BasicFunctionCall(
+            FUNCTIONS[func.text], BasicExpressionList([exp])
+        )
 
     def visit_func_str_exp(self, node, visited_children):
         func, _, _, _, exp, _, _, _ = visited_children
@@ -413,7 +442,9 @@ class BasicVisitor(NodeVisitor):
     def visit_statements(self, node, visited_children):
         statement, _, statement_elements, _, basic_comment = visited_children
         statement_elements = (
-            [statement] + statement_elements if statement else statement_elements
+            [statement] + statement_elements
+            if statement
+            else statement_elements
         )
         statement_elements = (
             statement_elements + [basic_comment]
@@ -434,7 +465,8 @@ class BasicVisitor(NodeVisitor):
 
     def visit_str_literal(self, node, visited_children):
         return BasicLiteral(
-            str(node.full_text[node.start + 1 : node.end - 1]), is_str_expr=True
+            str(node.full_text[node.start + 1 : node.end - 1]),
+            is_str_expr=True,
         )
 
     def visit_num_sum_exp(self, node, visited_children):
@@ -457,7 +489,9 @@ class BasicVisitor(NodeVisitor):
         _, _, _, _, loc, _, _, _, print_args, _ = visited_children
         at_statement = BasicRunCall("RUN ecb_at", BasicExpressionList([loc]))
         print_statement = BasicPrintStatement(print_args)
-        return BasicStatements([at_statement, print_statement], multi_line=False)
+        return BasicStatements(
+            [at_statement, print_statement], multi_line=False
+        )
 
     def visit_print_at_statement0(self, node, visited_children):
         _, _, _, _, loc, _ = visited_children
@@ -489,14 +523,35 @@ class BasicVisitor(NodeVisitor):
 
     def visit_cls(self, node, visited_children):
         _, _, exp, _ = visited_children
-        return BasicCls(exp if isinstance(exp, AbstractBasicExpression) else None)
+        return BasicCls(
+            exp if isinstance(exp, AbstractBasicExpression) else None
+        )
 
     def visit_statement2(self, node, visited_children):
         func, _, _, _, exp1, _, _, _, exp2, _, _, _ = visited_children
-        return BasicRunCall(STATEMENTS2[func.text], BasicExpressionList([exp1, exp2]))
+        return BasicRunCall(
+            STATEMENTS2[func.text], BasicExpressionList([exp1, exp2])
+        )
 
     def visit_statement3(self, node, visited_children):
-        func, _, _, _, exp1, _, _, _, exp2, _, _, _, exp3, _, _, _ = visited_children
+        (
+            func,
+            _,
+            _,
+            _,
+            exp1,
+            _,
+            _,
+            _,
+            exp2,
+            _,
+            _,
+            _,
+            exp3,
+            _,
+            _,
+            _,
+        ) = visited_children
         return BasicRunCall(
             STATEMENTS3[func.text], BasicExpressionList([exp1, exp2, exp3])
         )
@@ -545,13 +600,34 @@ class BasicVisitor(NodeVisitor):
     def visit_dim_array_var2(self, node, visited_children):
         var, _, _, _, size1, _, _, _, size2, _, _, _ = visited_children
         return BasicArrayRef(
-            var, BasicExpressionList([size1, size2]), is_str_expr=var.is_str_expr
+            var,
+            BasicExpressionList([size1, size2]),
+            is_str_expr=var.is_str_expr,
         )
 
     def visit_dim_array_var3(self, node, visited_children):
-        var, _, _, _, size1, _, _, _, size2, _, _, _, size3, _, _, _ = visited_children
+        (
+            var,
+            _,
+            _,
+            _,
+            size1,
+            _,
+            _,
+            _,
+            size2,
+            _,
+            _,
+            _,
+            size3,
+            _,
+            _,
+            _,
+        ) = visited_children
         return BasicArrayRef(
-            var, BasicExpressionList([size1, size2, size3]), is_str_expr=var.is_str_expr
+            var,
+            BasicExpressionList([size1, size2, size3]),
+            is_str_expr=var.is_str_expr,
         )
 
     def visit_dim_array_var_list(self, node, visited_children):
@@ -605,7 +681,24 @@ class BasicVisitor(NodeVisitor):
         return BasicForStatement(var, exp1, exp2)
 
     def visit_for_step_statement(self, node, visited_children):
-        _, _, var, _, _, _, exp1, _, _, _, exp2, _, _, _, exp3, _ = visited_children
+        (
+            _,
+            _,
+            var,
+            _,
+            _,
+            _,
+            exp1,
+            _,
+            _,
+            _,
+            exp2,
+            _,
+            _,
+            _,
+            exp3,
+            _,
+        ) = visited_children
         return BasicForStatement(var, exp1, exp2, step_exp=exp3)
 
     def visit_next_statement(self, node, visited_children):
@@ -641,7 +734,8 @@ class BasicVisitor(NodeVisitor):
     def visit_func_to_statements2(self, node, visited_children):
         func, _, _, _, exp1, _, _, _, exp2, _, _, _ = visited_children
         return BasicFunctionalExpression(
-            FUNCTIONS_TO_STATEMENTS2[func.text], BasicExpressionList([exp1, exp2])
+            FUNCTIONS_TO_STATEMENTS2[func.text],
+            BasicExpressionList([exp1, exp2]),
         )
 
     def visit_joystk_to_statement(self, node, visited_children):
@@ -673,10 +767,14 @@ class BasicVisitor(NodeVisitor):
         line, _, _, _, str_literal, _, rhs, _, rhs_list = visited_children
         if isinstance(str_literal, BasicLiteral):
             str_literal.literal = (
-                str_literal.literal if line != "" else f"{str_literal.literal}? "
+                str_literal.literal
+                if line != ""
+                else f"{str_literal.literal}? "
             )
         else:
-            str_literal = BasicLiteral("" if line != "" else "? ", is_str_expr=True)
+            str_literal = BasicLiteral(
+                "" if line != "" else "? ", is_str_expr=True
+            )
         return BasicInputStatement(str_literal, [rhs] + rhs_list)
 
     def visit_input_str_literal(self, node, visited_children):
@@ -688,7 +786,24 @@ class BasicVisitor(NodeVisitor):
         return BasicVarptrExpression(var)
 
     def visit_instr_expr(self, node, visited_children):
-        _, _, _, _, index, _, _, _, str0, _, _, _, str1, _, _, _ = visited_children
+        (
+            _,
+            _,
+            _,
+            _,
+            index,
+            _,
+            _,
+            _,
+            str0,
+            _,
+            _,
+            _,
+            str1,
+            _,
+            _,
+            _,
+        ) = visited_children
         return BasicFunctionalExpression(
             "run ecb_instr", BasicExpressionList([index, str0, str1])
         )
@@ -732,20 +847,28 @@ def convert(
                     "underline, background, foreground, border: byte"
                 ),
             ),
-            BasicLine(None, Basic09CodeStatement("dim display: display_state_t")),
+            BasicLine(
+                None, Basic09CodeStatement("dim display: display_state_t")
+            ),
             BasicLine(
                 None,
                 BasicRunCall(
                     "RUN _ecb_start",
                     BasicExpressionList(
-                        [BasicVar("display"), BasicLiteral(1 if default_width32 else 0)]
+                        [
+                            BasicVar("display"),
+                            BasicLiteral(1 if default_width32 else 0),
+                        ]
                     ),
                 ),
             ),
         ]
         basic_prog.insert_lines_at_beginning(prefix_lines)
 
-    if skip_procedure_headers := skip_procedure_headers or not output_dependencies:
+    if (
+        skip_procedure_headers := skip_procedure_headers
+        or not output_dependencies
+    ):
         procname = ""
     else:
         procname = procname if PROCNAME_REGEX.match(procname) else "program"

@@ -182,7 +182,8 @@ class VarInitializerVisitor(BasicConstructVisitor):
                             )
                             for var in sorted(self._vars)
                             if (
-                                (var.startswith("$") and len(var) <= 3) or len(var) <= 2
+                                (var.startswith("$") and len(var) <= 3)
+                                or len(var) <= 2
                             )
                         ]
                     ),
@@ -204,7 +205,9 @@ class JoystickVisitor(BasicConstructVisitor):
     def joystk_var_statements(self):
         return (
             [
-                Basic09CodeStatement("dim joy0x, joy0y, joy1x, joy0y: integer"),
+                Basic09CodeStatement(
+                    "dim joy0x, joy0y, joy1x, joy0y: integer"
+                ),
             ]
             if self._uses_joystk
             else []
@@ -257,11 +260,15 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
 
         # Create statements for reading into the REAL vars
         filter_statements = [
-            BasicRunCall("RUN ecb_read_filter", BasicExpressionList((inval, outval)))
+            BasicRunCall(
+                "RUN ecb_read_filter", BasicExpressionList((inval, outval))
+            )
             for outval, inval in rhs_to_temp.items()
         ]
 
-        return BasicStatements([statement] + filter_statements, multi_line=False)
+        return BasicStatements(
+            [statement] + filter_statements, multi_line=False
+        )
 
 
 class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
