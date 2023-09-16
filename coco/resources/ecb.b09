@@ -3,6 +3,27 @@ procedure ecb_at
     run ecb_locate(float(land(location, 31)), location / 32.0)
 
 
+procedure ecb_attr
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    param f, b, blnk, undr: real
+    param display: display_state_t
+    run gfx2("color", fix(f), fix(b))
+    if blnk <> 0.0 then
+        display.blink = 1
+        run gfx2("BLNKON")
+    else
+        display.blink = 0
+        run gfx2("BLNKOFF")
+    endif
+    if undr <> 0.0 then
+        display.underline = 1
+        run gfx2("UNDLNON")
+    else
+        display.underline = 0
+        run gfx2("UNDLNOFF")
+    endif
+
+
 procedure ecb_button
     param button: real
     param retval: real

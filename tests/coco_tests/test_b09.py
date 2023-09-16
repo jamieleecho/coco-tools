@@ -57,84 +57,84 @@ class TestB09(unittest.TestCase):
         assert 'RUN _ecb_start(display, 1)\n' in program
 
     def test_basic_assignment(self):
-        var = b09.BasicVar('HW')
-        exp = b09.BasicLiteral(123.0)
-        target = b09.BasicAssignment(var, exp)
+        var = b09.elements.BasicVar('HW')
+        exp = b09.elements.BasicLiteral(123.0)
+        target = b09.elements.BasicAssignment(var, exp)
         assert target.basic09_text(1) == '  HW := 123.0'
 
     def test_basic_binary_exp(self):
-        var = b09.BasicVar('HW')
-        strlit = b09.BasicLiteral('HW')
-        target = b09.BasicBinaryExp(var, '=', strlit)
+        var = b09.elements.BasicVar('HW')
+        strlit = b09.elements.BasicLiteral('HW')
+        target = b09.elements.BasicBinaryExp(var, '=', strlit)
         assert target.basic09_text(1) == 'HW = "HW"'
 
     def test_comment(self):
-        target = b09.BasicComment(' hello world ')
+        target = b09.elements.BasicComment(' hello world ')
         assert target.basic09_text(1) == '(* hello world  *)'
 
     def test_comment_statement(self):
-        comment = b09.BasicComment(' hello world ')
-        target = b09.BasicStatement(comment)
+        comment = b09.elements.BasicComment(' hello world ')
+        target = b09.elements.BasicStatement(comment)
         assert target.basic09_text(2) == '    (* hello world  *)'
 
     def test_comment_statements(self):
-        comment = b09.BasicComment(' hello world ')
-        statement = b09.BasicStatement(comment)
-        target = b09.BasicStatements((statement,))
+        comment = b09.elements.BasicComment(' hello world ')
+        statement = b09.elements.BasicStatement(comment)
+        target = b09.elements.BasicStatements((statement,))
         assert target.basic09_text(2) == '    (* hello world  *)'
 
     def test_comment_lines(self):
-        comment = b09.BasicComment(' hello world ')
-        statement = b09.BasicStatement(comment)
-        statements = b09.BasicStatements((statement,))
-        target = b09.BasicLine(25, statements)
+        comment = b09.elements.BasicComment(' hello world ')
+        statement = b09.elements.BasicStatement(comment)
+        statements = b09.elements.BasicStatements((statement,))
+        target = b09.elements.BasicLine(25, statements)
         assert target.basic09_text(1) == '25   (* hello world  *)'
 
     def test_basic_float_literal(self):
-        target = b09.BasicLiteral(123.0)
+        target = b09.elements.BasicLiteral(123.0)
         assert target.basic09_text(2) == '123.0'
 
     def test_basic_goto(self):
-        target = b09.BasicGoto(123, True)
+        target = b09.elements.BasicGoto(123, True)
         assert target.basic09_text(1) == '123'
         assert target.implicit is True
-        target = b09.BasicGoto(1234, False)
+        target = b09.elements.BasicGoto(1234, False)
         assert target.basic09_text(1) == '  GOTO 1234'
         assert target.implicit is False
 
     def test_if(self):
-        strlit = b09.BasicLiteral('HW')
-        exp = b09.BasicBinaryExp(strlit, '=', strlit)
-        goto = b09.BasicGoto(123, True)
-        target = b09.BasicIf(exp, goto)
+        strlit = b09.elements.BasicLiteral('HW')
+        exp = b09.elements.BasicBinaryExp(strlit, '=', strlit)
+        goto = b09.elements.BasicGoto(123, True)
+        target = b09.elements.BasicIf(exp, goto)
         assert target.basic09_text(1) == '  IF "HW" = "HW" THEN 123'
 
     def test_basic_real_literal(self):
-        target = b09.BasicLiteral(123.)
+        target = b09.elements.BasicLiteral(123.)
         assert target.basic09_text(2) == '123.0'
 
     def test_basic_int_literal(self):
-        target = b09.BasicLiteral(123)
+        target = b09.elements.BasicLiteral(123)
         assert target.basic09_text(2) == '123'
 
     def test_basic_str_literal(self):
-        target = b09.BasicLiteral('123.0')
+        target = b09.elements.BasicLiteral('123.0')
         assert target.basic09_text(1) == '"123.0"'
 
     def test_basic_paren_exp(self):
-        strlit = b09.BasicLiteral('HELLO WORLD')
-        target = b09.BasicParenExp(strlit)
+        strlit = b09.elements.BasicLiteral('HELLO WORLD')
+        target = b09.elements.BasicParenExp(strlit)
         assert target.basic09_text(2) == '("HELLO WORLD")'
 
     def test_basic_op_exp(self):
-        strlit = b09.BasicLiteral('HELLO WORLD')
-        target = b09.BasicOpExp('&', strlit)
+        strlit = b09.elements.BasicLiteral('HELLO WORLD')
+        target = b09.elements.BasicOpExp('&', strlit)
         assert target.operator == '&'
         assert target.exp == strlit
         assert target.basic09_text(1) == '& "HELLO WORLD"'
 
     def test_basic_operator(self):
-        target = b09.BasicOperator('*')
+        target = b09.elements.BasicOperator('*')
         assert target.basic09_text(2) == '*'
 
     def generic_test_parse(
@@ -353,7 +353,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_funcs(self):
-        for ecb_func, b09_func in b09.FUNCTIONS.items():
+        for ecb_func, b09_func in b09.grammar.FUNCTIONS.items():
             self.generic_test_parse(
                 f'11X={ecb_func}(1)',
                 f'11 X := {b09_func}(1.0)',
@@ -393,20 +393,20 @@ class TestB09(unittest.TestCase):
         )
 
     def test_num_str_funcs(self):
-        for ecb_func, b09_func in b09.NUM_STR_FUNCTIONS.items():
+        for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS.items():
             self.generic_test_parse(
                 f'11X$={ecb_func}(1)',
                 f'11 X$ := {b09_func}(1.0)',
             )
 
     def test_builtin_statements(self):
-        for ecb_func, b09_func in b09.STATEMENTS2.items():
+        for ecb_func, b09_func in b09.grammar.STATEMENTS2.items():
             self.generic_test_parse(
                 f'11{ecb_func}(1,2)',
                 f'11 {b09_func}(1.0, 2.0)',
             )
 
-        for ecb_func, b09_func in b09.STATEMENTS3.items():
+        for ecb_func, b09_func in b09.grammar.STATEMENTS3.items():
             self.generic_test_parse(
                 f'11{ecb_func}(1,2    , 3)',
                 f'11 {b09_func}(1.0, 2.0, 3.0)',
@@ -433,7 +433,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_single_kw_statements(self):
-        for ecb_func, b09_func in b09.SINGLE_KEYWORD_STATEMENTS.items():
+        for ecb_func, b09_func in b09.grammar.SINGLE_KEYWORD_STATEMENTS.items():
             self.generic_test_parse(
                 f'11{ecb_func}',
                 f'11 {b09_func}',
@@ -505,28 +505,28 @@ class TestB09(unittest.TestCase):
         )
 
     def test_functions_to_statements(self):
-        for ecb_func, b09_func in b09.FUNCTIONS_TO_STATEMENTS.items():
+        for ecb_func, b09_func in b09.grammar.FUNCTIONS_TO_STATEMENTS.items():
             self.generic_test_parse(
                 f'11X={ecb_func}(1)',
                 f'11 {b09_func}(1.0, X)',
             )
 
     def test_functions_to_statements2(self):
-        for ecb_func, b09_func in b09.FUNCTIONS_TO_STATEMENTS2.items():
+        for ecb_func, b09_func in b09.grammar.FUNCTIONS_TO_STATEMENTS2.items():
             self.generic_test_parse(
                 f'11X={ecb_func}(1, 2)',
                 f'11 {b09_func}(1.0, 2.0, X)',
             )
 
     def test_num_str_functions_to_statements(self):
-        for ecb_func, b09_func in b09.NUM_STR_FUNCTIONS_TO_STATEMENTS.items():
+        for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS_TO_STATEMENTS.items():
             self.generic_test_parse(
                 f'11X$={ecb_func}(1)',
                 f'11 {b09_func}(1.0, X$)',
             )
 
     def test_str_functions_to_statements(self):
-        for ecb_func, b09_func in b09.STR_FUNCTIONS_TO_STATEMENTS.items():
+        for ecb_func, b09_func in b09.grammar.STR_FUNCTIONS_TO_STATEMENTS.items():
             self.generic_test_parse(
                 f'11X$={ecb_func}',
                 f'11 {b09_func}(X$)',

@@ -1,7 +1,7 @@
 import unittest
 import pkg_resources
 
-from coco.procbank import ProcedureBank
+from coco.b09.procbank import ProcedureBank
 
 
 class TestProcedureBank(unittest.TestCase):
