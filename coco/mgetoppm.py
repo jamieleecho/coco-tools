@@ -9,7 +9,6 @@
 # reads mge files and converts to ppm
 
 import argparse
-import codecs
 import sys
 
 from coco import __version__
@@ -108,7 +107,6 @@ def convert(input_image_stream, output_image_stream):
     subtyp = 0
     cols = 320 << subtyp
     rows = 200
-    colors = 16 if subtyp == 0 else 4
     a = ord(iotostr(f.read(1)))
     if a != 0:
         debug("invalid header")
@@ -144,11 +142,7 @@ def convert(input_image_stream, output_image_stream):
     a = ord(iotostr(f.read(1)))
     botpal = a & 0xF
     toppal = (a >> 4) & 0xF
-    debug(
-        "{}x{}, 16 couleurs {}, titre «{}»".format(
-            cols, rows, colorspace, titbuf
-        )
-    )
+    debug("{}x{}, 16 couleurs {}, titre «{}»".format(cols, rows, colorspace, titbuf))
     debug(
         "palette={}, cycles={}, botpal={},]\ntoppal={}".format(
             palette, cycles, botpal, toppal
@@ -182,9 +176,7 @@ def convert(input_image_stream, output_image_stream):
 DESCRIPTION = """Convert RS-DOS MGE images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():

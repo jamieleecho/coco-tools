@@ -4,14 +4,16 @@ services:
   test:
     build: .
     command: bash -c "
-        pycodestyle src tests setup.py &&
-        pytest --cov=src"
+        ruff check && \
+        ruff linter && \
+        pytest --cov=coco --cov=tests"
 
   testv:
     build: .
     command: bash -c "
-        pycodestyle src tests setup.py &&
-        pytest --cov=src"
+        ruff check && \
+        ruff linter && \
+        pytest --cov=coco --cov=tests"
     volumes:
     -  .:/root/coco-tools
 

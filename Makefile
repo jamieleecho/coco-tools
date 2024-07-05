@@ -23,7 +23,8 @@ EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES
 all: build $(TARGET) $(TARGET_DECB)
 
 build:
-	pycodestyle --ignore="E121,E123,E126,E203,E226,E24,E704,W503,W504" coco tests setup.py
+	ruff check
+	ruff linter
 	python3 setup.py install
 
 $(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build

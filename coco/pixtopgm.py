@@ -14,7 +14,7 @@ import os
 import sys
 
 from coco import __version__
-from coco.util import getbit, iotostr, pack, stdiotobuffer, strtoio
+from coco.util import iotostr, stdiotobuffer, strtoio
 
 
 def convert(input_image_stream, output_image_stream):
@@ -34,9 +34,7 @@ def convert(input_image_stream, output_image_stream):
 
 DESCRIPTION = """Convert RS-DOS PIX images to PGM
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():

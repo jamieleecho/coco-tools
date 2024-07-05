@@ -7,7 +7,7 @@ class BasicProg(AbstractBasicConstruct):
     def __init__(self, lines):
         self._lines = lines
         self._prefix_lines = []
-        self._procname = ''
+        self._procname = ""
 
     def set_procname(self, procname):
         self._procname = procname
@@ -22,13 +22,13 @@ class BasicProg(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         lines = []
         if self._procname:
-            lines.append(f'procedure {self._procname}')
+            lines.append(f"procedure {self._procname}")
         nest_counter = ForNextVisitor()
         for line in chain(self._prefix_lines, self._lines):
             line.visit(nest_counter)
             lines.append(line.basic09_text(nest_counter.count))
 
-        return '\n'.join(lines)
+        return "\n".join(lines)
 
     def visit(self, visitor):
         visitor.visit_program(self)

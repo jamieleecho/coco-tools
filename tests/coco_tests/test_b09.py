@@ -1,5 +1,4 @@
 import unittest
-import pkg_resources
 
 from coco import b09
 
@@ -185,8 +184,7 @@ class TestB09(unittest.TestCase):
 
         self.generic_test_parse(
             "10 LETA (123 - 1 - (2/2),1,2)=123+64",
-            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "
-            "123.0 + 64.0",
+            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := " "123.0 + 64.0",
         )
 
     def test_parse_str_array_ref(self):
@@ -252,9 +250,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_parse_str_expression2(self):
-        self.generic_test_parse(
-            '10 IF A$<>"" THEN 10', '10 IF A$ <> "" THEN 10'
-        )
+        self.generic_test_parse('10 IF A$<>"" THEN 10', '10 IF A$ <> "" THEN 10')
 
     def test_parse_multi_expression(self):
         self.generic_test_parse(
@@ -281,15 +277,12 @@ class TestB09(unittest.TestCase):
         )
 
     def test_parse_multi_statement(self):
-        self.generic_test_parse(
-            "10 A=A+2:B=B+1", "10 A := A + 2.0\nB := B + 1.0"
-        )
+        self.generic_test_parse("10 A=A+2:B=B+1", "10 A := A + 2.0\nB := B + 1.0")
 
     def test_simple_if_statement(self):
         self.generic_test_parse(
             "1 IF A=1 THEN 2\n2 IF A<10 THEN B = B - 2 * 1",
-            "1 IF A = 1.0 THEN 2\n2 IF A < 10.0 THEN\n  B := B - 2.0 * 1.0"
-            "\nENDIF",
+            "1 IF A = 1.0 THEN 2\n2 IF A < 10.0 THEN\n  B := B - 2.0 * 1.0" "\nENDIF",
         )
 
     def test_binary_if_statement(self):
@@ -307,9 +300,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_simple_print_statement(self):
-        self.generic_test_parse(
-            '11 PRINT "HELLO WORLD"', '11 PRINT "HELLO WORLD"'
-        )
+        self.generic_test_parse('11 PRINT "HELLO WORLD"', '11 PRINT "HELLO WORLD"')
 
     def test_simple_print_statement2(self):
         self.generic_test_parse("11 PRINT 3 + 3", "11 PRINT 3.0 + 3.0")
@@ -318,9 +309,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse("11 PRINT A$ + B$", "11 PRINT A$ + B$")
 
     def test_simple_print_statement4(self):
-        self.generic_test_parse(
-            '11 PRINT"TIME"T/10;', '11 PRINT "TIME"; T / 10.0;'
-        )
+        self.generic_test_parse('11 PRINT"TIME"T/10;', '11 PRINT "TIME"; T / 10.0;')
 
     def test_print_multi(self):
         self.generic_test_parse("11 PRINT A$ , B$", "11 PRINT A$, B$")
@@ -329,22 +318,16 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse("11 PRINT A$,,B$", '11 PRINT A$, "", B$')
 
     def test_land(self):
-        self.generic_test_parse(
-            "11 PRINT A=A AND 4", "11 PRINT LAND(A = A, 4.0)"
-        )
+        self.generic_test_parse("11 PRINT A=A AND 4", "11 PRINT LAND(A = A, 4.0)")
 
     def test_lor(self):
-        self.generic_test_parse(
-            "11 Z = A=B OR F=Z", "11 Z := LOR(A = B, F = Z)"
-        )
+        self.generic_test_parse("11 Z = A=B OR F=Z", "11 Z := LOR(A = B, F = Z)")
 
     def test_lnot(self):
         self.generic_test_parse("11 Z = NOT A=B", "11 Z := LNOT(A = B)")
 
     def test_if_not(self):
-        self.generic_test_parse(
-            "100 IF NOT A=3 THEN 20", "100 IF NOT(A = 3.0) THEN 20"
-        )
+        self.generic_test_parse("100 IF NOT A=3 THEN 20", "100 IF NOT(A = 3.0) THEN 20")
 
     def test_sound(self):
         self.generic_test_parse(
@@ -388,13 +371,11 @@ class TestB09(unittest.TestCase):
 
     def test_mid(self):
         self.generic_test_parse(
-            f'11 AA$=MID$("HELLO" , 3,2)', f'11 AA$ := MID$("HELLO", 3.0, 2.0)'
+            '11 AA$=MID$("HELLO" , 3,2)', '11 AA$ := MID$("HELLO", 3.0, 2.0)'
         )
 
     def test_val(self):
-        self.generic_test_parse(
-            f'11 AA = VAL("2334")', f'11 AA := VAL("2334")'
-        )
+        self.generic_test_parse('11 AA = VAL("2334")', '11 AA := VAL("2334")')
 
     def test_num_str_funcs(self):
         for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS.items():
@@ -418,14 +399,14 @@ class TestB09(unittest.TestCase):
 
     def test_goto(self):
         self.generic_test_parse(
-            f"11GOTO20",
-            f"11 GOTO 20",
+            "11GOTO20",
+            "11 GOTO 20",
         )
 
     def test_gosub(self):
         self.generic_test_parse(
-            f"11GOSUB20",
-            f"11 GOSUB 20",
+            "11GOSUB20",
+            "11 GOSUB 20",
         )
 
     def test_data(self):
@@ -446,9 +427,7 @@ class TestB09(unittest.TestCase):
             )
 
     def test_print(self):
-        self.generic_test_parse(
-            '11PRINT"HELLO WORLD"', '11 PRINT "HELLO WORLD"'
-        )
+        self.generic_test_parse('11PRINT"HELLO WORLD"', '11 PRINT "HELLO WORLD"')
 
     def test_print_at(self):
         self.generic_test_parse(
@@ -474,10 +453,7 @@ class TestB09(unittest.TestCase):
 
     def test_multiline2(self):
         self.generic_test_parse(
-            "10 REM Hello World\n"
-            "20 CLS 5.0\n"
-            '30 PRINT "HELLO"\n'
-            "40 B = 2.0",
+            "10 REM Hello World\n" "20 CLS 5.0\n" '30 PRINT "HELLO"\n' "40 B = 2.0",
             "10 (* Hello World *)\n"
             "20 RUN ecb_cls(5.0, display)\n"
             '30 PRINT "HELLO"\n'
@@ -709,9 +685,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_multi_arithmetic(self):
-        self.generic_test_parse(
-            "480 Z=A+B*C-D/C", "480 Z := A + B * C - D / C"
-        )
+        self.generic_test_parse("480 Z=A+B*C-D/C", "480 Z := A + B * C - D / C")
 
     def test_num_if(self):
         self.generic_test_parse("480 IFA THEN100", "480 IF A <> 0.0 THEN 100")
@@ -735,11 +709,7 @@ class TestB09(unittest.TestCase):
 
     def test_handles_empty_next(self):
         self.generic_test_parse(
-            "10 FORX=1TO10\n"
-            "20 FORY=1TO10\n"
-            "30 NEXT\n"
-            "40 NEXT\n"
-            "50 NEXT\n",
+            "10 FORX=1TO10\n" "20 FORY=1TO10\n" "30 NEXT\n" "40 NEXT\n" "50 NEXT\n",
             "10 FOR X = 1.0 TO 10.0\n"
             "20   FOR Y = 1.0 TO 10.0\n"
             "30   NEXT Y\n"

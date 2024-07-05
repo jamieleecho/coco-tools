@@ -54,9 +54,7 @@ def convert(input_image_stream, output_image_stream, width, height, skip):
 DESCRIPTION = """Convert RS-DOS HRS images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -117,9 +115,7 @@ def start(argv):
     )
     args = parser.parse_args(argv)
 
-    convert(
-        args.input_image, args.output_image, args.width, args.rows, args.skip
-    )
+    convert(args.input_image, args.output_image, args.width, args.rows, args.skip)
     args.output_image.close()
     args.input_image.close()
 

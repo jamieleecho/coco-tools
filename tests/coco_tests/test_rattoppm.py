@@ -25,9 +25,7 @@ class TestRatToPPM(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".ppm", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".ppm", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
@@ -35,9 +33,7 @@ class TestRatToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_rat_to_ppm(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.rat"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
         )
@@ -47,9 +43,7 @@ class TestRatToPPM(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.rat"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -70,9 +64,7 @@ class TestRatToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_rat_to_ppm_via_stdio(self):
-        infile = pkg_resources.resource_stream(
-            __name__, "fixtures/watrfall.rat"
-        )
+        infile = pkg_resources.resource_stream(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
         )
@@ -89,9 +81,7 @@ class TestRatToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_rat_to_ppm_via_stdin(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.rat"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
         )

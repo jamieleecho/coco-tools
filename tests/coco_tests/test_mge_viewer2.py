@@ -1,12 +1,8 @@
-import os
-import filecmp
 import pkg_resources
 import subprocess
 import sys
-import tempfile
 import unittest
 
-import coco.mge_viewer2
 from .util import unix_only
 from coco import __version__
 from coco.util import iotostr
@@ -25,9 +21,7 @@ class TestMGE_Viewer2(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/dragon1.mge"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [

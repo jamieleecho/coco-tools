@@ -284,10 +284,7 @@ class BasicIf(AbstractBasicStatement):
         self._statements = statements
 
     def basic09_text(self, indent_level):
-        if (
-            isinstance(self._statements, BasicGoto)
-            and self._statements.implicit
-        ):
+        if isinstance(self._statements, BasicGoto) and self._statements.implicit:
             return (
                 f"{super().basic09_text(indent_level)}"
                 f"IF {self._exp.basic09_text(indent_level)} "
@@ -326,10 +323,7 @@ class BasicLine(AbstractBasicConstruct):
 
     def basic09_text(self, indent_level):
         if self._is_referenced and self._num is not None:
-            return (
-                f"{self._num} "
-                f"{self._statements.basic09_text(indent_level)}"
-            )
+            return f"{self._num} " f"{self._statements.basic09_text(indent_level)}"
         return f"{self._statements.basic09_text(indent_level)}"
 
     def visit(self, visitor):
@@ -353,9 +347,7 @@ class BasicLiteral(AbstractBasicExpression):
 
     def basic09_text(self, indent_level):
         return (
-            f'"{self._literal}"'
-            if type(self._literal) is str
-            else f"{self._literal}"
+            f'"{self._literal}"' if type(self._literal) is str else f"{self._literal}"
         )
 
     def visit(self, visitor):
@@ -449,9 +441,9 @@ class BasicStatement(AbstractBasicStatement):
         self._basic_construct = basic_construct
 
     def basic09_text(self, indent_level):
-        return super().basic09_text(
+        return super().basic09_text(indent_level) + self._basic_construct.basic09_text(
             indent_level
-        ) + self._basic_construct.basic09_text(indent_level)
+        )
 
     def visit(self, visitor):
         visitor.visit_statement(self)
@@ -577,8 +569,7 @@ class BasicPrintArgs(AbstractBasicConstruct):
             ):
                 processed_args.append('""')
             if not is_control and (
-                (ii > 0)
-                and not isinstance(self.args[ii - 1], BasicPrintControl)
+                (ii > 0) and not isinstance(self.args[ii - 1], BasicPrintControl)
             ):
                 processed_args.append("; ")
 
@@ -728,10 +719,7 @@ class BasicNextStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level):
         vlist = (
-            [
-                f"NEXT {var.basic09_text(indent_level)}"
-                for var in self.var_list.exp_list
-            ]
+            [f"NEXT {var.basic09_text(indent_level)}" for var in self.var_list.exp_list]
             if self.var_list.exp_list
             else ["NEXT"]
         )
@@ -862,10 +850,7 @@ class BasicDimStatement(AbstractBasicStatement):
         )
         init_text = "\n" + init_text if init_text else ""
 
-        return (
-            f"{super().basic09_text(indent_level)}"
-            f"DIM {dim_var_text}" + init_text
-        )
+        return f"{super().basic09_text(indent_level)}" f"DIM {dim_var_text}" + init_text
 
 
 class BasicReadStatement(BasicStatement):
@@ -881,9 +866,7 @@ class BasicReadStatement(BasicStatement):
         return (
             self.indent_spaces(indent_level)
             + "READ "
-            + ", ".join(
-                rhs.basic09_text(indent_level) for rhs in self._rhs_list
-            )
+            + ", ".join(rhs.basic09_text(indent_level) for rhs in self._rhs_list)
         )
 
 

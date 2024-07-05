@@ -161,7 +161,9 @@ def view(mgefile):
         COMPRESSION = int.from_bytes(
             mgefile.read(1), "big"
         )  # 0=compressed 1+=non-compressed
-        TITLE = mgefile.read(30).decode("ISO-8859-1")  # 30-byte 0-terminated string # noqa
+        TITLE = mgefile.read(30).decode(
+            "ISO-8859-1"
+        )  # 30-byte 0-terminated string # noqa
         CYCLEDELAY = int.from_bytes(mgefile.read(1), "big")  # 0-255 0=fast
         CYCLEPAL = int.from_bytes(
             mgefile.read(1), "big"

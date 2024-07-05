@@ -116,9 +116,7 @@ def convert(input_image_stream, output_image_stream):
 DESCRIPTION = """Convert RS-DOS CM3 images to PPM
 Copyright (c) 2017 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():

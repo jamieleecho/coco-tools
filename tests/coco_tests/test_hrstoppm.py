@@ -33,9 +33,7 @@ class TestHRSToPPM(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".ppm", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".ppm", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
@@ -43,9 +41,7 @@ class TestHRSToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_hrs_to_ppm(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
         )
@@ -54,9 +50,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_hrs_to_ppm_with_height(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa_r97.ppm"
         )
@@ -65,9 +59,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_hrs_to_ppm_with_width(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa_w160.ppm"
         )
@@ -88,9 +80,7 @@ class TestHRSToPPM(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -111,9 +101,7 @@ class TestHRSToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_hrs_to_ppm_via_stdio(self):
-        infile = pkg_resources.resource_stream(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infile = pkg_resources.resource_stream(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
         )
@@ -130,9 +118,7 @@ class TestHRSToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_hrs_to_ppm_via_stdin(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.hrs"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
         )

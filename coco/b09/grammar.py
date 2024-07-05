@@ -1,10 +1,7 @@
 import re
-from abc import ABC, abstractmethod
-from itertools import chain, islice
+from itertools import chain
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import Node, NodeVisitor
 
-from .procbank import ProcedureBank
 
 PROCNAME_REGEX = re.compile(r"[a-zA-Z0-9_-]+")
 
@@ -15,9 +12,7 @@ SINGLE_KEYWORD_STATEMENTS = {
     "STOP": "STOP",
 }
 
-QUOTED_SINGLE_KEYWORD_STATEMENTS = [
-    f'"{name}"' for name in SINGLE_KEYWORD_STATEMENTS
-]
+QUOTED_SINGLE_KEYWORD_STATEMENTS = [f'"{name}"' for name in SINGLE_KEYWORD_STATEMENTS]
 
 FUNCTIONS = {
     "ABS": "ABS",
@@ -82,9 +77,7 @@ FUNCTIONS_TO_STATEMENTS = {
     "INT": "RUN ecb_int",
 }
 
-QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [
-    f'"{name}"' for name in FUNCTIONS_TO_STATEMENTS
-]
+QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES = [f'"{name}"' for name in FUNCTIONS_TO_STATEMENTS]
 
 FUNCTIONS_TO_STATEMENTS2 = {
     "POINT": "RUN ecb_point",

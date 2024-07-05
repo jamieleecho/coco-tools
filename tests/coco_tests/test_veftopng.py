@@ -25,9 +25,7 @@ class TestVEFToPNG(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".png", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".png", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
@@ -35,9 +33,7 @@ class TestVEFToPNG(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_320x200x16_vef_to_png(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/trekies.vef"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.png"
         )
@@ -46,9 +42,7 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_640x200x4_vef_to_png(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/owlcasl.vef"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/owlcasl.vef")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/owlcasl.png"
         )
@@ -58,9 +52,7 @@ class TestVEFToPNG(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/trekies.vef"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -103,9 +95,7 @@ class TestVEFToPNG(unittest.TestCase):
 
     @unix_only
     def test_unknown_argument(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/trekies.vef"
-        )
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [

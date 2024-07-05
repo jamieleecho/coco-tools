@@ -232,6 +232,10 @@ docker-compose run test
 
 # Run tests using the source on the host computer
 docker-compose run testv
+
+# To make changes and develop locally
+pip install -r requirements.txt
+pre-commit install
 ```
 
 ## Credits
