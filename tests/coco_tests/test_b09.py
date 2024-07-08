@@ -233,6 +233,12 @@ class TestB09(unittest.TestCase):
             "10 A := 64.0 * 32.0\n20 B := 10.0 / AB",
         )
 
+    def test_parse_power_expression(self):
+        self.generic_test_parse(
+            "10 A = 64 ^ 32\n",
+            "10 A := 64.0 ^ 32.0",
+        )
+
     def test_parse_add_expression(self):
         self.generic_test_parse(
             "10 A = 64 + 32\n20 B = 10-AB+32",

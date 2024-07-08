@@ -228,7 +228,8 @@ grammar = Grammar(
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
     num_sum_exp     = num_prod_exp space* (("+" / "-") space*
                                            num_prod_exp space*)*
-    num_prod_exp    = val_exp space* (("*" / "/") space* val_exp space*)*
+    num_prod_exp    = num_power_exp space* (("*" / "/") space* num_power_exp space*)*
+    num_power_exp   = val_exp space* ("^" space* val_exp space*)*
     func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
     func_str_exp    = ({ ' / '.join(QUOTED_STR_NUM_FUNCTIONS_NAMES)}) space* "(" space* str_exp space* ")" space*
     val_exp         = num_literal

@@ -82,6 +82,7 @@ class BasicVisitor(NodeVisitor):
             return ""
 
         if node.text in {
+            "^",
             "*",
             "/",
             "+",
@@ -232,7 +233,7 @@ class BasicVisitor(NodeVisitor):
         return self.visit_bool_bin_exp(node, visited_children)
 
     def visit_num_gtle_exp(self, node, visited_children):
-        return self.visit_num_prod_exp(node, visited_children)
+        return self.visit_binary_exp(node, visited_children)
 
     def visit_line(self, node, visited_children):
         return BasicLine(
@@ -403,6 +404,12 @@ class BasicVisitor(NodeVisitor):
         return BasicParenExp(visited_children[2])
 
     def visit_num_prod_exp(self, node, visited_children):
+        return self.visit_binary_exp(node, visited_children)
+
+    def visit_num_power_exp(self, node, visited_children):
+        return self.visit_binary_exp(node, visited_children)
+
+    def visit_binary_exp(self, node, visited_children):
         v1, v2, v3 = visited_children
         if isinstance(v2, str) and isinstance(v3, str):
             return v1
@@ -460,7 +467,7 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_num_sum_exp(self, node, visited_children):
-        return self.visit_num_prod_exp(node, visited_children)
+        return self.visit_binary_exp(node, visited_children)
 
     def visit_val_exp(self, node, visited_children):
         return visited_children[0] if len(visited_children) < 2 else node
