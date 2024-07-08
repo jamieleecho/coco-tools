@@ -9,7 +9,7 @@ jobs:
    
     steps:
       # Checkout action is required
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@master
         with:
           token: ${{ secrets.ADMIN_TOKEN }}
       - uses: actions/setup-node@v1

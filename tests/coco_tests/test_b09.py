@@ -790,3 +790,33 @@ class TestB09(unittest.TestCase):
             "10 LOCATE 10, 5\n",
             "10 run ecb_locate(10.0, 5.0)",
         )
+
+    def test_attr(self):
+        self.generic_test_parse(
+            "10 ATTR 2, 3\n",
+            "10 run ecb_attr(2.0, 3.0, 0.0, 0.0)",
+        )
+
+    def test_attr_b(self):
+        self.generic_test_parse(
+            "10 ATTR 2, 3, B\n",
+            "10 run ecb_attr(2.0, 3.0, 1.0, 0.0)",
+        )
+
+    def test_attr_u(self):
+        self.generic_test_parse(
+            "10 ATTR 2, 3, U\n",
+            "10 run ecb_attr(2.0, 3.0, 0.0, 1.0)",
+        )
+
+    def test_attr_ub(self):
+        self.generic_test_parse(
+            "10 ATTR 2, 3, U, B\n",
+            "10 run ecb_attr(2.0, 3.0, 1.0, 1.0)",
+        )
+
+    def test_attr_ububu(self):
+        self.generic_test_parse(
+            "10 ATTR 2, 3, U, B, U, B, U\n",
+            "10 run ecb_attr(2.0, 3.0, 1.0, 1.0)",
+        )

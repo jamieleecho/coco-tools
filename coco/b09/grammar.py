@@ -196,6 +196,7 @@ grammar = Grammar(
                     / input_statement
                     / width_statement
                     / locate_statement
+                    / attr_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -340,5 +341,9 @@ grammar = Grammar(
     string_expr         = "STRING$" space* "(" space* exp space* "," space* str_exp space* ")" space*
     width_statement     = "WIDTH" space* exp space*
     locate_statement    = "LOCATE" space* exp space* "," space* exp space*
+    attr_statement           = "ATTR" space* exp space* "," space* exp space* attr_option_list
+    attr_option_list         = attr_option_list_element*
+    attr_option_list_element = "," space* attr_option space*
+    attr_option              = "B" / "U"
     """  # noqa
 )

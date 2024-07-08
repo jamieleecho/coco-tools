@@ -802,6 +802,25 @@ class BasicVisitor(NodeVisitor):
         _, _, col, _, _, _, row, _ = visited_children
         return BasicRunCall("run ecb_locate", BasicExpressionList([col, row]))
 
+    def visit_attr_statement(self, node, visited_children):
+        _, _, background_color, _, _, _, foreground_color, _, options = visited_children
+        blink = BasicLiteral(1.0 if "B" in options else 0.0)
+        underline = BasicLiteral(1.0 if "U" in options else 0.0)
+        return BasicRunCall(
+            "run ecb_attr",
+            BasicExpressionList([background_color, foreground_color, blink, underline]),
+        )
+
+    def visit_attr_option_list(self, node, visited_children):
+        return visited_children
+
+    def visit_attr_option_list_element(self, node, visited_children):
+        _, _, attr_option, _ = visited_children
+        return attr_option
+
+    def visit_attr_option(self, node, visited_children):
+        return node.text
+
 
 def convert(
     progin,
