@@ -146,6 +146,40 @@ procedure ecb_locate
     put #1, tmp_buffer
 
 
+procedure ecb_set_palette
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    param display: display_state_t
+    param pr, cc: real
+
+    dim pri, cci: integer
+    pri = pr
+    cci = cc    
+    display.palette[pri] = cci
+    run gfx2("palette", pri, cci)
+
+
+procedure ecb_set_palette_cmp
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    param display: display_state_t
+    dim ii, cc: integer
+    for ii = 0 to 15
+        read cc
+        run ecb_set_palette(ii, cc)
+    next ii
+    data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
+
+
+procedure ecb_set_palette_rgb
+    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    param display: display_state_t
+    dim ii, cc: integer
+    for ii = 0 to 15
+        read cc
+        run ecb_set_palette(palette, ii, cc)
+    next ii
+    data 18, 36, 11, 7, 63, 31, 9, 38, 0, 18, 0, 63, 0, 18, 0, 38
+
+
 procedure ecb_point
     param x, y, c0: real
     dim address, c, cc: integer

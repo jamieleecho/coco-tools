@@ -828,6 +828,33 @@ class BasicVisitor(NodeVisitor):
     def visit_attr_option(self, node, visited_children):
         return node.text
 
+    def visit_reset_colors_statement(self, node, visited_children):
+        color_set, _ = visited_children
+        return BasicRunCall(
+            f"run ecb_set_palette_{color_set.text.lower()}",
+            BasicExpressionList([BasicVar("display")]),
+        )
+
+    def visit_palette_reset_statement(self, node, visited_children):
+        _, _, color_set = visited_children
+        return BasicRunCall(
+            f"run ecb_set_palette_{color_set.text.lower()}",
+            BasicExpressionList([BasicVar("display")]),
+        )
+
+    def visit_palette_statement(self, node, visited_children):
+        _, _, register, _, _, _, color_code = visited_children
+        return BasicRunCall(
+            "run ecb_set_palette",
+            BasicExpressionList(
+                [
+                    BasicVar("display"),
+                    register,
+                    color_code,
+                ]
+            ),
+        )
+
 
 def convert(
     progin,

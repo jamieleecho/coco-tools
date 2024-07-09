@@ -197,6 +197,9 @@ grammar = Grammar(
                     / width_statement
                     / locate_statement
                     / attr_statement
+                    / reset_colors_statement
+                    / palette_reset_statement
+                    / palette_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -346,5 +349,8 @@ grammar = Grammar(
     attr_option_list         = attr_option_list_element*
     attr_option_list_element = "," space* attr_option space*
     attr_option              = "B" / "U"
+    reset_colors_statement   = ("CMP" / "RGB") space*
+    palette_reset_statement  = "PALETTE" space* ("CMP" / "RGB")
+    palette_statement        = "PALETTE" space* exp space* "," space* exp
     """  # noqa
 )

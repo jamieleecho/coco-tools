@@ -826,3 +826,33 @@ class TestB09(unittest.TestCase):
             "10 ATTR 2, 3, U, B, U, B, U\n",
             "10 run ecb_attr(2.0, 3.0, 1.0, 1.0)",
         )
+
+    def test_rgb(self):
+        self.generic_test_parse(
+            "10 RGB\n",
+            "10 run ecb_set_palette_rgb(display)",
+        )
+
+    def test_cmp(self):
+        self.generic_test_parse(
+            "10 CMP\n",
+            "10 run ecb_set_palette_cmp(display)",
+        )
+
+    def test_palette_rgb(self):
+        self.generic_test_parse(
+            "10 PALETTE RGB\n",
+            "10 run ecb_set_palette_rgb(display)",
+        )
+
+    def test_palette_cmp(self):
+        self.generic_test_parse(
+            "10 PALETTE  CMP   \n",
+            "10 run ecb_set_palette_cmp(display)",
+        )
+
+    def test_palette(self):
+        self.generic_test_parse(
+            "10 PALETTE 1, 2\n",
+            "10 run ecb_set_palette(display, 1.0, 2.0)",
+        )
