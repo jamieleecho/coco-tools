@@ -815,7 +815,15 @@ class BasicVisitor(NodeVisitor):
         underline = BasicLiteral(1.0 if "U" in options else 0.0)
         return BasicRunCall(
             "run ecb_attr",
-            BasicExpressionList([background_color, foreground_color, blink, underline]),
+            BasicExpressionList(
+                [
+                    background_color,
+                    foreground_color,
+                    blink,
+                    underline,
+                    BasicVar("display"),
+                ]
+            ),
         )
 
     def visit_attr_option_list(self, node, visited_children):
@@ -848,9 +856,9 @@ class BasicVisitor(NodeVisitor):
             "run ecb_set_palette",
             BasicExpressionList(
                 [
-                    BasicVar("display"),
                     register,
                     color_code,
+                    BasicVar("display"),
                 ]
             ),
         )
