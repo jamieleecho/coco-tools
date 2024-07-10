@@ -151,13 +151,13 @@ procedure ecb_locate
 
 procedure ecb_set_palette
     type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
-    param display: display_state_t
     param pr, cc: real
+    param display: display_state_t
 
     dim pri, cci: integer
     pri = pr
     cci = cc    
-    display.palette[pri] = cci
+    display.palette(pri + 1) = cci
     run gfx2("palette", pri, cci)
 
 
