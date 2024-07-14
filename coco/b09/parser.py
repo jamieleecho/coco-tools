@@ -876,6 +876,19 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
+    def visit_hcls_statement(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        exp = BasicLiteral(-1) if not isinstance(exp, AbstractBasicExpression) else exp
+        return BasicRunCall(
+            "run ecb_hcls",
+            BasicExpressionList(
+                [
+                    exp,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
 
 def convert(
     progin,

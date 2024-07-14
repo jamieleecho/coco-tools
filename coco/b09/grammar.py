@@ -201,6 +201,7 @@ grammar = Grammar(
                     / palette_reset_statement
                     / palette_statement
                     / hscreen_statement
+                    / hcls_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -354,5 +355,6 @@ grammar = Grammar(
     palette_reset_statement  = "PALETTE" space* ("CMP" / "RGB")
     palette_statement        = "PALETTE" space* exp space* "," space* exp
     hscreen_statement        = "HSCREEN" space* exp? space*
+    hcls_statement           = "HCLS" space* exp? space*
     """  # noqa
 )

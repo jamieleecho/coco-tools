@@ -868,3 +868,15 @@ class TestB09(unittest.TestCase):
             "10 HSCREEN 2\n",
             "10 run ecb_hscreen(2.0, display)",
         )
+
+    def test_hcls(self):
+        self.generic_test_parse(
+            "10 HCLS\n",
+            "10 run ecb_hcls(-1, display)",
+        )
+
+    def test_hcls_n(self):
+        self.generic_test_parse(
+            "10 HCLS 2\n",
+            "10 run ecb_hcls(2.0, display)",
+        )
