@@ -812,7 +812,7 @@ class BasicVisitor(NodeVisitor):
     def visit_attr_statement(self, node, visited_children):
         _, _, background_color, _, _, _, foreground_color, _, options = visited_children
         blink = BasicLiteral(1.0 if "B" in options else 0.0)
-        underline = BasicLiteral(1.0 if "U" in options else 0.0)
+        undrln = BasicLiteral(1.0 if "U" in options else 0.0)
         return BasicRunCall(
             "run ecb_attr",
             BasicExpressionList(
@@ -820,7 +820,7 @@ class BasicVisitor(NodeVisitor):
                     background_color,
                     foreground_color,
                     blink,
-                    underline,
+                    undrln,
                     BasicVar("display"),
                 ]
             ),
@@ -863,6 +863,19 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
+    def visit_hscreen_statement(self, node, visited_children):
+        _, _, exp, _ = visited_children
+        exp = BasicLiteral(0) if not isinstance(exp, AbstractBasicExpression) else exp
+        return BasicRunCall(
+            "run ecb_hscreen",
+            BasicExpressionList(
+                [
+                    exp,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
 
 def convert(
     progin,
@@ -884,11 +897,11 @@ def convert(
             BasicLine(
                 None,
                 Basic09CodeStatement(
-                    "type display_state_t = vpath, wpath, palette(16), blink, "
-                    "underline, background, foreground, border: byte"
+                    "type display_t = vpth, wpth, hpth, pal(16), blnk, "
+                    "undrln, bck, fore, brdr, hbck, hfore: byte"
                 ),
             ),
-            BasicLine(None, Basic09CodeStatement("dim display: display_state_t")),
+            BasicLine(None, Basic09CodeStatement("dim display: display_t")),
             BasicLine(
                 None,
                 BasicRunCall(

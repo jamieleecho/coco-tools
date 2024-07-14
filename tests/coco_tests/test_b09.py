@@ -851,8 +851,20 @@ class TestB09(unittest.TestCase):
             "10 run ecb_set_palette_cmp(display)",
         )
 
-    def test_palette(self):
+    def test_pal(self):
         self.generic_test_parse(
             "10 PALETTE 1, 2\n",
             "10 run ecb_set_palette(1.0, 2.0, display)",
+        )
+
+    def test_hscreen(self):
+        self.generic_test_parse(
+            "10 HSCREEN\n",
+            "10 run ecb_hscreen(0, display)",
+        )
+
+    def test_hscreen_n(self):
+        self.generic_test_parse(
+            "10 HSCREEN 2\n",
+            "10 run ecb_hscreen(2.0, display)",
         )

@@ -29,12 +29,12 @@ class TestProcedureBank(unittest.TestCase):
     def test_can_load_from_resource_and_str(self):
         target = ProcedureBank()
         target.add_from_resource("ecb.b09")
-        procedure = "PROCEDURE foo\nRUN ecb_cls(5)"
+        procedure = "PROCEDURE foo\nRUN ecb_cls(5)\n\n"
         target.add_from_str(procedure)
         assert {"foo", "ecb_cls", "_ecb_text_address"}.issubset(
             target._get_procedure_and_dependency_names("foo")
         )
         all_procedures = target.get_procedure_and_dependencies("foo")
-        assert all_procedures.endswith(procedure)
+        assert all_procedures.endswith(procedure.strip())
         assert all_procedures.startswith("procedure _ecb_text_address\n")
         assert "procedure ecb_cls\n" in all_procedures

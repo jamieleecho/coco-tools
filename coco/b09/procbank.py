@@ -48,7 +48,7 @@ class ProcedureBank(object):
             self._name_to_dependencies[name].update(invoked_names)
 
         for name, procedure in name_to_procedure_array.items():
-            self._name_to_procedure[name] = "\n".join(procedure)
+            self._name_to_procedure[name] = "\n".join(procedure).strip()
 
     def get_procedure_and_dependencies(self, procedure_name):
         """

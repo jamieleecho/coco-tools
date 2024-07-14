@@ -22,10 +22,19 @@ EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES
 
 all: build $(TARGET) $(TARGET_DECB)
 
-build:
+
+lint:
 	ruff check
 	ruff linter
+
+format:
+	ruff format
+
+build: lint
 	python3 setup.py install
+
+test:
+	coverage run -m pytest && coverage report --show-missing
 
 $(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)

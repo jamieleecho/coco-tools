@@ -4,25 +4,27 @@ procedure ecb_at
 
 
 procedure ecb_attr
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param f, b, blnk, undr: real
-    param display: display_state_t
+    param display: display_t
     dim fi, bi: integer
     fi = f
     bi = b
+    display.fore = f
+    display.bck = b
     run gfx2("color", fi, bi)
     if blnk <> 0.0 then
-        display.blink = 1
+        display.blnk = 1
         run gfx2("BLNKON")
     else
-        display.blink = 0
+        display.blnk = 0
         run gfx2("BLNKOFF")
     endif
     if undr <> 0.0 then
-        display.underline = 1
+        display.undrln = 1
         run gfx2("UNDLNON")
     else
-        display.underline = 0
+        display.undrln = 0
         run gfx2("UNDLNOFF")
     endif
 
@@ -54,9 +56,9 @@ procedure ecb_joystk
 
 
 procedure ecb_cls
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param color: real
-    param display: display_state_t
+    param display: display_t
     dim a, b, ii: integer
     dim c: byte
 
@@ -85,9 +87,9 @@ procedure ecb_cls
                 next ii
             endif
         else
-            display.background = color
-            display.border = color
-            a = display.foreground
+            display.bck = color
+            display.brdr = color
+            a = display.fore
             b = color
             run gfx2("color", a, b, b)
             run gfx2("clear")
@@ -114,6 +116,41 @@ procedure ecb_hex
     str = str + tmp
     run _ecb_hex_digit(land($f, v), tmp)
     str = str + tmp
+
+
+procedure ecb_hscreen
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    param n: real
+    param display: display_t
+    base 0
+
+    dim buff(2): byte
+    dim ni, mode: integer
+    ni = n
+
+    if ni < 0 or ni > 4 then
+        error 52
+    endif
+
+    buff(0) = $1b
+    buff(1) = $21
+    if ni = 0 then
+        put #1, buff
+    else
+        if ni = 1 then
+            mode = 7
+        else 
+            if ni = 2 then
+                mode = 8
+            else
+                if ni = 3 then
+                    mode = 5
+                else
+                    mode = 6
+                endif
+            endif
+        endif
+    endif
 
 
 procedure ecb_instr
@@ -150,20 +187,29 @@ procedure ecb_locate
 
 
 procedure ecb_set_palette
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param pr, cc: real
-    param display: display_state_t
+    param display: display_t
 
     dim pri, cci: integer
     pri = pr
     cci = cc    
-    display.palette(pri + 1) = cci
     run gfx2("palette", pri, cci)
+    if (display.vpth <> $ff) then
+        run gfx2(display.vpth, "palette", pri, cci)
+    endif
+    if (display.wpth <> $ff) then
+        run gfx2(display.wpth, "palette", pri, cci)
+    endif
+    if (display.hpth <> $ff) then
+        run gfx2(display.wpth, "palette", pri, cci)
+    endif
+    display.pal(pri + 1) = cci
 
 
 procedure ecb_set_palette_cmp
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
-    param display: display_state_t
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    param display: display_t
     dim ii, cc: integer
     for ii = 0 to 15
         read cc
@@ -173,8 +219,8 @@ procedure ecb_set_palette_cmp
 
 
 procedure ecb_set_palette_rgb
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
-    param display: display_state_t
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    param display: display_t
     dim ii, cc: integer
     for ii = 0 to 15
         read cc
@@ -402,22 +448,25 @@ procedure _ecb_palette
 
 procedure _ecb_start
     base 0
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
-    param display: display_state_t
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    param display: display_t
     param w: integer
-    display.vpath = $ff
-    display.wpath = $ff
-    display.blink = 0
-    display.underline = 0
-    display.background = 0
-    display.foreground = 0
-    display.border = 0
+    display.vpth = $ff
+    display.wpth = $ff
+    display.hpth = $ff
+    display.blnk = 0
+    display.undrln = 0
+    display.bck = 0
+    display.fore = 0
+    display.brdr = 0
+    display.hbck = 0
+    display.hfore = 1
 
     dim ii, c: integer
 
     for ii=0 to 15
         read c
-        display.palette(ii) = c
+        display.pal(ii) = c
         run gfx2("palette", ii, c)
     next ii
 
@@ -451,9 +500,9 @@ procedure _ecb_text_address
 
 procedure _ecb_width
     base 0
-    type display_state_t = vpath, wpath, palette(16), blink, underline, background, foreground, border: byte
+    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param width: real
-    param display: display_state_t
+    param display: display_t
     dim path, path0, ii, c, o: integer
     dim buff2(2): byte
     dim buff12(12): byte
@@ -471,22 +520,22 @@ procedure _ecb_width
     run _ecb_devnm(1, pathname)
     pathname = "/" + pathname
     if wintype = 0 then
-        if display.vpath = $ff then
+        if display.vpth = $ff then
             open #path0, pathname:update
-            display.vpath = path0
+            display.vpth = path0
         endif
     else
-        if display.wpath = $ff then
+        if display.wpth = $ff then
             open #path0, pathname:update
-            display.wpath = path0
+            display.wpth = path0
         endif
     endif
 
-    if width = 32 and display.vpath <> $ff then
-        path = display.vpath
+    if width = 32 and display.vpth <> $ff then
+        path = display.vpth
     endif
-    if width <> 32 and display.wpath <> $ff then
-        path = display.wpath
+    if width <> 32 and display.wpth <> $ff then
+        path = display.wpth
     endif
 
     o = 2
@@ -529,13 +578,13 @@ procedure _ecb_width
         endif
 
         put #path, buff12
-        display.wpath = path
+        display.wpth = path
     else
-        display.vpath = path
+        display.vpth = path
     endif
 
     for ii=0 to 15
-        c = display.palette(ii)
+        c = display.pal(ii)
         run gfx2(path, "palette", ii, c)
     next ii
 
