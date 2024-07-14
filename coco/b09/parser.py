@@ -897,7 +897,7 @@ def convert(
             BasicLine(
                 None,
                 Basic09CodeStatement(
-                    "type display_t = vpth, wpth, hpth, pal(16), blnk, "
+                    "type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, "
                     "undrln, bck, fore, brdr, hbck, hfore: byte"
                 ),
             ),

@@ -4,7 +4,7 @@ procedure ecb_at
 
 
 procedure ecb_attr
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param f, b, blnk, undr: real
     param display: display_t
     dim fi, bi: integer
@@ -56,7 +56,7 @@ procedure ecb_joystk
 
 
 procedure ecb_cls
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param color: real
     param display: display_t
     dim a, b, ii: integer
@@ -119,13 +119,14 @@ procedure ecb_hex
 
 
 procedure ecb_hscreen
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param n: real
     param display: display_t
     base 0
 
     dim buff(2): byte
-    dim ni, mode: integer
+    dim ii, ni, mode, width, path, path0: integer
+    dim pathname: string
     ni = n
 
     if ni < 0 or ni > 4 then
@@ -135,14 +136,23 @@ procedure ecb_hscreen
     buff(0) = $1b
     buff(1) = $21
     if ni = 0 then
-        put #1, buff
+        if display.tpth <> $ff then
+            put #display.tpth, buff
+            path0 = display.tpth
+            close #0
+            run _ecb_dup(path0, path0)
+            close #display.tpth
+            display.tpth = $ff
+        endif
     else
+        width = 40
         if ni = 1 then
             mode = 7
         else 
             if ni = 2 then
                 mode = 8
             else
+                width = 80
                 if ni = 3 then
                     mode = 5
                 else
@@ -150,6 +160,33 @@ procedure ecb_hscreen
                 endif
             endif
         endif
+
+        if display.hpth = $ff then
+            open #path, "/w":update
+            run _ecb_devnm(path, pathname)
+            pathname = "/" + pathname
+            close #path
+            shell("xmode " + pathname + " par=80 pau=0 upc=0 eko=0")
+            open #path, pathname:update
+            display.hpth = path
+        else
+            run gfx2(display.hpth, "dwend")
+        endif
+        run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
+        run gfx2(display.hpth, "curoff")
+        for ii=0 to 15
+            run gfx2(display.hpth, "palette", ii, display.pal(ii))
+        next ii
+        run _ecb_input_suffix
+        put #display.hpth, buff
+
+        if display.tpth = $ff then
+            run _ecb_dup(0, path0)
+            display.tpth = path0
+        endif
+        close #0
+        run _ecb_dup(path, path0)
+
     endif
 
 
@@ -187,7 +224,7 @@ procedure ecb_locate
 
 
 procedure ecb_set_palette
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param pr, cc: real
     param display: display_t
 
@@ -208,7 +245,7 @@ procedure ecb_set_palette
 
 
 procedure ecb_set_palette_cmp
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param display: display_t
     dim ii, cc: integer
     for ii = 0 to 15
@@ -219,7 +256,7 @@ procedure ecb_set_palette_cmp
 
 
 procedure ecb_set_palette_rgb
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param display: display_t
     dim ii, cc: integer
     for ii = 0 to 15
@@ -448,9 +485,10 @@ procedure _ecb_palette
 
 procedure _ecb_start
     base 0
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param display: display_t
     param w: integer
+    display.tpth = $ff
     display.vpth = $ff
     display.wpth = $ff
     display.hpth = $ff
@@ -500,7 +538,7 @@ procedure _ecb_text_address
 
 procedure _ecb_width
     base 0
-    type display_t = vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+    type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
     param width: real
     param display: display_t
     dim path, path0, ii, c, o: integer
@@ -599,6 +637,12 @@ procedure _ecb_width
             error 52
         endif
     next ii
+
+    if display.tpth <> $ff then
+        close #display.tpth
+        run _ecb_dup(path, path0)
+        display.tpth = path0
+    endif
 
     data $1b, $20, $02, $00, $00, $50, $18, $00
     data $00, $00
