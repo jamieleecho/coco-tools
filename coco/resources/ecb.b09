@@ -101,11 +101,11 @@ if ni < -1 or ni > 15 or display.hpth = $ff then
     error 52
 else
     if ni <> -1.0 then
-        run gfx2(fix(display.hpth), "color", 0, ni)
+        run gfx2(display.hpth, "color", 0, ni)
     endif
-    run gfx2(fix(display.hpth), "clear")
+    run gfx2(display.hpth, "clear")
     if ni <> -1.0 then
-        run gfx2(fix(display.hpth), "color", display.hbck, display.hfore)
+        run gfx2(display.hpth, "color", display.hbck, display.hfore)
     endif
 endif
 
@@ -148,13 +148,17 @@ endif
 buff(0) = $1b
 buff(1) = $21
 if ni = 0 then
+    if display.hpth <> $ff then
+        run gfx2(display.hpth, "dwend")
+        close #display.hpth
+    endif
+
     if display.tpth <> $ff then
-        put #display.tpth, buff
-        path0 = display.tpth
         close #0
-        run _ecb_dup(path0, path0)
+        run _ecb_dup(fix(display.tpth), path0)
         close #display.tpth
         display.tpth = $ff
+        put #0, buff
     endif
 else
     width = 40
@@ -186,7 +190,7 @@ else
     endif
     run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
     run gfx2(display.hpth, "curoff")
-    run gfx2(display.hpth, "scalesw", "off")
+    run gfx2(display.hpth, "scalesw", "on")
     for ii=0 to 15
         run gfx2(display.hpth, "palette", ii, display.pal(ii))
     next ii
@@ -198,7 +202,7 @@ else
         display.tpth = path0
     endif
     close #0
-    run _ecb_dup(path, path0)
+    run _ecb_dup(fix(display.hpth), path0)
 
 endif
 
