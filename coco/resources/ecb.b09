@@ -83,6 +83,13 @@ else
 endif
 
 
+procedure ecb_hcircle
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+param x, y, r: real
+param display: display_t
+run gfx2(display.hpth, "circle", fix(x), fix(y), fix(r))
+
+
 procedure ecb_hcls
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
 param n: real
@@ -179,6 +186,7 @@ else
     endif
     run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
     run gfx2(display.hpth, "curoff")
+    run gfx2(display.hpth, "scalesw", "off")
     for ii=0 to 15
         run gfx2(display.hpth, "palette", ii, display.pal(ii))
     next ii

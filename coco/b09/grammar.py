@@ -202,6 +202,9 @@ grammar = Grammar(
                     / palette_statement
                     / hscreen_statement
                     / hcls_statement
+                    / harc_statement
+                    / hellipse_statement
+                    / hcircle_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -352,9 +355,14 @@ grammar = Grammar(
     attr_option_list_element = "," space* attr_option space*
     attr_option              = "B" / "U"
     reset_colors_statement   = ("CMP" / "RGB") space*
-    palette_reset_statement  = "PALETTE" space* ("CMP" / "RGB")
-    palette_statement        = "PALETTE" space* exp space* "," space* exp
+    palette_reset_statement  = "PALETTE" space* ("CMP" / "RGB") space*
+    palette_statement        = "PALETTE" space* exp space* "," space* exp space*
     hscreen_statement        = "HSCREEN" space* exp? space*
     hcls_statement           = "HCLS" space* exp? space*
+    harc_statement           = hcircle_ellipse_prefix "," space* exp space* "," space* exp space*
+    hellipse_statement       = hcircle_ellipse_prefix
+    hcircle_statement        = hcircle_prefix
+    hcircle_ellipse_prefix   = hcircle_prefix "," space* exp space*
+    hcircle_prefix           = "HCIRCLE" space* "(" space* exp space* "," space* exp space* ")" space* "," space* exp space*
     """  # noqa
 )

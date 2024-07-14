@@ -916,3 +916,124 @@ class BasicWidthStatement(AbstractBasicStatement):
             f"{self._expr.basic09_text(indent_level=indent_level)}, "
             f"display)"
         )
+
+
+class BasicCircleStatement(BasicRunCall):
+    _expr_x: AbstractBasicExpression
+    _expr_y: AbstractBasicExpression
+    _expr_r: AbstractBasicExpression
+    _hires: bool
+
+    def __init__(
+        self,
+        expr_x: AbstractBasicExpression,
+        expr_y: AbstractBasicExpression,
+        expr_r: AbstractBasicExpression,
+        hires: bool = True,
+    ):
+        super().__init__(
+            f"run ecb_{'h' if hires else ''}circle",
+            BasicExpressionList(
+                [
+                    expr_x,
+                    expr_y,
+                    expr_r,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+        self._hires = hires
+        self._expr_x = expr_x
+        self._expr_y = expr_y
+        self._expr_r = expr_r
+
+    @property
+    def hires(self) -> bool:
+        return self._hires
+
+    @property
+    def expr_x(self) -> AbstractBasicExpression:
+        return self._expr_x
+
+    @property
+    def expr_y(self) -> AbstractBasicExpression:
+        return self._expr_y
+
+    @property
+    def expr_r(self) -> AbstractBasicExpression:
+        return self._expr_r
+
+
+class BasicEllipseStatement(BasicRunCall):
+    _circle: BasicCircleStatement
+    _expr_ratio: AbstractBasicExpression
+
+    def __init__(
+        self,
+        circle: BasicCircleStatement,
+        expr_ratio: AbstractBasicExpression,
+    ):
+        super().__init__(
+            f"run ecb_{'h' if circle.hires else ''}ellipse",
+            BasicExpressionList(
+                [
+                    circle.expr_x,
+                    circle.expr_y,
+                    circle.expr_r,
+                    expr_ratio,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+        self._circle = circle
+        self._expr_ratio = expr_ratio
+
+    @property
+    def circle(self) -> BasicCircleStatement:
+        return self._circle
+
+    @property
+    def expr_ratio(self) -> AbstractBasicExpression:
+        return self._expr_ratio
+
+
+class BasicArcStatement(BasicRunCall):
+    _ellipse: BasicEllipseStatement
+    _expr_start: AbstractBasicExpression
+    _expr_end: AbstractBasicExpression
+
+    def __init__(
+        self,
+        ellipse: BasicEllipseStatement,
+        expr_start: AbstractBasicExpression,
+        expr_end: AbstractBasicExpression,
+    ):
+        super().__init__(
+            f"run ecb_{'h' if ellipse.circle.hires else ''}arc",
+            BasicExpressionList(
+                [
+                    ellipse.circle.expr_x,
+                    ellipse.circle.expr_y,
+                    ellipse.circle.expr_r,
+                    ellipse.expr_ratio,
+                    expr_start,
+                    expr_end,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+        self._ellipse = ellipse
+        self._expr_start = expr_start
+        self._expr_end = expr_end
+
+    @property
+    def ellipse(self) -> BasicEllipseStatement:
+        return self._ellipse
+
+    @property
+    def expr_start(self) -> AbstractBasicExpression:
+        return self._expr_start
+
+    @property
+    def expr_end(self) -> AbstractBasicExpression:
+        return self._expr_end

@@ -880,3 +880,9 @@ class TestB09(unittest.TestCase):
             "10 HCLS 2\n",
             "10 run ecb_hcls(2.0, display)",
         )
+
+    def test_hcircle(self):
+        self.generic_test_parse(
+            "10 HCIRCLE(159, 95), 20\n",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, display)",
+        )

@@ -25,6 +25,7 @@ from coco.b09.elements import (
     BasicBooleanBinaryExp,
     BasicBooleanOpExp,
     BasicBooleanParenExp,
+    BasicCircleStatement,
     BasicCls,
     BasicComment,
     BasicDataStatement,
@@ -844,14 +845,14 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_palette_reset_statement(self, node, visited_children):
-        _, _, color_set = visited_children
+        _, _, color_set, _ = visited_children
         return BasicRunCall(
             f"run ecb_set_palette_{color_set.text.lower()}",
             BasicExpressionList([BasicVar("display")]),
         )
 
     def visit_palette_statement(self, node, visited_children):
-        _, _, register, _, _, _, color_code = visited_children
+        _, _, register, _, _, _, color_code, _ = visited_children
         return BasicRunCall(
             "run ecb_set_palette",
             BasicExpressionList(
@@ -888,6 +889,13 @@ class BasicVisitor(NodeVisitor):
                 ]
             ),
         )
+
+    def visit_hcircle_prefix(self, node, visited_children):
+        _, _, _, _, x_exp, _, _, _, y_exp, _, _, _, _, _, r_exp, _ = visited_children
+        return BasicCircleStatement(x_exp, y_exp, r_exp)
+
+    def visit_hcircle_statement(self, node, visited_children):
+        return visited_children[0]
 
 
 def convert(
