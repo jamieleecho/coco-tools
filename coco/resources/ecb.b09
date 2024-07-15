@@ -85,10 +85,18 @@ endif
 
 procedure ecb_hcircle
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
-param x, y, r, c: real
+param x, y, r, c, rt: real
+dim rx, ry: real
 param display: display_t
+if rt < 1 then
+    rx = r
+    ry = r * rt
+else
+    rx = r * rt
+    ry = r
+endif
 run gfx2(display.hpth, "color", fix(c))
-run gfx2(display.hpth, "ellipse", fix(x), fix(y), fix(r), fix(r) / display.hscl)
+run gfx2(display.hpth, "ellipse", fix(x), fix(y), fix(rx), fix(ry) / display.hscl)
 
 
 procedure ecb_hcls

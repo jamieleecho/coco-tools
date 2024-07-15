@@ -922,7 +922,7 @@ class BasicCircleStatement(BasicRunCall):
     _expr_x: AbstractBasicExpression
     _expr_y: AbstractBasicExpression
     _expr_r: AbstractBasicExpression
-    _color: AbstractBasicExpression
+    _expr_color: AbstractBasicExpression
     _hires: bool
 
     def __init__(
@@ -931,7 +931,7 @@ class BasicCircleStatement(BasicRunCall):
         expr_y: AbstractBasicExpression,
         expr_r: AbstractBasicExpression,
         *,
-        color: AbstractBasicConstruct = None,
+        expr_color: AbstractBasicConstruct = None,
         hires: bool = True,
     ):
         super().__init__(
@@ -941,11 +941,12 @@ class BasicCircleStatement(BasicRunCall):
                     expr_x,
                     expr_y,
                     expr_r,
-                    color
-                    if color is not None
+                    expr_color
+                    if expr_color is not None
                     else BasicRunCall(
                         "float", BasicExpressionList([BasicVar("display.hfore")])
                     ),
+                    BasicLiteral(1.0),
                     BasicVar("display"),
                 ]
             ),
@@ -954,7 +955,7 @@ class BasicCircleStatement(BasicRunCall):
         self._expr_y = expr_y
         self._expr_r = expr_r
         self._hires = hires
-        self._color = color
+        self._expr_color = expr_color
 
     @property
     def hires(self) -> bool:
@@ -973,8 +974,8 @@ class BasicCircleStatement(BasicRunCall):
         return self._expr_r
 
     @property
-    def color(self) -> AbstractBasicExpression:
-        return self._color
+    def expr_color(self) -> AbstractBasicExpression:
+        return self._expr_color
 
 
 class BasicEllipseStatement(BasicRunCall):
@@ -987,12 +988,17 @@ class BasicEllipseStatement(BasicRunCall):
         expr_ratio: AbstractBasicExpression,
     ):
         super().__init__(
-            f"run ecb_{'h' if circle.hires else ''}ellipse",
+            f"run ecb_{'h' if circle.hires else ''}circle",
             BasicExpressionList(
                 [
                     circle.expr_x,
                     circle.expr_y,
                     circle.expr_r,
+                    circle.expr_color
+                    if circle.expr_color is not None
+                    else BasicRunCall(
+                        "float", BasicExpressionList([BasicVar("display.hfore")])
+                    ),
                     expr_ratio,
                     BasicVar("display"),
                 ]

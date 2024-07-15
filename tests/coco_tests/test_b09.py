@@ -884,5 +884,23 @@ class TestB09(unittest.TestCase):
     def test_hcircle(self):
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), display)",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), 1.0, display)",
+        )
+
+    def test_hcircle_with_color(self):
+        self.generic_test_parse(
+            "10 HCIRCLE(159, 95), 20, 4\n",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, 4.0, 1.0, display)",
+        )
+
+    def test_hcircle_without_color_with_ratio(self):
+        self.generic_test_parse(
+            "10 HCIRCLE(159, 95), 20, , 4\n",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), 4.0, display)",
+        )
+
+    def test_hcircle_with_color_and_ratio(self):
+        self.generic_test_parse(
+            "10 HCIRCLE(159, 95), 20, 3, 4\n",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, 3.0, 4.0, display)",
         )

@@ -30,6 +30,7 @@ from coco.b09.elements import (
     BasicComment,
     BasicDataStatement,
     BasicDimStatement,
+    BasicEllipseStatement,
     BasicExpressionList,
     BasicForStatement,
     BasicFunctionCall,
@@ -904,7 +905,20 @@ class BasicVisitor(NodeVisitor):
             circle_statement.expr_x,
             circle_statement.expr_y,
             circle_statement.expr_r,
-            color=None if expr_color == "" else expr_color,
+            expr_color=None if expr_color == "" else expr_color,
+        )
+
+    def visit_hellipse_statement(self, node, visited_children):
+        circle_statement, expr_color, _, _, expr_rt, _ = visited_children
+        new_circle_statement: BasicCircleStatement = BasicCircleStatement(
+            circle_statement.expr_x,
+            circle_statement.expr_y,
+            circle_statement.expr_r,
+            expr_color=None if expr_color == "" else expr_color,
+        )
+        return BasicEllipseStatement(
+            new_circle_statement,
+            expr_rt,
         )
 
 
