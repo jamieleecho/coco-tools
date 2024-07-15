@@ -98,10 +98,10 @@ else
 endif
 ry = ry / display.hscl
 pi2 = 2 * pi
-sx = fix(x + rx * cos(sp * pi2))
-sy = fix(y + ry * sin(sp * pi2))
-ex = fix(x + rx * cos(ep * pi2))
-yy = fix(y + ry * sin(ep * pi2))
+sx = fix(rx * cos(sp * pi2))
+sy = fix(ry * sin(sp * pi2))
+ex = fix(rx * cos(ep * pi2))
+yy = fix(ry * sin(ep * pi2))
 
 run gfx2(display.hpth, "color", fix(c))
 run gfx2(display.hpth, "arc", fix(x), fix(y), fix(rx), fix(ry), sx, sy, ex, ey)

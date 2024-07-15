@@ -1034,6 +1034,11 @@ class BasicArcStatement(BasicRunCall):
                     ellipse.circle.expr_x,
                     ellipse.circle.expr_y,
                     ellipse.circle.expr_r,
+                    ellipse.circle.expr_color
+                    if ellipse.circle.expr_color is not None
+                    else BasicRunCall(
+                        "float", BasicExpressionList([BasicVar("display.hfore")])
+                    ),
                     ellipse.expr_ratio,
                     expr_start,
                     expr_end,

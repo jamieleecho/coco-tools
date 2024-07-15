@@ -904,3 +904,9 @@ class TestB09(unittest.TestCase):
             "10 HCIRCLE(159, 95), 20, 3, 4\n",
             "10 run ecb_hcircle(159.0, 95.0, 20.0, 3.0, 4.0, display)",
         )
+
+    def test_harc(self):
+        self.generic_test_parse(
+            "10 HCIRCLE(159, 95), 20, 3, 4, .2, .9\n",
+            "10 run ecb_harc(159.0, 95.0, 20.0, 3.0, 4.0, 0.2, 0.9, display)",
+        )

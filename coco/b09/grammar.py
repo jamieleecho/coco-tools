@@ -364,6 +364,6 @@ grammar = Grammar(
     hcircle_prefix           = "HCIRCLE" space* "(" space* exp space* "," space* exp space* ")" space* "," space* exp space*
     hcircle_optional         = "," space* exp? space*
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
-    harc_statement           = hellipse_statement space* "," space* exp space* "," space* exp space*
+    harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
     """  # noqa
 )

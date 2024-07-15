@@ -19,6 +19,7 @@ from coco.b09.elements import (
     AbstractBasicConstruct,
     AbstractBasicExpression,
     Basic09CodeStatement,
+    BasicArcStatement,
     BasicArrayRef,
     BasicAssignment,
     BasicBinaryExp,
@@ -919,6 +920,14 @@ class BasicVisitor(NodeVisitor):
         return BasicEllipseStatement(
             new_circle_statement,
             expr_rt,
+        )
+
+    def visit_harc_statement(self, node, visited_children):
+        ellipse_statement, _, _, expr_start, _, _, _, expr_end, _ = visited_children
+        return BasicArcStatement(
+            ellipse_statement,
+            expr_start,
+            expr_end,
         )
 
 
