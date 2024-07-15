@@ -4,7 +4,7 @@ run ecb_locate(float(land(location, 31)), location / 32.0)
 
 
 procedure ecb_attr
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param f, b, blnk, undr: real
 param display: display_t
 dim fi, bi: integer
@@ -41,7 +41,7 @@ if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_cls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param color: real
 param display: display_t
 dim a, b, ii: integer
@@ -84,14 +84,14 @@ endif
 
 
 procedure ecb_hcircle
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param x, y, r: real
 param display: display_t
-run gfx2(display.hpth, "circle", fix(x), fix(y), fix(r))
+run gfx2(display.hpth, "ellipse", fix(x), fix(y), fix(r), fix(r) / display.hscl)
 
 
 procedure ecb_hcls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param n: real
 param display: display_t
 
@@ -131,7 +131,7 @@ str = str + tmp
 
 
 procedure ecb_hscreen
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param n: real
 param display: display_t
 base 0
@@ -162,6 +162,7 @@ if ni = 0 then
     endif
 else
     width = 40
+    display.hscl = 1
     if ni = 1 then
         mode = 6
     else 
@@ -169,6 +170,7 @@ else
             mode = 8
         else
             width = 80
+            display.hscl = 2
             if ni = 3 then
                 mode = 5
             else
@@ -190,7 +192,7 @@ else
     endif
     run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
     run gfx2(display.hpth, "curoff")
-    run gfx2(display.hpth, "scalesw", "on")
+    run gfx2(display.hpth, "scalesw", "off")
     for ii=0 to 15
         run gfx2(display.hpth, "palette", ii, display.pal(ii))
     next ii
@@ -256,7 +258,7 @@ put #1, tmp_buffer
 
 
 procedure ecb_set_palette
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param pr, cc: real
 param display: display_t
 
@@ -277,7 +279,7 @@ display.pal(pri + 1) = cci
 
 
 procedure ecb_set_palette_cmp
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -288,7 +290,7 @@ data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
 
 procedure ecb_set_palette_rgb
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -517,7 +519,7 @@ endif
 
 procedure _ecb_start
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param display: display_t
 param w: integer
 display.tpth = $ff
@@ -570,7 +572,7 @@ endif
 
 procedure _ecb_width
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore: byte
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param width: real
 param display: display_t
 dim path, path0, ii, c, o: integer
