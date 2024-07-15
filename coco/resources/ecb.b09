@@ -92,7 +92,7 @@ if rt < 1 then
     rx = r
     ry = r * rt
 else
-    rx = r * rt
+    rx = r / rt
     ry = r
 endif
 run gfx2(display.hpth, "color", fix(c))
