@@ -884,5 +884,5 @@ class TestB09(unittest.TestCase):
     def test_hcircle(self):
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, display)",
+            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), display)",
         )

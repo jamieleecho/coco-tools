@@ -891,11 +891,21 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_hcircle_prefix(self, node, visited_children):
-        _, _, _, _, x_exp, _, _, _, y_exp, _, _, _, _, _, r_exp, _ = visited_children
-        return BasicCircleStatement(x_exp, y_exp, r_exp)
+        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, expr_r, _ = visited_children
+        return BasicCircleStatement(expr_x, expr_y, expr_r)
+
+    def visit_hcircle_optional(self, node, visited_children):
+        _, _, expr_color, _ = visited_children
+        return expr_color
 
     def visit_hcircle_statement(self, node, visited_children):
-        return visited_children[0]
+        circle_statement, expr_color = visited_children
+        return BasicCircleStatement(
+            circle_statement.expr_x,
+            circle_statement.expr_y,
+            circle_statement.expr_r,
+            color=None if expr_color == "" else expr_color,
+        )
 
 
 def convert(

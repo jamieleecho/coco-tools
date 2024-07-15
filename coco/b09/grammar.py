@@ -360,9 +360,11 @@ grammar = Grammar(
     hscreen_statement        = "HSCREEN" space* exp? space*
     hcls_statement           = "HCLS" space* exp? space*
     harc_statement           = hcircle_ellipse_prefix "," space* exp space* "," space* exp space*
-    hellipse_statement       = hcircle_ellipse_prefix
-    hcircle_statement        = hcircle_prefix
-    hcircle_ellipse_prefix   = hcircle_prefix "," space* exp space*
+    hcircle_statement        = hcircle_prefix hcircle_optional?
     hcircle_prefix           = "HCIRCLE" space* "(" space* exp space* "," space* exp space* ")" space* "," space* exp space*
+    hcircle_optional         = "," space* exp? space*
+    hellipse_statement       = hcircle_ellipse_prefix
+    hcircle_ellipse_prefix   = hcircle_prefix hcircle_optional "," space* exp space*
+    harc_statement           = hellipse_statement space* "," space* exp space* "," space* exp space*
     """  # noqa
 )

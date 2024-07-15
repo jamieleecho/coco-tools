@@ -922,6 +922,7 @@ class BasicCircleStatement(BasicRunCall):
     _expr_x: AbstractBasicExpression
     _expr_y: AbstractBasicExpression
     _expr_r: AbstractBasicExpression
+    _color: AbstractBasicExpression
     _hires: bool
 
     def __init__(
@@ -929,6 +930,8 @@ class BasicCircleStatement(BasicRunCall):
         expr_x: AbstractBasicExpression,
         expr_y: AbstractBasicExpression,
         expr_r: AbstractBasicExpression,
+        *,
+        color: AbstractBasicConstruct = None,
         hires: bool = True,
     ):
         super().__init__(
@@ -938,14 +941,20 @@ class BasicCircleStatement(BasicRunCall):
                     expr_x,
                     expr_y,
                     expr_r,
+                    color
+                    if color is not None
+                    else BasicRunCall(
+                        "float", BasicExpressionList([BasicVar("display.hfore")])
+                    ),
                     BasicVar("display"),
                 ]
             ),
         )
-        self._hires = hires
         self._expr_x = expr_x
         self._expr_y = expr_y
         self._expr_r = expr_r
+        self._hires = hires
+        self._color = color
 
     @property
     def hires(self) -> bool:
@@ -962,6 +971,10 @@ class BasicCircleStatement(BasicRunCall):
     @property
     def expr_r(self) -> AbstractBasicExpression:
         return self._expr_r
+
+    @property
+    def color(self) -> AbstractBasicExpression:
+        return self._color
 
 
 class BasicEllipseStatement(BasicRunCall):
