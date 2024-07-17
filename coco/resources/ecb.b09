@@ -86,22 +86,17 @@ endif
 procedure ecb_harc
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param x, y, r, c, rt, sp, ep: real
+param display: display_t
 dim rx, ry, pi2: real
 dim sx, sy, ex, ey: integer
-param display: display_t
-if rt < 1 then
-    rx = r
-    ry = r * rt
-else
-    rx = r / rt
-    ry = r
-endif
+rx = r
+ry = r * rt
 ry = ry / display.hscl
 pi2 = 2 * pi
-sx = fix(rx * cos(sp * pi2))
-sy = fix(ry * sin(sp * pi2))
-ex = fix(rx * cos(ep * pi2))
-yy = fix(ry * sin(ep * pi2))
+sx = fix(rx * cos(sp * 2 * pi))
+sy = fix(ry * sin(sp * 2 * pi))
+ex = fix(rx * cos(ep * 2 * pi))
+ey = fix(ry * sin(ep * 2 * pi))
 
 run gfx2(display.hpth, "color", fix(c))
 run gfx2(display.hpth, "arc", fix(x), fix(y), fix(rx), fix(ry), sx, sy, ex, ey)
