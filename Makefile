@@ -1,4 +1,5 @@
 IMGTOOL=./coco-dev imgtool
+DECB=./coco-dev decb
 MAME_DIR=~/Applications/mame
 MAME=$(MAME_DIR)/mame
 
@@ -38,13 +39,13 @@ test:
 
 $(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
-	bash -c 'for each in $(RESOURCE_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
-	bash -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	zsh -c 'for each in $(RESOURCE_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	zsh -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
 	mv $(TMPTARGET) $(@)
 
 $(TARGET_DECB) : $(EXAMPLES_INPUTS)
-	$(IMGTOOL) create coco_jvc_rsdos $(TMPTARGET_DECB)
-	bash -c 'for each in $(EXAMPLES_INPUTS); do $(IMGTOOL) put coco_jvc_rsdos $(TMPTARGET_DECB) $${each} `echo $$(basename $${each}) | tr '[:lower:]' '[:upper:]'`  --ftype=basic --ascii=ascii; done'
+	$(DECB) dskini $(TMPTARGET_DECB)
+	zsh -c 'for each in $(EXAMPLES_INPUTS); do $(DECB) copy -t $${each} $(TMPTARGET_DECB),`basename $${(U)each}`; done'
 	mv $(TMPTARGET_DECB) $(@)
 
 $(TMPTARGET) :
