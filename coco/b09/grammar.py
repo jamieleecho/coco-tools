@@ -205,6 +205,7 @@ grammar = Grammar(
                     / harc_statement
                     / hellipse_statement
                     / hcircle_statement
+                    / hprint_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -359,11 +360,11 @@ grammar = Grammar(
     palette_statement        = "PALETTE" space* exp space* "," space* exp space*
     hscreen_statement        = "HSCREEN" space* exp? space*
     hcls_statement           = "HCLS" space* exp? space*
-    harc_statement           = hcircle_ellipse_prefix "," space* exp space* "," space* exp space*
     hcircle_statement        = hcircle_prefix hcircle_optional?
     hcircle_prefix           = "HCIRCLE" space* "(" space* exp space* "," space* exp space* ")" space* "," space* exp space*
     hcircle_optional         = "," space* exp? space*
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
     harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
+    hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* str_exp space*
     """  # noqa
 )

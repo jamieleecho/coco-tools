@@ -910,3 +910,9 @@ class TestB09(unittest.TestCase):
             "10 HCIRCLE(159, 95), 20, 3, 4, .2, .9\n",
             "10 run ecb_harc(159.0, 95.0, 20.0, 3.0, 4.0, 0.2, 0.9, display)",
         )
+
+    def test_hprint(self):
+        self.generic_test_parse(
+            '10 HPRINT(10, 20), "HELLO WORLD"',
+            '10 run ecb_hprint(10.0, 20.0, "HELLO WORLD", display)',
+        )

@@ -221,6 +221,7 @@ else
     run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
     run gfx2(display.hpth, "curoff")
     run gfx2(display.hpth, "scalesw", "off")
+    run gfx2(display.hpth, "tcharsw", "on")
     for ii=0 to 15
         run gfx2(display.hpth, "palette", ii, display.pal(ii))
     next ii

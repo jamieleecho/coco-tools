@@ -930,6 +930,22 @@ class BasicVisitor(NodeVisitor):
             expr_end,
         )
 
+    def visit_hprint_statement(self, node, visited_children):
+        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, str_exp, _ = (
+            visited_children
+        )
+        return BasicRunCall(
+            "run ecb_hprint",
+            BasicExpressionList(
+                [
+                    expr_x,
+                    expr_y,
+                    str_exp,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
 
 def convert(
     progin,
