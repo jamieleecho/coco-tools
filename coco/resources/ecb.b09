@@ -142,7 +142,7 @@ procedure ecb_hex
 param v: real
 param str: string
 dim ival: integer
-dim tmp: string
+dim t: string
 
 if v < 0 or v >= 65536 then
     error 52
@@ -156,6 +156,43 @@ run _ecb_hex_digit(land($f, v / $10), tmp)
 str = str + tmp
 run _ecb_hex_digit(land($f, v), tmp)
 str = str + tmp
+
+
+procedure ecb_hprint
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
+param x, y: real
+param txt: string[80]
+param display: display_t
+
+dim xi, yi, mx: integer
+dim t: string
+if display.hscl = 1 then
+    mx = 39
+else
+    mx = 79
+endif
+xi = fix(x)
+yi = fix(y)
+if yi < 0 then
+    yi = 0
+else
+    if yi >= 23 then
+        yi = 23
+        mx = mx - 1
+    endif
+endif
+if xi < 0 then
+    xi = 0
+else 
+    if xi >= mx then
+        xi = mx
+    endif
+endif
+
+t = left$(txt, mx - xi + 1)
+run gfx2(display.hpth, "curxy", xi, yi)
+print #display.hpth, t;
+
 
 
 procedure ecb_hscreen
