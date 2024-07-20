@@ -1,4 +1,6 @@
+from typing import List
 from parsimonious import NodeVisitor
+
 from coco.b09.grammar import (
     FUNCTIONS,
     FUNCTIONS_TO_STATEMENTS,
@@ -63,6 +65,7 @@ from coco.b09.elements import (
     BasicWidthStatement,
     HexLiteral,
 )
+from coco.b09 import error_handler
 from coco.b09.grammar import PROCNAME_REGEX
 from coco.b09.prog import BasicProg
 from coco.b09.visitors import (
@@ -77,7 +80,7 @@ from coco.b09.visitors import (
     LineNumberCheckerVisitor,
     LineReferenceVisitor,
     LineZeroFilterVisitor,
-    StatementCounterVisitor,
+    StatementCollectorVisitor,
     VarInitializerVisitor,
 )
 from coco.b09.procbank import ProcedureBank
@@ -255,7 +258,9 @@ class BasicVisitor(NodeVisitor):
     def visit_linenum(self, node, visited_children):
         return int(node.full_text[node.start : node.end])
 
-    def visit_line_or_stmnts(self, node, visited_children):
+    def visit_line_or_stmnts(
+        self, node, visited_children
+    ) -> BasicStatements | BasicGoto:
         if isinstance(visited_children[0], int):
             return BasicGoto(visited_children[0], True)
         return visited_children[0]
@@ -964,18 +969,20 @@ class ParseError(Exception):
 
 
 def convert(
-    progin,
-    procname="",
-    filter_unused_linenum=False,
-    initialize_vars=False,
-    skip_procedure_headers=False,
-    output_dependencies=False,
-    add_standard_prefix=True,
-    default_width32=True,
+    progin: str,
+    *,
+    add_standard_prefix: bool = True,
+    add_suffix: bool = True,
+    default_width32: bool = True,
+    filter_unused_linenum: bool = False,
+    initialize_vars: bool = False,
+    output_dependencies: bool = False,
+    procname: str = "",
+    skip_procedure_headers: bool = False,
 ):
     tree = grammar.parse(progin)
     bv = BasicVisitor()
-    basic_prog = bv.visit(tree)
+    basic_prog: BasicProg = bv.visit(tree)
 
     if add_standard_prefix:
         prefix_lines = [
@@ -1056,23 +1063,35 @@ def convert(
         )
 
     # make sure there are no more than 1 ON ERR statement
-    on_err_counter: StatementCounterVisitor = StatementCounterVisitor(
+    on_err_collector: StatementCollectorVisitor = StatementCollectorVisitor(
         BasicOnErrGoStatement
     )
-    basic_prog.visit(on_err_counter)
-    if on_err_counter.count > 1:
+    basic_prog.visit(on_err_collector)
+    if len(on_err_collector.statements) > 1:
         raise ParseError("At most 1 ON ERR GOTO statement is allowed.")
+    err_line: BasicOnErrGoStatement = (
+        on_err_collector.statements[0].linenum if on_err_collector.statements else None
+    )
 
     # make sure there are no more than 1 ON BRK statement
-    on_brk_counter: StatementCounterVisitor = StatementCounterVisitor(
+    on_brk_collector: StatementCollectorVisitor = StatementCollectorVisitor(
         BasicOnBrkGoStatement
     )
-    basic_prog.visit(on_brk_counter)
-    if on_brk_counter.count > 1:
+    basic_prog.visit(on_brk_collector)
+    if len(on_brk_collector.statements) > 1:
         raise ParseError("At most 1 ON BRK GOTO statement is allowed.")
+    brk_line: BasicOnBrkGoStatement = (
+        on_brk_collector.statements[0].linenum if on_brk_collector.statements else None
+    )
 
     # try to patch up empty next statements
     basic_prog.visit(BasicNextPatcherVisitor())
+    suffix_lines: List[BasicLine] = error_handler.generate(
+        brk_line=brk_line,
+        err_line=err_line,
+    )
+    if add_suffix:
+        basic_prog.append_lines(suffix_lines)
 
     # output the program
     program = basic_prog.basic09_text(0)

@@ -156,19 +156,22 @@ class TestB09(unittest.TestCase):
         self,
         progin,
         progout,
+        *,
+        add_standard_prefix=False,
+        add_suffix=False,
         filter_unused_linenum=False,
         initialize_vars=False,
-        add_standard_prefix=False,
         output_dependencies=False,
         skip_procedure_headers=True,
     ):
         b09_prog = b09.convert(
             progin,
+            add_standard_prefix=add_standard_prefix,
+            add_suffix=add_suffix,
             filter_unused_linenum=filter_unused_linenum,
             initialize_vars=initialize_vars,
-            skip_procedure_headers=skip_procedure_headers,
             output_dependencies=output_dependencies,
-            add_standard_prefix=add_standard_prefix,
+            skip_procedure_headers=skip_procedure_headers,
         )
         assert b09_prog == progout + "\n"
 
@@ -961,3 +964,15 @@ class TestB09(unittest.TestCase):
                 "32699 GOTO 10",
                 "32699 GOTO 10",
             )
+
+    def test_outputs_suffix(self):
+        program = b09.convert(
+            "10 ON ERR GOTO 100\n100 END",
+            procname="do_cls",
+            initialize_vars=True,
+            filter_unused_linenum=False,
+            skip_procedure_headers=False,
+            output_dependencies=False,
+            add_suffix=True,
+        )
+        assert "32700" in program

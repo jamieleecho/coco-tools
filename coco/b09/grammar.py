@@ -108,24 +108,37 @@ KEYWORDS = "|".join(
     chain(
         (
             "AND",
-            "DIM",
+            "BRK",
             "CLS",
             "CLEAR",
-            "ELSE",
+            "CMP",
+            "DATA",
+            "DIM",
+            "ERNO" "ERR" "ELSE",
             "FOR",
             "GOSUB",
             "GOTO",
+            "HCIRCLE",
+            "HCLS",
+            "HPRINT",
+            "HSCREEN",
             "IF",
             "INPUT",
+            "INPUT",
             "JOYSTK",
+            "LINE",
+            "LOCATE",
             "NOT",
             "OR",
+            "PALETTE",
             "PRINT",
             "READ",
             "REM",
+            "RGB",
             "SOUND",
             "STEP",
             "THEN",
+            "VARPTR",
         ),
         SINGLE_KEYWORD_STATEMENTS.keys(),
         FUNCTIONS.keys(),
@@ -287,7 +300,7 @@ grammar = Grammar(
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
-    var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]?)"
+    var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
     str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]?)\$"
     print_statement = ("PRINT"/"?") space* print_args space*
     print_at_statement = ("PRINT"/"?") space* "@" space* exp space* "," space* print_args space*

@@ -23,7 +23,7 @@ from coco.b09.elements import (
     BasicVar,
 )
 
-from typing import TYPE_CHECKING
+from typing import List, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from coco.b09.prog import BasicProg
@@ -193,20 +193,21 @@ class LineZeroFilterVisitor(BasicConstructVisitor):
             line.set_is_referenced(line.num in self._references)
 
 
-class StatementCounterVisitor(BasicConstructVisitor):
+class StatementCollectorVisitor(BasicConstructVisitor):
     _statement_type: type
-    _count: int = 0
+    _statements: List[BasicStatement]
 
     @property
-    def count(self) -> int:
-        return self._count
+    def statements(self) -> List[BasicStatement]:
+        return self._statements
 
     def __init__(self, statement_type: type):
+        self._statements = []
         self._statement_type = statement_type
 
     def visit_statement(self, statement: BasicStatement):
         if type(statement) == self._statement_type:
-            self._count = self._count + 1
+            self._statements.append(statement)
         super().visit_statement(statement)
 
 
