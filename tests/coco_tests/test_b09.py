@@ -1,6 +1,8 @@
 import unittest
 
 from coco import b09
+from coco.b09.parser import ParseError
+from coco.b09.visitors import LineNumberTooLargeException
 
 
 class TestB09(unittest.TestCase):
@@ -945,3 +947,17 @@ class TestB09(unittest.TestCase):
             "10 ON ERR GOTO 10",
             "10 ON ERROR GOTO error_handler",
         )
+
+    def test_line_number_too_big(self):
+        with self.assertRaises(LineNumberTooLargeException):
+            self.generic_test_parse(
+                "32700 GOTO 32700",
+                "32700 GOTO 32700",
+            )
+
+    def test_line_number_does_not_exist(self):
+        with self.assertRaises(ParseError):
+            self.generic_test_parse(
+                "32699 GOTO 10",
+                "32699 GOTO 10",
+            )

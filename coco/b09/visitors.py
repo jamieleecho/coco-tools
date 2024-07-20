@@ -162,7 +162,7 @@ class LineNumberFilterVisitor(BasicConstructVisitor):
     def __init__(self, references: set):
         self._references: set = references
 
-    def visit_line(self, line):
+    def visit_line(self, line: BasicLine):
         line.set_is_referenced(line.num in self._references)
 
 
@@ -174,7 +174,7 @@ class LineNumberCheckerVisitor(BasicConstructVisitor):
     def __init__(self, references: set):
         self._references = references.copy()
 
-    def visit_line(self, line):
+    def visit_line(self, line: BasicLine):
         if line.num is not None and line.num > 32699:
             raise LineNumberTooLargeException(f"{line.num} exceeds 32699.")
         self._references.discard(line.num)
@@ -188,7 +188,7 @@ class LineZeroFilterVisitor(BasicConstructVisitor):
     def __init__(self, references):
         self._references = references
 
-    def visit_line(self, line):
+    def visit_line(self, line: BasicLine):
         if line.num == 0:
             line.set_is_referenced(line.num in self._references)
 
@@ -204,7 +204,7 @@ class StatementCounterVisitor(BasicConstructVisitor):
     def __init__(self, statement_type: type):
         self._statement_type = statement_type
 
-    def visit_statement(self, statement):
+    def visit_statement(self, statement: BasicStatement):
         if type(statement) == self._statement_type:
             self._count = self._count + 1
         super().visit_statement(statement)
@@ -271,7 +271,7 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
     def has_empty_data_elements(self):
         return self._has_empty_data_elements
 
-    def visit_data_statement(self, statement):
+    def visit_data_statement(self, statement: BasicDataStatement):
         for exp in statement.exp_list.exp_list:
             self._has_empty_data_elements = (
                 self._has_empty_data_elements or exp.literal == ""
@@ -279,12 +279,13 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
 
 
 class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_data_statement(self, statement):
+    def visit_data_statement(self, statement: BasicDataStatement):
+        exp: AbstractBasicExpression
         for exp in statement.exp_list.exp_list:
             if not isinstance(exp.literal, str):
                 exp.literal = str(exp.literal)
 
-    def visit_read_statement(self, statement):
+    def visit_read_statement(self, statement: BasicReadStatement):
         """
         Transform the READ statement so that READ statements that read into
         REAL vars properly handle empty strings. This means:
@@ -314,7 +315,7 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
 
 
 class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_input_statement(self, statement):
+    def visit_input_statement(self, statement: BasicInputStatement):
         """
         Transform the INPUT statement so that the cursor and full duplex are
         enabled before the statement and disabled after the statement.
@@ -331,7 +332,7 @@ class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
 
 
 class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_print_statement(self, statement):
+    def visit_print_statement(self, statement: BasicPrintStatement):
         """
         Transform the PRINT statement so that non string expressions are
         converted to strings via STR.
@@ -354,7 +355,7 @@ class BasicNextPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self.for_stack = []
 
-    def visit_for_statement(self, for_statement):
+    def visit_for_statement(self, for_statement: BasicForStatement):
         self.for_stack.append(for_statement.var)
 
     def visit_next_statement(self, next_statement):
@@ -366,7 +367,7 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
 
-    def visit_statement(self, statement):
+    def visit_statement(self, statement: BasicStatement):
         self._statement = statement
         if isinstance(statement, BasicAssignment) and isinstance(
             statement.exp, BasicFunctionalExpression
