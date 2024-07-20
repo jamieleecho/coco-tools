@@ -194,7 +194,6 @@ run gfx2(display.hpth, "curxy", xi, yi)
 print #display.hpth, t;
 
 
-
 procedure ecb_hscreen
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
 param n: real

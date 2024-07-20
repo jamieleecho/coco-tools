@@ -1,52 +1,66 @@
 from coco.b09.elements import (
     AbstractBasicExpression,
     Basic09CodeStatement,
+    BasicArrayRef,
     BasicAssignment,
+    BasicDataStatement,
     BasicExpressionList,
+    BasicForStatement,
     BasicFunctionalExpression,
+    BasicGoStatements,
+    BasicJoystkExpression,
+    BasicInputStatement,
     BasicLine,
     BasicLiteral,
+    BasicNextStatement,
     BasicOnGoStatement,
     BasicPrintArgs,
     BasicPrintStatement,
+    BasicReadStatement,
     BasicRunCall,
+    BasicStatement,
     BasicStatements,
     BasicVar,
 )
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from coco.b09.prog import BasicProg
+
 
 class BasicConstructVisitor:
-    def visit_array_ref(self, array_ref):
+    def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
         """
         Invoked when an array reference is encountered.
         """
         pass
 
-    def visit_data_statement(self, for_statement):
+    def visit_data_statement(self, for_statement: BasicDataStatement) -> None:
         """
         Invoked when a DATA statement is encountered.
         """
         pass
 
-    def visit_exp(self, exp):
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
         """
         Invoked when an expression is encountered.
         """
         pass
 
-    def visit_for_statement(self, for_statement):
+    def visit_for_statement(self, for_statement: BasicForStatement) -> None:
         """
         Invoked when a FOR statement is encountered.
         """
         pass
 
-    def visit_go_statement(self, go_statement):
+    def visit_go_statement(self, go_statement: BasicGoStatements) -> None:
         """
         Invoked when a [ON] GOTO/GOSUB statement is encountered.
         """
         pass
 
-    def visit_input_statement(self, statement):
+    def visit_input_statement(self, statement: BasicInputStatement) -> BasicStatement:
         """
         Args:
             statement (BasicInputStatement): input statement to transform.
@@ -56,25 +70,25 @@ class BasicConstructVisitor:
         """
         return statement
 
-    def visit_joystk(self, joystk_exp):
+    def visit_joystk(self, joystk_exp: BasicJoystkExpression) -> None:
         """
         Invoked when a JOYSTK function is encountered.
         """
         pass
 
-    def visit_line(self, line):
+    def visit_line(self, line: BasicLine) -> None:
         """
         Invoked when a new line is encountered.
         """
         pass
 
-    def visit_next_statement(self, next_statement):
+    def visit_next_statement(self, next_statement: BasicNextStatement) -> None:
         """
         Invoked when a NEXT statement is encountered.
         """
         pass
 
-    def visit_print_statement(self, statement):
+    def visit_print_statement(self, statement: BasicPrintStatement) -> None:
         """
         Args:
             statement (BasicPrintStatement): input statement to transform.
@@ -84,13 +98,13 @@ class BasicConstructVisitor:
         """
         return statement
 
-    def visit_program(self, line):
+    def visit_program(self, prog: "BasicProg") -> None:
         """
         Invoked when a program is encountered.
         """
         pass
 
-    def visit_read_statement(self, statement):
+    def visit_read_statement(self, statement: BasicReadStatement) -> BasicStatement:
         """
         Args:
             statement (BasicReadStatement): input statement to transform.
@@ -100,13 +114,13 @@ class BasicConstructVisitor:
         """
         return statement
 
-    def visit_statement(self, statement):
+    def visit_statement(self, statement: BasicStatement) -> None:
         """
         Invoked when a statement is encountered.
         """
         pass
 
-    def visit_var(self, var):
+    def visit_var(self, var: BasicVar) -> None:
         """
         Invoked when a variable is encountered.
         """
@@ -121,22 +135,22 @@ class ForNextVisitor(BasicConstructVisitor):
     def count(self):
         return self._count
 
-    def visit_for_statement(self, _):
+    def visit_for_statement(self, _: BasicForStatement):
         self._count = self._count + 1
 
-    def visit_next_statement(self, next_statement):
+    def visit_next_statement(self, next_statement: BasicNextStatement):
         self._count = self._count - len(next_statement.var_list.exp_list)
 
 
 class LineReferenceVisitor(BasicConstructVisitor):
     def __init__(self):
-        self._references = set()
+        self._references: set = set()
 
     @property
-    def references(self):
+    def references(self) -> set:
         return self._references
 
-    def visit_go_statement(self, go_statement):
+    def visit_go_statement(self, go_statement: BasicGoStatements):
         if isinstance(go_statement, BasicOnGoStatement):
             for linenum in go_statement.linenums:
                 self.references.add(linenum)
@@ -145,11 +159,29 @@ class LineReferenceVisitor(BasicConstructVisitor):
 
 
 class LineNumberFilterVisitor(BasicConstructVisitor):
-    def __init__(self, references):
-        self._references = references
+    def __init__(self, references: set):
+        self._references: set = references
 
     def visit_line(self, line):
         line.set_is_referenced(line.num in self._references)
+
+
+class LineNumberTooLargeException(Exception):
+    pass
+
+
+class LineNumberCheckerVisitor(BasicConstructVisitor):
+    def __init__(self, references: set):
+        self._references = references.copy()
+
+    def visit_line(self, line):
+        if line.num is not None and line.num > 32699:
+            raise LineNumberTooLargeException(f"{line.num} exceeds 32699.")
+        self._references.discard(line.num)
+
+    @property
+    def undefined_lines(self) -> set:
+        return self._references
 
 
 class LineZeroFilterVisitor(BasicConstructVisitor):
@@ -159,6 +191,23 @@ class LineZeroFilterVisitor(BasicConstructVisitor):
     def visit_line(self, line):
         if line.num == 0:
             line.set_is_referenced(line.num in self._references)
+
+
+class StatementCounterVisitor(BasicConstructVisitor):
+    _statement_type: type
+    _count: int = 0
+
+    @property
+    def count(self) -> int:
+        return self._count
+
+    def __init__(self, statement_type: type):
+        self._statement_type = statement_type
+
+    def visit_statement(self, statement):
+        if type(statement) == self._statement_type:
+            self._count = self._count + 1
+        super().visit_statement(statement)
 
 
 class VarInitializerVisitor(BasicConstructVisitor):

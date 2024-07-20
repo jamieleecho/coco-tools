@@ -333,7 +333,9 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse("11 Z = NOT A=B", "11 Z := LNOT(A = B)")
 
     def test_if_not(self):
-        self.generic_test_parse("100 IF NOT A=3 THEN 20", "100 IF NOT(A = 3.0) THEN 20")
+        self.generic_test_parse(
+            "100 IF NOT A=3 THEN 100", "100 IF NOT(A = 3.0) THEN 100"
+        )
 
     def test_sound(self):
         self.generic_test_parse(
@@ -405,14 +407,14 @@ class TestB09(unittest.TestCase):
 
     def test_goto(self):
         self.generic_test_parse(
-            "11GOTO20",
-            "11 GOTO 20",
+            "11GOTO20\n20GOTO11",
+            "11 GOTO 20\n20 GOTO 11",
         )
 
     def test_gosub(self):
         self.generic_test_parse(
-            "11GOSUB20",
-            "11 GOSUB 20",
+            "11GOSUB20\n20GOSUB11",
+            "11 GOSUB 20\n20 GOSUB 11",
         )
 
     def test_data(self):
@@ -625,8 +627,18 @@ class TestB09(unittest.TestCase):
 
     def test_on_goto(self):
         self.generic_test_parse(
-            "10 ON NN GOTO 11, 22, 33, 44\n" "20 ON MM GOSUB 100\n",
-            "ON NN GOTO 11, 22, 33, 44\n" "ON MM GOSUB 100",
+            "10 ON NN GOTO 11, 22, 33, 44\n"
+            "11 ON MM GOSUB 100\n"
+            "22 '\n"
+            "33 '\n"
+            "44 '\n"
+            "100 '",
+            "ON NN GOTO 11, 22, 33, 44\n"
+            "11 ON MM GOSUB 100\n"
+            "22 (* *)\n"
+            "33 (* *)\n"
+            "44 (* *)\n"
+            "100 (* *)",
             filter_unused_linenum=True,
         )
 
@@ -677,11 +689,14 @@ class TestB09(unittest.TestCase):
 
     def test_mars_if(self):
         self.generic_test_parse(
-            "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11" "ORL(30)<>11ORGR=0THEN500",
+            "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11"
+            "ORL(30)<>11ORGR=0THEN500\n"
+            "500 '\n",
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
-            "OR arr_L(30.0) <> 11.0 OR GR = 0.0 THEN 500",
+            "OR arr_L(30.0) <> 11.0 OR GR = 0.0 THEN 500\n"
+            "500 (* *)",
         )
 
     def test_multi_and_or(self):
@@ -694,7 +709,9 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse("480 Z=A+B*C-D/C", "480 Z := A + B * C - D / C")
 
     def test_num_if(self):
-        self.generic_test_parse("480 IFA THEN100", "480 IF A <> 0.0 THEN 100")
+        self.generic_test_parse(
+            "100 '\n480 IFA THEN100", "100 (* *)\n480 IF A <> 0.0 THEN 100"
+        )
 
     def test_read_empty_data(self):
         self.generic_test_parse(
@@ -915,4 +932,16 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 HPRINT(10, 20), "HELLO WORLD"',
             '10 run ecb_hprint(10.0, 20.0, "HELLO WORLD", display)',
+        )
+
+    def test_on_brk(self):
+        self.generic_test_parse(
+            "10 ON BRK GOTO 10",
+            "10 ON ERROR GOTO error_handler",
+        )
+
+    def test_on_err(self):
+        self.generic_test_parse(
+            "10 ON ERR GOTO 10",
+            "10 ON ERROR GOTO error_handler",
         )

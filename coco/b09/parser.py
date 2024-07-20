@@ -44,6 +44,8 @@ from coco.b09.elements import (
     BasicLine,
     BasicLiteral,
     BasicNextStatement,
+    BasicOnBrkGoStatement,
+    BasicOnErrGoStatement,
     BasicOnGoStatement,
     BasicOpExp,
     BasicOperator,
@@ -72,8 +74,10 @@ from coco.b09.visitors import (
     BasicReadStatementPatcherVisitor,
     JoystickVisitor,
     LineNumberFilterVisitor,
+    LineNumberCheckerVisitor,
     LineReferenceVisitor,
     LineZeroFilterVisitor,
+    StatementCounterVisitor,
     VarInitializerVisitor,
 )
 from coco.b09.procbank import ProcedureBank
@@ -946,6 +950,18 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
+    def visit_on_brk_go_statement(self, node, visited_children):
+        _, _, _, _, _, _, linenum, _ = visited_children
+        return BasicOnBrkGoStatement(linenum)
+
+    def visit_on_err_go_statement(self, node, visited_children):
+        _, _, _, _, _, _, linenum, _ = visited_children
+        return BasicOnErrGoStatement(linenum)
+
+
+class ParseError(Exception):
+    pass
+
 
 def convert(
     progin,
@@ -1028,6 +1044,32 @@ def convert(
         else LineZeroFilterVisitor(line_ref_visitor.references)
     )
     basic_prog.visit(line_num_filter)
+
+    # make sure line numbers exist and are not too big
+    line_checker: LineNumberCheckerVisitor = LineNumberCheckerVisitor(
+        line_ref_visitor.references
+    )
+    basic_prog.visit(line_checker)
+    if len(line_checker.undefined_lines) > 0:
+        raise ParseError(
+            f"The following lines are undefined: {', '.join(str(linenum) for linenum in line_checker.undefined_lines)}"
+        )
+
+    # make sure there are no more than 1 ON ERR statement
+    on_err_counter: StatementCounterVisitor = StatementCounterVisitor(
+        BasicOnErrGoStatement
+    )
+    basic_prog.visit(on_err_counter)
+    if on_err_counter.count > 1:
+        raise ParseError("At most 1 ON ERR GOTO statement is allowed.")
+
+    # make sure there are no more than 1 ON BRK statement
+    on_brk_counter: StatementCounterVisitor = StatementCounterVisitor(
+        BasicOnBrkGoStatement
+    )
+    basic_prog.visit(on_brk_counter)
+    if on_brk_counter.count > 1:
+        raise ParseError("At most 1 ON BRK GOTO statement is allowed.")
 
     # try to patch up empty next statements
     basic_prog.visit(BasicNextPatcherVisitor())

@@ -1,6 +1,6 @@
 from itertools import chain
 from coco.b09.elements import AbstractBasicConstruct
-from coco.b09.visitors import ForNextVisitor
+from coco.b09.visitors import BasicConstructVisitor, ForNextVisitor
 
 
 class BasicProg(AbstractBasicConstruct):
@@ -30,7 +30,7 @@ class BasicProg(AbstractBasicConstruct):
 
         return "\n".join(lines)
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_program(self)
         for line in self._lines:
             line.visit(visitor)

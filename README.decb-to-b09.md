@@ -25,10 +25,10 @@ The utility provides a best effort for conversion which means:
 ## Supported constructs
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
-include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, EXP, FIX, FOR, GOTO, GOSUB, >, HCIRCLE, HCLS, HSCREEN, HEX$, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, WIDTH, VAL, VARPTR
+include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, EXP, FIX, FOR, GOTO, GOSUB, >, HCIRCLE, HCLS, HEX$, HPRINT, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, WIDTH, VAL, VARPTR
 
 ## Unsupported statements
-AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DIM, DRAW, EDIT, END, EXEC, GET, HBUFF, HCOLOR, HDRAW, HGET, HLINE, HPAINT, HPRINT, HPUT, HRESET, HSET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LOCATE, LPOKE, MOTOR, NEW, ON BRK GOTO, ON ERR GOTO, OPEN, PAINT, PALETTE, PCLEAR, PCLS, PCOPY, PLAY, PMODE, POKE, PRINT USING, PSET, PUT, READ, RENUM, RUN, SCREEN, SKIPF, STOP, TIMER, TROFF, TRON
+AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DIM, DRAW, EDIT, END, EXEC, GET, HBUFF, HCOLOR, HDRAW, HGET, HLINE, HPAINT, HPUT, HRESET, HSET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LOCATE, LPOKE, MOTOR, NEW, ON BRK GOTO, ON ERR GOTO, OPEN, PAINT, PALETTE, PCLEAR, PCLS, PCOPY, PLAY, PMODE, POKE, PRINT USING, PSET, PUT, READ, RENUM, RUN, SCREEN, SKIPF, STOP, TIMER, TROFF, TRON
 
 ## Unsupported functions
 EOF, ERLIN, ERNO, HPOINT, LPEEK, MEM, PEEK, POS, PPOINT, USR, VARPTR
@@ -124,6 +124,15 @@ NEXT JJ
 * Passing a hex literal value to something that results in a procedure call
   generate incorrect code.
 * Statements like this do not generate working code: `A = 3 < 4`
+
+## Line numbers
+* The maximum supported line number is 32700
+
+## Break and error handling
+* There can be at most 1 ON BRK GOTO statement
+* There can be at most 1 ON ERR GOTO statement
+* When either is invoked, it is as if both are invoked at the same time
+
 ## Common issues with converted programs
 By default, BASIC09 strings have a maximum length of 32 characters. This often
 results in strings getting truncated in non-obvious ways. Resolving these

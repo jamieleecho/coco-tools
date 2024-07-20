@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 from itertools import chain
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from visitors import BasicConstructVisitor
+
 
 class AbstractBasicConstruct(ABC):
     def indent_spaces(self, indent_level):
@@ -19,7 +24,7 @@ class AbstractBasicConstruct(ABC):
     def is_str_expr(self):
         return False
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         pass
 
 
@@ -91,7 +96,7 @@ class BasicArrayRef(AbstractBasicExpression):
             f"{self._indices.basic09_text(indent_level)}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_array_ref(self)
         for index in self._indices.exp_list:
             index.visit(visitor)
@@ -128,7 +133,7 @@ class BasicAssignment(AbstractBasicStatement):
             f"{self._exp.basic09_text(indent_level)}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         self._var.visit(visitor)
         self._exp.visit(visitor)
@@ -153,7 +158,7 @@ class BasicBinaryExp(AbstractBasicExpression):
                 f"{self._exp2.basic09_text(indent_level)}"
             )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
         self._exp1.visit(visitor)
         self._exp2.visit(visitor)
@@ -174,7 +179,7 @@ class BasicComment(AbstractBasicConstruct):
     def basic09_text(self, indent_level):
         return f"(*{self._comment} *)"
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
 
 
@@ -195,7 +200,7 @@ class BasicExpressionList(AbstractBasicConstruct):
             return f"({exp_list_text})" if exp_list_text else ""
         return exp_list_text
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         for exp in self.exp_list:
             exp.visit(visitor)
 
@@ -213,7 +218,7 @@ class BasicRunCall(AbstractBasicStatement):
             f"{self._arguments.basic09_text(indent_level)}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         self._arguments.visit(visitor)
 
@@ -242,9 +247,32 @@ class BasicGoto(AbstractBasicStatement):
             else f"{super().basic09_text(indent_level)}GOTO {self._linenum}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         visitor.visit_go_statement(self)
+
+
+class BasicOnErrGoStatement(AbstractBasicStatement):
+    linenum: int
+
+    def __init__(self, linenum: int):
+        super().__init__()
+        self._linenum = linenum
+
+    @property
+    def linenum(self) -> int:
+        return self._linenum
+
+    def basic09_text(self, indent_level) -> str:
+        return "ON ERROR GOTO error_handler"
+
+    def visit(self, visitor: "BasicConstructVisitor"):
+        visitor.visit_statement(self)
+        visitor.visit_go_statement(self)
+
+
+class BasicOnBrkGoStatement(BasicOnErrGoStatement):
+    pass
 
 
 class BasicOnGoStatement(AbstractBasicStatement):
@@ -271,10 +299,15 @@ class BasicOnGoStatement(AbstractBasicStatement):
             + ", ".join((str(linenum) for linenum in self.linenums))
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         visitor.visit_go_statement(self)
         self._exp.visit(visitor)
+
+
+BasicGoStatements = (
+    BasicGoto | BasicOnBrkGoStatement | BasicOnErrGoStatement | BasicOnGoStatement
+)
 
 
 class BasicIf(AbstractBasicStatement):
@@ -298,7 +331,7 @@ class BasicIf(AbstractBasicStatement):
                 f"ENDIF"
             )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         self._exp.visit(visitor)
         self._statements.visit(visitor)
@@ -311,22 +344,22 @@ class BasicLine(AbstractBasicConstruct):
         self._is_referenced = True
 
     @property
-    def num(self):
+    def num(self) -> int:
         return self._num
 
     @property
-    def is_referenced(self):
+    def is_referenced(self) -> bool:
         return self._is_referenced
 
-    def set_is_referenced(self, val):
+    def set_is_referenced(self, val: bool):
         self._is_referenced = val
 
-    def basic09_text(self, indent_level):
+    def basic09_text(self, indent_level) -> str:
         if self._is_referenced and self._num is not None:
             return f"{self._num} " f"{self._statements.basic09_text(indent_level)}"
         return f"{self._statements.basic09_text(indent_level)}"
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_line(self)
         self._statements.visit(visitor)
 
@@ -350,7 +383,7 @@ class BasicLiteral(AbstractBasicExpression):
             f'"{self._literal}"' if type(self._literal) is str else f"{self._literal}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
 
 
@@ -370,7 +403,7 @@ class HexLiteral(AbstractBasicExpression):
             else f"{self._literal}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
 
 
@@ -405,7 +438,7 @@ class BasicOpExp(AbstractBasicConstruct):
         else:
             return f"{self.operator} {self.exp.basic09_text(indent_level)}"
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
         self._exp.visit(visitor)
 
@@ -425,7 +458,7 @@ class BasicParenExp(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return f"({self._exp.basic09_text(indent_level)})"
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
         self._exp.visit(visitor)
 
@@ -445,7 +478,7 @@ class BasicStatement(AbstractBasicStatement):
             indent_level
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
 
 
@@ -457,7 +490,7 @@ class Basic09CodeStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return super().basic09_text(indent_level) + self._basic09_code
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
 
 
@@ -493,7 +526,7 @@ class BasicStatements(AbstractBasicStatement):
             for statement in self._statements
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         for idx, statement in enumerate(self.statements):
             statement.visit(visitor)
             if isinstance(statement, BasicPrintStatement):
@@ -515,7 +548,7 @@ class BasicVar(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return self._name
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_var(self)
 
 
@@ -534,7 +567,7 @@ class BasicPrintStatement(AbstractBasicStatement):
             + f"PRINT {self._print_args.basic09_text(indent_level)}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         self._print_args.visit(visitor)
 
@@ -579,7 +612,7 @@ class BasicPrintArgs(AbstractBasicConstruct):
 
         return "".join(processed_args)
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         for arg in self._args:
             arg.visit(visitor)
 
@@ -590,7 +623,7 @@ class Basic2ParamStatement(AbstractBasicStatement):
         self._exp1 = exp1
         self._exp2 = exp2
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         self._exp1.visit(visitor)
         self._exp2.visit(visitor)
@@ -626,7 +659,7 @@ class BasicCls(AbstractBasicStatement):
             else "RUN ecb_cls(1.0, display)"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         if self._exp:
             self._exp.visit(visitor)
@@ -657,7 +690,7 @@ class BasicDataStatement(AbstractBasicStatement):
             f"{self._exp_list.basic09_text(indent_level)}"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         visitor.visit_data_statement(self)
 
@@ -670,7 +703,7 @@ class BasicKeywordStatement(AbstractBasicStatement):
     def basic09_text(self, indent_level):
         return f"{super().basic09_text(indent_level)}{self._keyword}"
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
 
 
@@ -699,7 +732,7 @@ class BasicForStatement(AbstractBasicStatement):
             )
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         visitor.visit_for_statement(self)
         self._var.visit(visitor)
@@ -725,7 +758,7 @@ class BasicNextStatement(AbstractBasicStatement):
         )
         return super().basic09_text(indent_level) + r" \ ".join(vlist)
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_statement(self)
         visitor.visit_next_statement(self)
         for var in self.var_list.exp_list:
@@ -746,7 +779,7 @@ class BasicFunctionalExpression(AbstractBasicExpression):
 
     def set_var(self, var):
         self._var = var
-        self._statement = BasicRunCall(
+        self._statement = BasicFunctionCall(
             self._func, BasicExpressionList(self._args.exp_list + [var])
         )
 
@@ -757,7 +790,7 @@ class BasicFunctionalExpression(AbstractBasicExpression):
     def basic09_text(self, indent_level):
         return self._var.basic09_text(indent_level) if self._var else ""
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         if self._var:
             self._statement.visit(visitor)
             self._var.visit(visitor)
@@ -773,7 +806,7 @@ class BasicJoystkExpression(BasicFunctionalExpression):
         super().__init__("RUN ecb_joystk", args)
         self._args = args
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         super().visit(visitor)
         visitor.visit_joystk(self)
 
@@ -900,7 +933,7 @@ class BasicVarptrExpression(AbstractBasicExpression):
             f"ADDR({self._var.basic09_text(indent_level)})"
         )
 
-    def visit(self, visitor):
+    def visit(self, visitor: "BasicConstructVisitor"):
         visitor.visit_exp(self)
         visitor.visit_exp(self._var)
 

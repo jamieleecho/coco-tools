@@ -182,6 +182,8 @@ grammar = Grammar(
                     / poke_statement
                     / cls
                     / go_statement
+                    / on_brk_go_statement
+                    / on_err_go_statement
                     / on_n_go_statement
                     / statement2
                     / statement3
@@ -301,6 +303,8 @@ grammar = Grammar(
     poke_statement  = "POKE" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
+    on_brk_go_statement = "ON" space* "ERR" space* "GOTO" space* linenum space*
+    on_err_go_statement = "ON" space* "BRK" space* "GOTO" space* linenum space*
     on_n_go_statement   = "ON" space* exp space* ("GOTO" / "GOSUB") space* linenum_list space*
     linenum_list        = linenum space* linenum_list0
     linenum_list0       = linenum_list_elem*
