@@ -988,3 +988,15 @@ class TestB09(unittest.TestCase):
             "10 TRON: TROFF",
             "10 TRON\nTROFF",
         )
+
+    def test_hcolor(self):
+        self.generic_test_parse(
+            "10 HCOLOR 2, 3",
+            "10 run ecb_hcolor(2.0, 3.0, display)",
+        )
+
+    def test_hcolor1(self):
+        self.generic_test_parse(
+            "10 HCOLOR 5",
+            "10 run ecb_hcolor(5.0, -1.0, display)",
+        )

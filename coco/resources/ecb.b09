@@ -116,6 +116,7 @@ else
 endif
 run gfx2(display.hpth, "color", fix(c))
 run gfx2(display.hpth, "ellipse", fix(x), fix(y), fix(rx), fix(ry) / display.hscl)
+run gfx2(display.hpth, "color", fix(display.hfore))
 
 
 procedure ecb_hcls
@@ -136,6 +137,26 @@ else
         run gfx2(display.hpth, "color", display.hbck, display.hfore)
     endif
 endif
+
+
+procedure ecb_hcolor
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl: byte
+param f, b: real
+param display: display_t
+dim fi, bi: integer
+
+fi = fix(f)
+bi = fix(b)
+if (fi < 0) or (fi > 15) or (bi > 15) then
+    error 52
+endif
+
+if (bi < 0) then
+    bi = display.hbck
+endif
+run gfx2(display.hpth, "color", fi, bi)
+display.hfore = fi
+display.hbck = bi
 
 
 procedure ecb_hex

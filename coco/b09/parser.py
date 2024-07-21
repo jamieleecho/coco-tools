@@ -968,6 +968,32 @@ class BasicVisitor(NodeVisitor):
         _, _, _, _, _, _, linenum, _ = visited_children
         return BasicOnErrGoStatement(linenum)
 
+    def visit_hcolor_statement(self, node, visited_children):
+        _, _, fcolor, _, _, _, bcolor, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hcolor",
+            BasicExpressionList(
+                [
+                    fcolor,
+                    bcolor,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def visit_hcolor1_statement(self, node, visited_children):
+        _, _, fcolor, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hcolor",
+            BasicExpressionList(
+                [
+                    fcolor,
+                    BasicLiteral(-1.0),
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
 
 class ParseError(Exception):
     pass

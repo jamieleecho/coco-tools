@@ -122,6 +122,7 @@ KEYWORDS = "|".join(
             "GOTO",
             "HCIRCLE",
             "HCLS",
+            "HCOLOR",
             "HPRINT",
             "HSCREEN",
             "IF",
@@ -223,6 +224,8 @@ grammar = Grammar(
                     / hellipse_statement
                     / hcircle_statement
                     / hprint_statement
+                    / hcolor_statement
+                    / hcolor1_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -386,5 +389,7 @@ grammar = Grammar(
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
     harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
     hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* str_exp space*
+    hcolor_statement         = "HCOLOR" space* exp space* "," space* exp space*
+    hcolor1_statement        = "HCOLOR" space* exp space*
     """  # noqa
 )
