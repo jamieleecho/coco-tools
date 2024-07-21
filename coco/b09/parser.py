@@ -485,10 +485,11 @@ class BasicVisitor(NodeVisitor):
         return visited_children[0] if len(visited_children) < 2 else node
 
     def visit_var(self, node, visited_children):
-        return BasicVar(node.full_text[node.start : node.end])
+        return BasicVar(node.full_text[node.start : min(node.end, node.start + 2)])
 
     def visit_str_var(self, node, visited_children):
-        return BasicVar(node.full_text[node.start : node.end], True)
+        var_no_dollar: str = node.full_text[node.start : node.end - 1]
+        return BasicVar(var_no_dollar[0:2] + "$", True)
 
     def visit_print_statement(self, node, visited_children):
         _, _, print_args, _ = visited_children

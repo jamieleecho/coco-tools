@@ -281,13 +281,13 @@ grammar = Grammar(
     num_str_func_exp_statements = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space*
     str_simple_exp   = str_literal
-                     / str_array_ref_exp
-                     / str_var
                      / str2_func_exp
                      / str3_func_exp
                      / num_str_func_exp
                      / num_str_func_exp_statements
                      / str_func_exp_statements
+                     / str_array_ref_exp
+                     / str_var
     comment_text    = ~r"[^:\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
@@ -301,7 +301,7 @@ grammar = Grammar(
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
     var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
-    str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]?)\$"
+    str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]*)\$"
     print_statement = ("PRINT"/"?") space* print_args space*
     print_at_statement = ("PRINT"/"?") space* "@" space* exp space* "," space* print_args space*
     print_at_statement0 = ("PRINT"/"?") space* "@" space* exp space*

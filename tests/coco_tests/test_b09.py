@@ -976,3 +976,9 @@ class TestB09(unittest.TestCase):
             add_suffix=True,
         )
         assert "32700" in program
+
+    def test_truncates_vars(self):
+        self.generic_test_parse(
+            '10 AAA = 3: AAA$ = "3"',
+            '10 AA := 3.0\nAA$ := "3"',
+        )
