@@ -272,7 +272,7 @@ class BasicOnErrGoStatement(AbstractBasicStatement):
         return self._linenum
 
     def basic09_text(self, indent_level) -> str:
-        return "ON ERROR GOTO error_handler"
+        return "ON ERROR GOTO 32700"
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
         visitor.visit_statement(self)

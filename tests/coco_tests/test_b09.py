@@ -942,13 +942,13 @@ class TestB09(unittest.TestCase):
     def test_on_brk(self):
         self.generic_test_parse(
             "10 ON BRK GOTO 10",
-            "10 ON ERROR GOTO error_handler",
+            "10 ON ERROR GOTO 32700",
         )
 
     def test_on_err(self):
         self.generic_test_parse(
             "10 ON ERR GOTO 10",
-            "10 ON ERROR GOTO error_handler",
+            "10 ON ERROR GOTO 32700",
         )
 
     def test_line_number_too_big(self):
