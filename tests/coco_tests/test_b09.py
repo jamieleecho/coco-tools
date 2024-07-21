@@ -1000,3 +1000,27 @@ class TestB09(unittest.TestCase):
             "10 HCOLOR 5",
             "10 run ecb_hcolor(5.0, -1.0, display)",
         )
+
+    def test_hline(self):
+        self.generic_test_parse(
+            "10 HLINE (123, 25) - (50, 30), PSET",
+            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "L", display)',
+        )
+
+    def test_hline_relative(self):
+        self.generic_test_parse(
+            "10 HLINE-(50, 30),PRESET",
+            '10 run ecb_hline("r", 0.0, 0.0, 50.0, 30.0, "PRESET", "L", display)',
+        )
+
+    def test_hbox(self):
+        self.generic_test_parse(
+            "10 HLINE (123, 25) - (50, 30), PSET, B",
+            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "B", display)',
+        )
+
+    def test_hbar(self):
+        self.generic_test_parse(
+            "10 HLINE (123, 25) - (50, 30), PSET, BF",
+            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "BF", display)',
+        )

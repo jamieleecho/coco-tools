@@ -226,6 +226,8 @@ grammar = Grammar(
                     / hprint_statement
                     / hcolor_statement
                     / hcolor1_statement
+                    / hline_relative_statement
+                    / hline_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -384,12 +386,19 @@ grammar = Grammar(
     hscreen_statement        = "HSCREEN" space* exp? space*
     hcls_statement           = "HCLS" space* exp? space*
     hcircle_statement        = hcircle_prefix hcircle_optional?
-    hcircle_prefix           = "HCIRCLE" space* "(" space* exp space* "," space* exp space* ")" space* "," space* exp space*
+    hcircle_prefix           = "HCIRCLE" space* coords "," space* exp space*
     hcircle_optional         = "," space* exp? space*
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
     harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
     hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* str_exp space*
     hcolor_statement         = "HCOLOR" space* exp space* "," space* exp space*
     hcolor1_statement        = "HCOLOR" space* exp space*
+    hline_relative_statement = "HLINE" space* line_suffix
+    hline_statement          = "HLINE" space* coords space* line_suffix
+    line_suffix              = "-" space* coords space* "," space* pset_or_preset line_options_option
+    pset_or_preset           = ("PSET" / "PRESET") space*
+    coords                   = "(" space* exp space* "," space* exp space* ")" space*
+    line_options_option      = line_options?
+    line_options             = "," space* ("BF" / "B") space*
     """  # noqa
 )

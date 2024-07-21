@@ -59,11 +59,17 @@ from coco.b09.elements import (
     BasicReadStatement,
     BasicRunCall,
     BasicSound,
+    BasicStatement,
     BasicStatements,
     BasicVar,
     BasicVarptrExpression,
     BasicWidthStatement,
+    Coordinates,
     HexLiteral,
+    HLineStatement,
+    LineSuffix,
+    LineType,
+    PsetOrPreset,
 )
 from coco.b09 import error_handler
 from coco.b09.grammar import PROCNAME_REGEX
@@ -907,8 +913,9 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_hcircle_prefix(self, node, visited_children):
-        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, expr_r, _ = visited_children
-        return BasicCircleStatement(expr_x, expr_y, expr_r)
+        coords: Coordinates
+        _, _, coords, _, _, expr_r, _ = visited_children
+        return BasicCircleStatement(coords.x, coords.y, expr_r)
 
     def visit_hcircle_optional(self, node, visited_children):
         _, _, expr_color, _ = visited_children
@@ -994,6 +1001,57 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
+    def visit_coords(self, node, visited_children) -> Coordinates:
+        _, _, x, _, _, _, y, _, _, _ = visited_children
+        return Coordinates(x, y)
+
+    def visit_hline_statement(self, node, visited_children) -> BasicStatement:
+        src_coords: Coordinates
+        line_suffix: LineSuffix
+        _, _, src_coords, _, line_suffix = visited_children
+        return HLineStatement(
+            source=src_coords,
+            destination=line_suffix.destination,
+            mode=line_suffix.pset_or_preset,
+            line_type=line_suffix.line_type,
+        )
+
+    def visit_hline_relative_statement(self, node, visited_children) -> BasicStatement:
+        line_suffix: LineSuffix
+        _, _, line_suffix = visited_children
+        return HLineStatement(
+            source=None,
+            destination=line_suffix.destination,
+            mode=line_suffix.pset_or_preset,
+            line_type=line_suffix.line_type,
+        )
+
+    def visit_line_suffix(self, node, visited_children) -> LineSuffix:
+        dst_coords: Coordinates
+        pset_or_preset: PsetOrPreset
+        line_type: LineType
+        _, _, dst_coords, _, _, _, pset_or_preset, line_type = visited_children
+        return LineSuffix(
+            destination=dst_coords, pset_or_preset=pset_or_preset, line_type=line_type
+        )
+
+    def visit_pset_or_preset(self, node, visited_children) -> PsetOrPreset:
+        mode, _ = visited_children
+        return mode.text
+
+    def visit_line_options_option(self, node, visited_children) -> LineType:
+        if not visited_children:
+            return "L"
+        (val,) = visited_children
+        if val == "B":
+            return "B"
+        else:
+            return "BF"
+
+    def visit_line_options(self, node, visited_children) -> str:
+        _, _, b_or_bf, _ = visited_children
+        return b_or_bf.text
+
 
 class ParseError(Exception):
     pass
@@ -1022,7 +1080,7 @@ def convert(
                 None,
                 Basic09CodeStatement(
                     "type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, "
-                    "undrln, bck, fore, brdr, hbck, hfore, hscl: byte"
+                    "undrln, bck, fore, brdr, hbck, hfore, hscl, ha, hy: byte; hx: integer"
                 ),
             ),
             BasicLine(None, Basic09CodeStatement("dim display: display_t")),

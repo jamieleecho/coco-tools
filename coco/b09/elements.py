@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from itertools import chain
-
-from typing import List, TYPE_CHECKING, Union
+from typing import List, Literal, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from visitors import BasicConstructVisitor
@@ -214,7 +213,7 @@ class BasicExpressionList(AbstractBasicConstruct):
 
 
 class BasicRunCall(AbstractBasicStatement):
-    def __init__(self, run_invocation, arguments):
+    def __init__(self, run_invocation: str, arguments: BasicExpressionList):
         super().__init__()
         self._run_invocation = run_invocation
         self._arguments = arguments
@@ -1115,3 +1114,78 @@ class BasicArcStatement(BasicRunCall):
     @property
     def expr_end(self) -> AbstractBasicExpression:
         return self._expr_end
+
+
+PsetOrPreset = Literal["PSET", "PRESET"]
+LineType = Literal["L", "B", "BF"]
+
+
+class Coordinates:
+    _x: AbstractBasicExpression
+    _y: AbstractBasicExpression
+
+    def __init__(self, x: AbstractBasicExpression, y: AbstractBasicExpression):
+        self._x = x
+        self._y = y
+
+    @property
+    def x(self) -> AbstractBasicExpression:
+        return self._x
+
+    @property
+    def y(self) -> AbstractBasicExpression:
+        return self._y
+
+
+class HLineStatement(BasicRunCall):
+    def __init__(
+        self,
+        *,
+        source: Coordinates,
+        destination: Coordinates,
+        mode: PsetOrPreset,
+        line_type: LineType,
+    ):
+        super().__init__(
+            "run ecb_hline",
+            BasicExpressionList(
+                [
+                    BasicLiteral("d" if source else "r"),
+                    source.x if source else BasicLiteral(0.0),
+                    source.y if source else BasicLiteral(0.0),
+                    destination.x,
+                    destination.y,
+                    BasicLiteral(mode),
+                    BasicLiteral(line_type),
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def basic09_text(self, indent_level: int) -> str:
+        return super().basic09_text(indent_level)
+
+
+class LineSuffix:
+    def __init__(
+        self,
+        *,
+        destination: Coordinates,
+        pset_or_preset: PsetOrPreset,
+        line_type: LineType,
+    ):
+        self._destination: Coordinates = destination
+        self._pset_or_preset: PsetOrPreset = pset_or_preset
+        self._line_type: LineType = line_type
+
+    @property
+    def destination(self) -> Coordinates:
+        return self._destination
+
+    @property
+    def pset_or_preset(self) -> PsetOrPreset:
+        return self._pset_or_preset
+
+    @property
+    def line_type(self) -> LineType:
+        return self._line_type
