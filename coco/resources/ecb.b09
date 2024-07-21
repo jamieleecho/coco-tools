@@ -359,7 +359,7 @@ if (display.wpth <> $ff) then
     run gfx2(display.wpth, "palette", pri, cci)
 endif
 if (display.hpth <> $ff) then
-    run gfx2(display.wpth, "palette", pri, cci)
+    run gfx2(display.hpth, "palette", pri, cci)
 endif
 display.pal(pri + 1) = cci
 
@@ -370,7 +370,7 @@ param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
     read cc
-    run ecb_set_palette(ii, cc)
+    run ecb_set_palette(ii, cc, display)
 next ii
 data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
@@ -381,7 +381,7 @@ param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
     read cc
-    run ecb_set_palette(palette, ii, cc)
+    run ecb_set_palette(ii, cc, display)
 next ii
 data 18, 36, 11, 7, 63, 31, 9, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
