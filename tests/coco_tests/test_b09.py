@@ -366,12 +366,12 @@ class TestB09(unittest.TestCase):
     def test_hex_literal(self):
         self.generic_test_parse(
             "11 PRINT&H1234",
-            "11 run ecb_str($1234, tmp_1$) \\ PRINT tmp_1$",
+            "11 run ecb_str(float($1234), tmp_1$) \\ PRINT tmp_1$",
         )
 
         self.generic_test_parse(
             "11 PRINT&HFFFFFF",
-            "11 run ecb_str(16777215, tmp_1$) \\ PRINT tmp_1$",
+            "11 run ecb_str(16777215.0, tmp_1$) \\ PRINT tmp_1$",
         )
 
     def test_left_and_right(self):
@@ -981,4 +981,10 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 AAA = 3: AAA$ = "3"',
             '10 AA := 3.0\nAA$ := "3"',
+        )
+
+    def test_tron_toff(self):
+        self.generic_test_parse(
+            "10 TRON: TROFF",
+            "10 TRON\nTROFF",
         )

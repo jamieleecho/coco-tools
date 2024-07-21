@@ -400,9 +400,10 @@ class BasicLiteral(AbstractBasicExpression):
 
 
 class HexLiteral(AbstractBasicExpression):
-    def __init__(self, literal):
+    def __init__(self, literal, *, is_float=False):
         super().__init__(is_str_expr=False)
-        self._literal = int(f"0x{literal}", 16)
+        self._literal: int = int(f"0x{literal}", 16)
+        self._is_float: bool = is_float
 
     @property
     def literal(self):
@@ -410,9 +411,17 @@ class HexLiteral(AbstractBasicExpression):
 
     def basic09_text(self, indent_level: int) -> str:
         return (
-            f"${hex(self._literal)[2:].upper()}"
-            if self._literal < 0x8000
-            else f"{self._literal}"
+            (
+                f"float(${hex(self._literal)[2:].upper()})"
+                if self._literal < 0x8000
+                else f"{self._literal}.0"
+            )
+            if self._is_float
+            else (
+                f"${hex(self._literal)[2:].upper()}"
+                if self._literal < 0x8000
+                else f"{self._literal}"
+            )
         )
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:

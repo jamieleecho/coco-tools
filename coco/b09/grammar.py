@@ -10,6 +10,8 @@ SINGLE_KEYWORD_STATEMENTS = {
     "RESTORE": "RESTORE",
     "RETURN": "RETURN",
     "STOP": "STOP",
+    "TROFF": "TROFF",
+    "TRON": "TRON",
 }
 
 QUOTED_SINGLE_KEYWORD_STATEMENTS = [f'"{name}"' for name in SINGLE_KEYWORD_STATEMENTS]
@@ -297,6 +299,7 @@ grammar = Grammar(
     hex_literal     = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     num_literal     = ~r"([\+\- ]*(\d*\.\d*)( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d*\.\d*)|[\+\- ]*(\d+( *(?!ELSE)E *[\+\-]? *\d*))|[\+\- ]*(\d+)"
     int_literal     = ~r"(\d+)"
+    int_hex_literal = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
     unop            = "+" / "-"
@@ -346,7 +349,7 @@ grammar = Grammar(
     func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
     func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
-    dim_element0        = (int_literal / hex_literal)
+    dim_element0        = (int_literal / int_hex_literal)
     dim_var             = (dim_array_var / str_var / var)
     dim_array_var       = dim_array_var3 / dim_array_var2 / dim_array_var1
     dim_array_var1      = (str_var / var) space* "(" space* dim_element0 space* ")" space*

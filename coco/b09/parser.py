@@ -401,9 +401,13 @@ class BasicVisitor(NodeVisitor):
         num_literal = node.full_text[node.start : node.end].replace(" ", "")
         return BasicLiteral(int(num_literal))
 
-    def visit_hex_literal(self, node, visited_children):
+    def visit_int_hex_literal(self, node, visited_children):
         hex_literal = node.text[node.text.find("H") + 1 :]
         return HexLiteral(hex_literal)
+
+    def visit_hex_literal(self, node, visited_children):
+        hex_literal = node.text[node.text.find("H") + 1 :]
+        return HexLiteral(hex_literal, is_float=True)
 
     def visit_unop_exp(self, node, visited_children):
         op, _, exp = visited_children
@@ -996,6 +1000,8 @@ def convert(
                 ),
             ),
             BasicLine(None, Basic09CodeStatement("dim display: display_t")),
+            BasicLine(None, Basic09CodeStatement("dim erno: real")),
+            BasicLine(None, Basic09CodeStatement("erno := -1")),
             BasicLine(
                 None,
                 BasicRunCall(
