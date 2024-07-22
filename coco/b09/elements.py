@@ -1137,6 +1137,23 @@ class Coordinates:
         return self._y
 
 
+class Coordinates3(Coordinates):
+    _z: AbstractBasicExpression
+
+    def __init__(
+        self,
+        x: AbstractBasicExpression,
+        y: AbstractBasicExpression,
+        z: AbstractBasicExpression,
+    ):
+        super().__init__(x=x, y=y)
+        self._z = z
+
+    @property
+    def z(self) -> AbstractBasicExpression:
+        return self._z
+
+
 class HLineStatement(BasicRunCall):
     def __init__(
         self,

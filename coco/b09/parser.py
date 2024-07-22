@@ -65,6 +65,7 @@ from coco.b09.elements import (
     BasicVarptrExpression,
     BasicWidthStatement,
     Coordinates,
+    Coordinates3,
     HexLiteral,
     HLineStatement,
     LineSuffix,
@@ -777,7 +778,7 @@ class BasicVisitor(NodeVisitor):
     def visit_rhs(self, node, visited_children):
         return visited_children[0]
 
-    def visit_input_statement(self, node, visited_children):
+    def visit_input_statement(self, node, visited_children) -> BasicStatement:
         line, _, _, _, str_literal, _, rhs, _, rhs_list = visited_children
         if isinstance(str_literal, BasicLiteral):
             str_literal.literal = (
@@ -787,15 +788,15 @@ class BasicVisitor(NodeVisitor):
             str_literal = BasicLiteral("" if line != "" else "? ", is_str_expr=True)
         return BasicInputStatement(str_literal, [rhs] + rhs_list)
 
-    def visit_input_str_literal(self, node, visited_children):
+    def visit_input_str_literal(self, node, visited_children) -> BasicLiteral:
         str_literal, _, _, _ = visited_children
         return str_literal
 
-    def visit_varptr_expr(self, node, visited_children):
+    def visit_varptr_expr(self, node, visited_children) -> AbstractBasicExpression:
         _, _, _, _, var, _, _, _ = visited_children
         return BasicVarptrExpression(var)
 
-    def visit_instr_expr(self, node, visited_children):
+    def visit_instr_expr(self, node, visited_children) -> AbstractBasicExpression:
         (
             _,
             _,
@@ -818,21 +819,21 @@ class BasicVisitor(NodeVisitor):
             "run ecb_instr", BasicExpressionList([index, str0, str1])
         )
 
-    def visit_string_expr(self, node, visited_children):
+    def visit_string_expr(self, node, visited_children) -> AbstractBasicExpression:
         _, _, _, _, count, _, _, _, strexp, _, _, _ = visited_children
         return BasicFunctionalExpression(
             "run ecb_string", BasicExpressionList([count, strexp])
         )
 
-    def visit_width_statement(self, node, visited_children):
+    def visit_width_statement(self, node, visited_children) -> BasicStatement:
         _, _, exp, _ = visited_children
         return BasicWidthStatement(exp)
 
-    def visit_locate_statement(self, node, visited_children):
+    def visit_locate_statement(self, node, visited_children) -> BasicStatement:
         _, _, col, _, _, _, row, _ = visited_children
         return BasicRunCall("run ecb_locate", BasicExpressionList([col, row]))
 
-    def visit_attr_statement(self, node, visited_children):
+    def visit_attr_statement(self, node, visited_children) -> BasicStatement:
         _, _, background_color, _, _, _, foreground_color, _, options = visited_children
         blink = BasicLiteral(1.0 if "B" in options else 0.0)
         undrln = BasicLiteral(1.0 if "U" in options else 0.0)
@@ -849,31 +850,31 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_attr_option_list(self, node, visited_children):
+    def visit_attr_option_list(self, node, visited_children) -> List[str]:
         return visited_children
 
-    def visit_attr_option_list_element(self, node, visited_children):
+    def visit_attr_option_list_element(self, node, visited_children) -> str:
         _, _, attr_option, _ = visited_children
         return attr_option
 
-    def visit_attr_option(self, node, visited_children):
+    def visit_attr_option(self, node, visited_children) -> str:
         return node.text
 
-    def visit_reset_colors_statement(self, node, visited_children):
+    def visit_reset_colors_statement(self, node, visited_children) -> BasicStatement:
         color_set, _ = visited_children
         return BasicRunCall(
             f"run ecb_set_palette_{color_set.text.lower()}",
             BasicExpressionList([BasicVar("display")]),
         )
 
-    def visit_palette_reset_statement(self, node, visited_children):
+    def visit_palette_reset_statement(self, node, visited_children) -> BasicStatement:
         _, _, color_set, _ = visited_children
         return BasicRunCall(
             f"run ecb_set_palette_{color_set.text.lower()}",
             BasicExpressionList([BasicVar("display")]),
         )
 
-    def visit_palette_statement(self, node, visited_children):
+    def visit_palette_statement(self, node, visited_children) -> BasicStatement:
         _, _, register, _, _, _, color_code, _ = visited_children
         return BasicRunCall(
             "run ecb_set_palette",
@@ -886,7 +887,7 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_hscreen_statement(self, node, visited_children):
+    def visit_hscreen_statement(self, node, visited_children) -> BasicStatement:
         _, _, exp, _ = visited_children
         exp = BasicLiteral(0) if not isinstance(exp, AbstractBasicExpression) else exp
         return BasicRunCall(
@@ -899,7 +900,7 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_hcls_statement(self, node, visited_children):
+    def visit_hcls_statement(self, node, visited_children) -> BasicStatement:
         _, _, exp, _ = visited_children
         exp = BasicLiteral(-1) if not isinstance(exp, AbstractBasicExpression) else exp
         return BasicRunCall(
@@ -912,16 +913,16 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_hcircle_prefix(self, node, visited_children):
+    def visit_hcircle_prefix(self, node, visited_children) -> BasicStatement:
         coords: Coordinates
         _, _, coords, _, _, expr_r, _ = visited_children
         return BasicCircleStatement(coords.x, coords.y, expr_r)
 
-    def visit_hcircle_optional(self, node, visited_children):
+    def visit_hcircle_optional(self, node, visited_children) -> BasicStatement:
         _, _, expr_color, _ = visited_children
         return expr_color
 
-    def visit_hcircle_statement(self, node, visited_children):
+    def visit_hcircle_statement(self, node, visited_children) -> BasicStatement:
         circle_statement, expr_color = visited_children
         return BasicCircleStatement(
             circle_statement.expr_x,
@@ -930,7 +931,7 @@ class BasicVisitor(NodeVisitor):
             expr_color=None if expr_color == "" else expr_color,
         )
 
-    def visit_hellipse_statement(self, node, visited_children):
+    def visit_hellipse_statement(self, node, visited_children) -> BasicStatement:
         circle_statement, expr_color, _, _, expr_rt, _ = visited_children
         new_circle_statement: BasicCircleStatement = BasicCircleStatement(
             circle_statement.expr_x,
@@ -943,7 +944,7 @@ class BasicVisitor(NodeVisitor):
             expr_rt,
         )
 
-    def visit_harc_statement(self, node, visited_children):
+    def visit_harc_statement(self, node, visited_children) -> BasicStatement:
         ellipse_statement, _, _, expr_start, _, _, _, expr_end, _ = visited_children
         return BasicArcStatement(
             ellipse_statement,
@@ -951,7 +952,7 @@ class BasicVisitor(NodeVisitor):
             expr_end,
         )
 
-    def visit_hprint_statement(self, node, visited_children):
+    def visit_hprint_statement(self, node, visited_children) -> BasicStatement:
         _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, str_exp, _ = (
             visited_children
         )
@@ -967,15 +968,15 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_on_brk_go_statement(self, node, visited_children):
+    def visit_on_brk_go_statement(self, node, visited_children) -> BasicStatement:
         _, _, _, _, _, _, linenum, _ = visited_children
         return BasicOnBrkGoStatement(linenum)
 
-    def visit_on_err_go_statement(self, node, visited_children):
+    def visit_on_err_go_statement(self, node, visited_children) -> BasicStatement:
         _, _, _, _, _, _, linenum, _ = visited_children
         return BasicOnErrGoStatement(linenum)
 
-    def visit_hcolor_statement(self, node, visited_children):
+    def visit_hcolor_statement(self, node, visited_children) -> BasicStatement:
         _, _, fcolor, _, _, _, bcolor, _ = visited_children
         return BasicRunCall(
             "run ecb_hcolor",
@@ -988,7 +989,7 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-    def visit_hcolor1_statement(self, node, visited_children):
+    def visit_hcolor1_statement(self, node, visited_children) -> BasicStatement:
         _, _, fcolor, _ = visited_children
         return BasicRunCall(
             "run ecb_hcolor",
@@ -1051,6 +1052,53 @@ class BasicVisitor(NodeVisitor):
     def visit_line_options(self, node, visited_children) -> str:
         _, _, b_or_bf, _ = visited_children
         return b_or_bf.text
+
+    def visit_hreset_statement(self, node, visited_children) -> BasicStatement:
+        coords: Coordinates3
+        _, _, coords = visited_children
+        return BasicRunCall(
+            "run ecb_hreset",
+            BasicExpressionList(
+                [
+                    coords.x,
+                    coords.y,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def visit_hset_statement(self, node, visited_children) -> BasicStatement:
+        coords: Coordinates3
+        _, _, coords = visited_children
+        return BasicRunCall(
+            "run ecb_hset",
+            BasicExpressionList(
+                [
+                    coords.x,
+                    coords.y,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def visit_hset3_statement(self, node, visited_children) -> BasicStatement:
+        coords: Coordinates3
+        _, _, coords = visited_children
+        return BasicRunCall(
+            "run ecb_hset3",
+            BasicExpressionList(
+                [
+                    coords.x,
+                    coords.y,
+                    coords.z,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def visit_coords3(self, node, visited_children) -> Coordinates3:
+        _, _, x, _, _, _, y, _, _, _, z, _, _, _ = visited_children
+        return Coordinates3(x, y, z)
 
 
 class ParseError(Exception):

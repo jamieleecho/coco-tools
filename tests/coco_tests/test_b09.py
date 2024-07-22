@@ -1024,3 +1024,21 @@ class TestB09(unittest.TestCase):
             "10 HLINE (123, 25) - (50, 30), PSET, BF",
             '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "BF", display)',
         )
+
+    def test_hreset(self):
+        self.generic_test_parse(
+            "10 HRESET(20, 30)",
+            "10 run ecb_hreset(20.0, 30.0, display)",
+        )
+
+    def test_hset(self):
+        self.generic_test_parse(
+            "10 HSET(20, 30)",
+            "10 run ecb_hset(20.0, 30.0, display)",
+        )
+
+    def test_hset3(self):
+        self.generic_test_parse(
+            "10 HSET(20, 30, 5)",
+            "10 run ecb_hset3(20.0, 30.0, 5.0, display)",
+        )

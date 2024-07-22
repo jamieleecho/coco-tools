@@ -342,6 +342,31 @@ else
 endif
 
 
+procedure ecb_hreset
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, ha, hy: byte; hx: integer
+param x, y: real
+param display: display_t
+run gfx2(display.hpth, "color", display.hbck)
+run gfx2(display.hpth, "point", fix(x), fix(y))
+run gfx2(display.hpth, "color", display.hfore)
+
+
+procedure ecb_hset
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, ha, hy: byte; hx: integer
+param x, y: real
+param display: display_t
+run gfx2(display.hpth, "point", fix(x), fix(y))
+
+
+procedure ecb_hset3
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, ha, hy: byte; hx: integer
+param x, y, c: real
+param display: display_t
+run gfx2(display.hpth, "color", fix(c))
+run gfx2(display.hpth, "point", fix(x), fix(y))
+run gfx2(display.hpth, "color", display.fore)
+
+
 procedure ecb_instr
 param index: real
 param str0: string

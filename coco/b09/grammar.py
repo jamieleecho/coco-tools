@@ -228,6 +228,9 @@ grammar = Grammar(
                     / hcolor1_statement
                     / hline_relative_statement
                     / hline_statement
+                    / hreset_statement
+                    / hset3_statement
+                    / hset_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -400,5 +403,9 @@ grammar = Grammar(
     coords                   = "(" space* exp space* "," space* exp space* ")" space*
     line_options_option      = line_options?
     line_options             = "," space* ("BF" / "B") space*
+    hreset_statement         = "HRESET" space* coords
+    hset3_statement          = "HSET" space* coords3
+    hset_statement           = "HSET" space* coords
+    coords3                  = "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     """  # noqa
 )
