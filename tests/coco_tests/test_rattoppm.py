@@ -32,7 +32,7 @@ class TestRatToPPM(unittest.TestCase):
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_rat_to_ppm(self):
+    def test_converts_rat_to_ppm(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
@@ -42,7 +42,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
+    def test_too_many_arguments(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -63,7 +63,7 @@ class TestRatToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_rat_to_ppm_via_stdio(self):
+    def test_converts_rat_to_ppm_via_stdio(self) -> None:
         infile = pkg_resources.resource_stream(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
@@ -80,7 +80,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_converts_rat_to_ppm_via_stdin(self):
+    def test_converts_rat_to_ppm_via_stdin(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/watrfall.ppm"
@@ -93,7 +93,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/rattoppm.py", "-h"],
@@ -108,7 +108,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/rattoppm.py", "--version"],
@@ -119,7 +119,7 @@ class TestRatToPPM(unittest.TestCase):
         self.assertRegex(output, self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/rattoppm.py", "--oops"],

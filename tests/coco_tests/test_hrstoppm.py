@@ -40,7 +40,7 @@ class TestHRSToPPM(unittest.TestCase):
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_hrs_to_ppm(self):
+    def test_converts_hrs_to_ppm(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
@@ -49,7 +49,7 @@ class TestHRSToPPM(unittest.TestCase):
         coco.hrstoppm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_hrs_to_ppm_with_height(self):
+    def test_converts_hrs_to_ppm_with_height(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa_r97.ppm"
@@ -58,7 +58,7 @@ class TestHRSToPPM(unittest.TestCase):
         coco.hrstoppm.start(["-r", "97", infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_hrs_to_ppm_with_width(self):
+    def test_converts_hrs_to_ppm_with_width(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa_w160.ppm"
@@ -67,7 +67,7 @@ class TestHRSToPPM(unittest.TestCase):
         coco.hrstoppm.start(["-w", "160", infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_skipping_bytes(self):
+    def test_skipping_bytes(self) -> None:
         infilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa_s7.hrs"
         )
@@ -79,7 +79,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
+    def test_too_many_arguments(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -100,7 +100,7 @@ class TestHRSToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_hrs_to_ppm_via_stdio(self):
+    def test_converts_hrs_to_ppm_via_stdio(self) -> None:
         infile = pkg_resources.resource_stream(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
@@ -117,7 +117,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_converts_hrs_to_ppm_via_stdin(self):
+    def test_converts_hrs_to_ppm_via_stdin(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/monalisa.ppm"
@@ -130,7 +130,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/hrstoppm.py", "-h"],
             env={"PYTHONPATH": "."},
@@ -143,7 +143,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/hrstoppm.py", "--version"],
             env={"PYTHONPATH": "."},
@@ -152,7 +152,7 @@ class TestHRSToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/hrstoppm.py", "--oops"],

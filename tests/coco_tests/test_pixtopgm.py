@@ -33,7 +33,7 @@ class TestPixToPGM(unittest.TestCase):
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_pix_to_pgm(self):
+    def test_converts_pix_to_pgm(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
         comparefilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pgm")
         self.outfile.close()
@@ -41,7 +41,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
+    def test_too_many_arguments(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -62,7 +62,7 @@ class TestPixToPGM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_pix_to_pgm_via_stdout(self):
+    def test_converts_pix_to_pgm_via_stdout(self) -> None:
         infile = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
         comparefilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pgm")
         subprocess.check_call(
@@ -73,7 +73,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/pixtopgm.py", "-h"],
             env={"PYTHONPATH": "."},
@@ -86,7 +86,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/pixtopgm.py", "--version"],
             env={"PYTHONPATH": "."},
@@ -95,7 +95,7 @@ class TestPixToPGM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             infile = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
             subprocess.check_output(

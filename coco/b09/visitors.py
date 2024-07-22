@@ -1,5 +1,6 @@
 from coco.b09.elements import (
     AbstractBasicExpression,
+    AbstractBasicStatement,
     Basic09CodeStatement,
     BasicArrayRef,
     BasicAssignment,
@@ -60,7 +61,9 @@ class BasicConstructVisitor:
         """
         pass
 
-    def visit_input_statement(self, statement: BasicInputStatement) -> BasicStatement:
+    def visit_input_statement(
+        self, statement: BasicInputStatement
+    ) -> AbstractBasicStatement:
         """
         Args:
             statement (BasicInputStatement): input statement to transform.
@@ -104,7 +107,9 @@ class BasicConstructVisitor:
         """
         pass
 
-    def visit_read_statement(self, statement: BasicReadStatement) -> BasicStatement:
+    def visit_read_statement(
+        self, statement: BasicReadStatement
+    ) -> AbstractBasicStatement:
         """
         Args:
             statement (BasicReadStatement): input statement to transform.

@@ -276,6 +276,7 @@ grammar = Grammar(
                     / func_to_statements2
                     / joystk_to_statement
                     / varptr_expr
+                    / erno_expr
                     / instr_expr
                     / string_expr
                     / array_ref_exp
@@ -407,5 +408,6 @@ grammar = Grammar(
     hset3_statement          = "HSET" space* coords3
     hset_statement           = "HSET" space* coords
     coords3                  = "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
+    erno_expr                = "ERNO" space*
     """  # noqa
 )

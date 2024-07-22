@@ -32,7 +32,7 @@ class TestVEFToPNG(unittest.TestCase):
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_320x200x16_vef_to_png(self):
+    def test_converts_320x200x16_vef_to_png(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/trekies.png"
@@ -41,7 +41,7 @@ class TestVEFToPNG(unittest.TestCase):
         coco.veftopng.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_640x200x4_vef_to_png(self):
+    def test_converts_640x200x4_vef_to_png(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/owlcasl.vef")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/owlcasl.png"
@@ -51,7 +51,7 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
+    def test_too_many_arguments(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -72,7 +72,7 @@ class TestVEFToPNG(unittest.TestCase):
         )
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/veftopng.py", "-h"],
             env={"PYTHONPATH": "."},
@@ -85,7 +85,7 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/veftopng.py", "--version"],
             env={"PYTHONPATH": "."},
@@ -94,7 +94,7 @@ class TestVEFToPNG(unittest.TestCase):
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(

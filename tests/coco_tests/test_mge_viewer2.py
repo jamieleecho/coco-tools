@@ -20,7 +20,7 @@ class TestMGE_Viewer2(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     @unix_only
-    def test_too_many_arguments(self):
+    def test_too_many_arguments(self) -> None:
         infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
@@ -40,7 +40,7 @@ class TestMGE_Viewer2(unittest.TestCase):
         )
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/mge_viewer2.py", "-h"],
@@ -55,7 +55,7 @@ class TestMGE_Viewer2(unittest.TestCase):
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/mge_viewer2.py", "--version"],
@@ -66,7 +66,7 @@ class TestMGE_Viewer2(unittest.TestCase):
         self.assertRegex(output, self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/mge_viewer2.py", "--oops"],
