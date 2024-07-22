@@ -33,6 +33,9 @@ AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR,
 ## Unsupported functions
 EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
 
+## Unsupported disk functions and statements
+BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FREE, GET, INPUT #, KILL, LINE INPUT, LOAD, LOADM, LOC, LOF, LSET, MERGE, MKN, OPEN, PRINT #, PRINT # USING, PUT #, RENAME, RSET, RUN, SAVE, SAVEM, UNLOAD, VERIFY ON, VERIFY OFF, WRITE #
+
 ## Supported constructs that need some explanation
 * String literals must be closed.
 * BASIC09 does not allow programs with line number zero. To handle this, the
