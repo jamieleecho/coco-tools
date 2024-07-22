@@ -211,7 +211,7 @@ class StatementCollectorVisitor(BasicConstructVisitor):
         self._statement_type = statement_type
 
     def visit_statement(self, statement: BasicStatement):
-        if type(statement) == self._statement_type:
+        if type(statement) is self._statement_type:
             self._statements.append(statement)
         super().visit_statement(statement)
 

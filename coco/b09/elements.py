@@ -312,10 +312,9 @@ class BasicOnGoStatement(AbstractBasicStatement):
         self._exp.visit(visitor)
 
 
-BasicGoStatements = (
-    BasicGoto | BasicOnBrkGoStatement | BasicOnErrGoStatement | BasicOnGoStatement
-)
-
+BasicGoStatements = Union[
+    BasicGoto, BasicOnBrkGoStatement, BasicOnErrGoStatement, BasicOnGoStatement
+]
 BasicStatementsOrBasicGoto = Union["BasicStatements", BasicGoto]
 
 
@@ -349,13 +348,13 @@ class BasicIf(AbstractBasicStatement):
 
 
 class BasicLine(AbstractBasicConstruct):
-    def __init__(self, num: int | None, statements: "BasicStatements"):
-        self._num: int | None = num
+    def __init__(self, num: Union[int, None], statements: "BasicStatements"):
+        self._num: Union[int, None] = num
         self._statements: BasicStatements = statements
         self._is_referenced: bool = True
 
     @property
-    def num(self) -> int | None:
+    def num(self) -> Union[int, None]:
         return self._num
 
     @property

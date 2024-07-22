@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 from parsimonious import NodeVisitor
 
 from coco.b09.grammar import (
@@ -265,7 +265,9 @@ class BasicVisitor(NodeVisitor):
     def visit_linenum(self, node, visited_children):
         return int(node.full_text[node.start : node.end])
 
-    def visit_line_or_stmnts(self, _, visited_children) -> BasicStatements | BasicGoto:
+    def visit_line_or_stmnts(
+        self, _, visited_children
+    ) -> Union[BasicStatements, BasicGoto]:
         if isinstance(visited_children[0], int):
             return BasicGoto(visited_children[0], True)
         return visited_children[0]

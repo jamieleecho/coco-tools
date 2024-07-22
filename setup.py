@@ -38,7 +38,7 @@ setuptools.setup(
         "Pillow>=7.0.0",
         "pypng>=0.0.18",
     ],
-    python_requires=">=3.7",
+    python_requires=">=3.9.19",
     # What does your project relate to?
     keywords="coco image conversion trs-80 tandy",
     # You can just specify the packages manually here if your project is

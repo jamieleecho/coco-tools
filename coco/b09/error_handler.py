@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from coco.b09.elements import (
     BasicAssignment,
@@ -14,8 +14,8 @@ from coco.b09.elements import (
 
 def generate(
     *,
-    brk_line: int | None,
-    err_line: int | None,
+    brk_line: Union[int, None],
+    err_line: Union[int, None],
 ) -> List[BasicLine]:
     lines: List[BasicLine] = []
 
