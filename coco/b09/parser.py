@@ -1137,7 +1137,7 @@ def convert(
                 None,
                 Basic09CodeStatement(
                     "type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, "
-                    "undrln, bck, fore, brdr, hbck, hfore, hscl, ha, hy: byte; hx: integer"
+                    "undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer"
                 ),
             ),
             BasicLine(None, Basic09CodeStatement("dim display: display_t")),
