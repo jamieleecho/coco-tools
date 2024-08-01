@@ -1048,3 +1048,9 @@ class TestB09(unittest.TestCase):
             "10 PRINT ERNO",
             "10 run ecb_str(erno, tmp_1$) \ PRINT tmp_1$",
         )
+
+    def test_play(self) -> None:
+        self.generic_test_parse(
+            '10 PLAY "CDE"',
+            '10 run ecb_play("CDE", play)',
+        )

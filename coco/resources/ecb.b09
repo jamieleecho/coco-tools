@@ -414,6 +414,83 @@ tmp_buffer(3) = $20 + y
 put #1, tmp_buffer
 
 
+PROCEDURE ecb_play
+TYPE play_t=oct,ln,tn,vl:BYTE
+PARAM s:STRING
+PARAM p:play_t
+
+DIM l, d, v, ii, f: INTEGER
+DIM c, cc: BYTE
+DIM f1, f2, f3: REAL
+
+l = LEN(s)
+FOR ii=1 TO l
+    c = ASC(MID$(s, ii, 1))
+    IF ((c >= 65) AND (c <= 71)) OR ((c >= 48) AND (c <= 57)) THEN
+        IF (c <= 57) THEN
+            RUN _ecb_get_num(v, s, ii, 1, 12)
+        ELSE
+            IF c = 65 THEN
+                v := 10
+            ENDIF
+            IF c = 66 THEN
+                v := 12
+            ENDIF
+            IF c = 67 THEN
+                v := 1
+            ENDIF
+            IF c = 68 THEN
+                v := 3
+            ENDIF
+            IF c = 69 THEN
+                v := 5
+            ENDIF
+            IF c = 70 THEN
+                v := 6
+            ENDIF
+            IF c = 71 THEN
+                v := 8
+            ENDIF
+
+            IF ii < l THEN
+                cc = ASC(MID$(s, ii + 1, 1))
+                IF (cc = 35) OR (cc = 43) OR (cc = 45) THEN
+                    ii := ii + 1
+                    IF cc = 45 THEN
+                        v := v - 1
+                    ELSE
+                        v := v + 1
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDIF
+
+        f1 := (p.oct * 12) + v
+        f2 := f1 * f1
+        f3 := f1 * f2
+        f = FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
+        d = 255/(p.ln * p.tn)
+        v := 2 * p.vl
+        RUN gfx2("tone", f, d, v)
+    ELSE
+        ii := ii + 1
+        IF (c = 79) THEN
+            RUN _ecb_get_num(v, s, ii, 1, 6)
+            p.oct := v
+        ENDIF
+        IF (c = 84) THEN
+            RUN _ecb_get_num(v, s, ii, 1, 255)
+            p.tn := v
+        ENDIF
+        IF (c = 86) THEN
+            RUN _ecb_get_num(v, s, ii, 0, 31)
+            p.vl := v
+        ENDIF
+    ENDIF
+
+NEXT ii
+
+
 procedure ecb_set_palette
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
 param pr, cc: real
@@ -619,6 +696,26 @@ if land(rregs.cc, 1) <> 0 then
 else
     outpath = rregs.a
 endif
+
+
+PROCEDURE _ecb_get_num
+PARAM v: INTEGER
+PARAM s: STRING
+PARAM ii, min, max: INTEGER
+dim jj: INTEGER
+
+jj := ii
+LOOP
+    c := ASC(MID$(s, ii, 1))
+    EXITIF ((c < 48) AND (c > 57)) THEN
+        v := VAL(MID$(s, jj, ii - jj))
+        ii := ii - 1
+        IF (v < min) OR (v > max) THEN
+            ERROR 52
+        ENDIF
+    ENDEXIT
+    ii := ii + 1
+ENDLOOP
 
 
 procedure _ecb_get_point_info

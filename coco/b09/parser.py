@@ -1109,6 +1109,19 @@ class BasicVisitor(NodeVisitor):
     def visit_erno_expr(self, _, visited_children) -> AbstractBasicExpression:
         return BasicVar("erno")
 
+    def visit_play_statement(self, _, visited_children) -> AbstractBasicStatement:
+        exp: AbstractBasicExpression
+        _, _, exp, _ = visited_children
+        return BasicRunCall(
+            "run ecb_play",
+            BasicExpressionList(
+                [
+                    exp,
+                    BasicVar("play"),
+                ]
+            ),
+        )
+
 
 class ParseError(Exception):
     pass
@@ -1155,6 +1168,12 @@ def convert(
                     ),
                 ),
             ),
+            BasicLine(None, Basic09CodeStatement("TYPE play_t=oct,ln,tn,vl:BYTE")),
+            BasicLine(None, Basic09CodeStatement("DIM play: play_t")),
+            BasicLine(None, Basic09CodeStatement("play.oct := 2")),
+            BasicLine(None, Basic09CodeStatement("play.ln := 4")),
+            BasicLine(None, Basic09CodeStatement("play.tn := 2")),
+            BasicLine(None, Basic09CodeStatement("play.vl := 15")),
         ]
         basic_prog.insert_lines_at_beginning(prefix_lines)
 
