@@ -5,7 +5,7 @@ run ecb_locate(float(land(location, 31)), location / 32.0)
 
 procedure ecb_attr
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
-param f, b, blnk, undr: real
+param f, b, bk, undr: real
 param display: display_t
 dim fi, bi: integer
 fi = f
@@ -13,18 +13,18 @@ bi = b
 display.fore = f
 display.bck = b
 run gfx2("color", fi, bi)
-if blnk <> 0.0 then
-    display.blnk = 1
+if bk <> 0.0 then
+    display.blnk := 1
     run gfx2("BLNKON")
 else
-    display.blnk = 0
+    display.blnk := 0
     run gfx2("BLNKOFF")
 endif
 if undr <> 0.0 then
-    display.undrln = 1
+    display.undrln := 1
     run gfx2("UNDLNON")
 else
-    display.undrln = 0
+    display.undrln := 0
     run gfx2("UNDLNOFF")
 endif
 
@@ -172,14 +172,14 @@ if v < 0 or v >= 65536 then
     error 52
 endif
 
-ival = v
+ival := v
 run _ecb_hex_digit(land($f, v / $1000), str)
-run _ecb_hex_digit(land($f, v / $100), tmp)
-str = str + tmp
-run _ecb_hex_digit(land($f, v / $10), tmp)
-str = str + tmp
-run _ecb_hex_digit(land($f, v), tmp)
-str = str + tmp
+run _ecb_hex_digit(land($f, v / $100), t)
+str := str + t
+run _ecb_hex_digit(land($f, v / $10), t)
+str := str + t
+run _ecb_hex_digit(land($f, v), t)
+str := str + t
 
 
 procedure ecb_hline
@@ -463,6 +463,18 @@ FOR ii=1 TO l
                     ENDIF
                 ENDIF
             ENDIF
+
+            IF ii < l THEN
+                cc = ASC(MID$(s, ii + 1, 1))
+                IF (cc = 46) THEN
+                    ii := ii + 1
+                    IF cc = 45 THEN
+                        v := v - 1
+                    ELSE
+                        v := v + 1
+                    ENDIF
+                ENDIF
+            ENDIF
         ENDIF
 
         f1 := (p.oct * 12) + v
@@ -473,18 +485,25 @@ FOR ii=1 TO l
         v := 2 * p.vl
         RUN gfx2("tone", f, d, v)
     ELSE
-        ii := ii + 1
-        IF (c = 79) THEN
-            RUN _ecb_get_num(v, s, ii, 1, 6)
-            p.oct := v
-        ENDIF
-        IF (c = 84) THEN
-            RUN _ecb_get_num(v, s, ii, 1, 255)
-            p.tn := v
-        ENDIF
-        IF (c = 86) THEN
-            RUN _ecb_get_num(v, s, ii, 0, 31)
-            p.vl := v
+        IF (c = 59) THEN
+        ELSE
+            ii := ii + 1
+            IF (c = 79) THEN
+                RUN _ecb_get_num(v, s, ii, 1, 6)
+                p.oct := v
+            ELSE
+                IF (c = 84) THEN
+                    RUN _ecb_get_num(v, s, ii, 1, 255)
+                    p.tn := v
+                ELSE
+                    IF (c = 86) THEN
+                        RUN _ecb_get_num(v, s, ii, 0, 31)
+                        p.vl := v
+                    ELSE
+                        ERROR 52
+                    ENDIF
+                ENDIF
+            ENDIF
         ENDIF
     ENDIF
 
@@ -706,15 +725,23 @@ dim jj: INTEGER
 
 jj := ii
 LOOP
-    c := ASC(MID$(s, ii, 1))
-    EXITIF ((c < 48) AND (c > 57)) THEN
+    IF (ii <= LEN(s)) THEN
+        c := ASC(MID$(s, ii, 1))
+    ELSE
+        c := 0
+    ENDIF
+    EXITIF ((c < 48) OR (c > 57) OR (ii > LEN(s))) THEN
+        IF ii = jj THEN
+            ERROR 52
+        ENDIF
         v := VAL(MID$(s, jj, ii - jj))
-        ii := ii - 1
         IF (v < min) OR (v > max) THEN
             ERROR 52
         ENDIF
+        ii := ii - 1
     ENDEXIT
     ii := ii + 1
+    c := ASC(MID$(s, ii, 1))
 ENDLOOP
 
 
