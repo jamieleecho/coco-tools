@@ -415,11 +415,11 @@ put #1, tmp_buffer
 
 
 PROCEDURE ecb_play
-TYPE play_t=oct,ln,tn,vl:BYTE
+TYPE play_t=oct,lnt,tne,vol,dot:BYTE
 PARAM s:STRING
 PARAM p:play_t
 
-DIM l, d, v, ii, f: INTEGER
+DIM ii, l, d, v, f: INTEGER
 DIM c, cc: BYTE
 DIM f1, f2, f3: REAL
 
@@ -466,7 +466,7 @@ FOR ii=1 TO l
 
             IF ii < l THEN
                 cc = ASC(MID$(s, ii + 1, 1))
-                IF (cc = 46) THEN
+                IF cc = 46 THEN
                     ii := ii + 1
                     IF cc = 45 THEN
                         v := v - 1
@@ -477,30 +477,52 @@ FOR ii=1 TO l
             ENDIF
         ENDIF
 
-        f1 := (p.oct * 12) + v
+        f1 := ((p.oct - 1) * 12) + v
         f2 := f1 * f1
         f3 := f1 * f2
-        f = FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
-        d = 255/(p.ln * p.tn)
-        v := 2 * p.vl
-        RUN gfx2("tone", f, d, v)
+        f := FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
+        d := 255/(p.lnt * p.tne)
+        d := d + (p.dot * (d / 2))
+        v := 2 * p.vol
+        WHILE d >= 255 DO
+            RUN gfx2("tone", f, 255, v)
+            d := d - 255
+        ENDWHILE
+        IF d > 0 THEN
+            RUN gfx2("tone", f, d, v)
+        ENDIF
     ELSE
-        IF (c = 59) THEN
+        IF c = 59 THEN
         ELSE
             ii := ii + 1
-            IF (c = 79) THEN
-                RUN _ecb_get_num(v, s, ii, 1, 6)
-                p.oct := v
+            IF c = 76 THEN
+                RUN _ecb_get_num(v, s, ii, 1, 99)
+                p.lnt := v
+                p.dot = 0
+                ii := ii + 1
+                WHILE ii <= len(s) DO
+                    c := ASC(MID$(s, ii, 1))
+                    EXITIF c <> 46 THEN
+                    ENDEXIT
+                    p.dot := p.dot + 1
+                    ii := ii + 1
+                ENDWHILE
+                ii := ii - 1
             ELSE
-                IF (c = 84) THEN
-                    RUN _ecb_get_num(v, s, ii, 1, 255)
-                    p.tn := v
+                IF c = 79 THEN
+                    RUN _ecb_get_num(v, s, ii, 1, 6)
+                    p.oct := v
                 ELSE
-                    IF (c = 86) THEN
-                        RUN _ecb_get_num(v, s, ii, 0, 31)
-                        p.vl := v
+                    IF c = 84 THEN
+                        RUN _ecb_get_num(v, s, ii, 1, 255)
+                        p.tne := v
                     ELSE
-                        ERROR 52
+                        IF c = 86 THEN
+                            RUN _ecb_get_num(v, s, ii, 0, 31)
+                            p.vol := v
+                        ELSE
+                            ERROR 52
+                        ENDIF
                     ENDIF
                 ENDIF
             ENDIF
