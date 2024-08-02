@@ -518,7 +518,7 @@ FOR ii=1 TO l
                         p.tne := v
                     ELSE
                         IF c = 86 THEN
-                            RUN _ecb_get_num(v, s, ii, 0, 31, fix(p.vol))
+                            RUN _ecb_get_numx(v, s, ii, 0, 31, fix(p.vol))
                             p.vol := v
                         ELSE
                             ERROR 52
@@ -780,11 +780,19 @@ ELSE
     c := 0
 ENDIF
 
-IF c = 43 OR c = 45 THEN
+IF c = 43 OR c = 45 OR c = 60 OR c = 62 THEN
     IF c = 43 THEN
-        v = cur + 1
+        v := cur + 1
     ELSE
-        v = cur - 1
+        IF c = 45 THEN
+            v := cur - 1
+        ELSE
+            IF c = 60 THEN
+                v := cur / 2
+            ELSE
+                v := cur * 2
+            ENDIF
+        ENDIF
     ENDIF
     IF (v < min) OR (v > max) THEN
         ERROR 52
