@@ -17,7 +17,7 @@ python3 setup.py
 
 ## Tools
 
-### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
+### [decb-to-b09](./README.decb-to-b09.md)
 
 ```
 usage: decb-to-b09 [-h] [--version] [-l] [-z] [-D] [-w] program.bas program.b09
