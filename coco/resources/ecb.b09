@@ -496,7 +496,7 @@ FOR ii=1 TO l
         ELSE
             ii := ii + 1
             IF c = 76 THEN
-                RUN _ecb_get_num(v, s, ii, 1, 99)
+                RUN _ecb_get_numx(v, s, ii, 1, 99, fix(p.lnt))
                 p.lnt := v
                 p.dot = 0
                 ii := ii + 1
@@ -510,15 +510,15 @@ FOR ii=1 TO l
                 ii := ii - 1
             ELSE
                 IF c = 79 THEN
-                    RUN _ecb_get_num(v, s, ii, 1, 6)
+                    RUN _ecb_get_numx(v, s, ii, 1, 6, fix(p.oct))
                     p.oct := v
                 ELSE
                     IF c = 84 THEN
-                        RUN _ecb_get_num(v, s, ii, 1, 255)
+                        RUN _ecb_get_numx(v, s, ii, 1, 255, fix(p.tne))
                         p.tne := v
                     ELSE
                         IF c = 86 THEN
-                            RUN _ecb_get_num(v, s, ii, 0, 31)
+                            RUN _ecb_get_num(v, s, ii, 0, 31, fix(p.vol))
                             p.vol := v
                         ELSE
                             ERROR 52
@@ -743,7 +743,8 @@ PROCEDURE _ecb_get_num
 PARAM v: INTEGER
 PARAM s: STRING
 PARAM ii, min, max: INTEGER
-dim jj: INTEGER
+DIM c: BYTE
+DIM jj: INTEGER
 
 jj := ii
 LOOP
@@ -765,6 +766,32 @@ LOOP
     ii := ii + 1
     c := ASC(MID$(s, ii, 1))
 ENDLOOP
+
+
+PROCEDURE _ecb_get_numx
+PARAM v: INTEGER
+PARAM s: STRING
+PARAM ii, min, max, cur: INTEGER
+DIM c: BYTE
+
+IF (ii <= LEN(s)) THEN
+    c := ASC(MID$(s, ii, 1))
+ELSE
+    c := 0
+ENDIF
+
+IF c = 43 OR c = 45 THEN
+    IF c = 43 THEN
+        v = cur + 1
+    ELSE
+        v = cur - 1
+    ENDIF
+    IF (v < min) OR (v > max) THEN
+        ERROR 52
+    ENDIF
+ELSE
+    RUN _ecb_get_num(v, s, ii, min, max)
+ENDIF
 
 
 procedure _ecb_get_point_info
