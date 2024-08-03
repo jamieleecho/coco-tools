@@ -279,7 +279,6 @@ grammar = Grammar(
                     / varptr_expr
                     / erno_expr
                     / instr_expr
-                    / string_expr
                     / array_ref_exp
                     / var
     unop_exp        = unop space* exp
@@ -295,6 +294,7 @@ grammar = Grammar(
     str_simple_exp   = str_literal
                      / str2_func_exp
                      / str3_func_exp
+                     / string_expr
                      / num_str_func_exp
                      / num_str_func_exp_statements
                      / str_func_exp_statements

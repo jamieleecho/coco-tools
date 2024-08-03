@@ -822,7 +822,9 @@ class BasicVisitor(NodeVisitor):
     def visit_string_expr(self, _, visited_children) -> AbstractBasicExpression:
         _, _, _, _, count, _, _, _, strexp, _, _, _ = visited_children
         return BasicFunctionalExpression(
-            "run ecb_string", BasicExpressionList([count, strexp])
+            "run ecb_string",
+            BasicExpressionList([count, strexp]),
+            is_str_expr=True,
         )
 
     def visit_width_statement(self, _, visited_children) -> AbstractBasicStatement:

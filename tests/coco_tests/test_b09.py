@@ -263,6 +263,12 @@ class TestB09(unittest.TestCase):
     def test_parse_str_expression2(self) -> None:
         self.generic_test_parse('10 IF A$<>"" THEN 10', '10 IF A$ <> "" THEN 10')
 
+    def test_parse_string_expression(self) -> None:
+        self.generic_test_parse(
+            '10 PRINT STRING$(32, "*")',
+            '10 run ecb_string(32.0, "*", tmp_1$) \ PRINT tmp_1$',
+        )
+
     def test_parse_multi_expression(self) -> None:
         self.generic_test_parse(
             "10 A = 64 + 32*10 / AB -1",
@@ -803,8 +809,8 @@ class TestB09(unittest.TestCase):
 
     def test_string(self) -> None:
         self.generic_test_parse(
-            '10 A = STRING$(10,"HELLO")\n',
-            '10 run ecb_string(10.0, "HELLO", A)',
+            '10 A$ = STRING$(10,"HELLO")\n',
+            '10 run ecb_string(10.0, "HELLO", A$)',
         )
 
     def test_width(self) -> None:

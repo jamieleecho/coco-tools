@@ -521,7 +521,12 @@ FOR ii=1 TO l
                             RUN _ecb_get_numx(v, s, ii, 0, 31, fix(p.vol))
                             p.vol := v
                         ELSE
-                            ERROR 52
+                            IF c = 80 THEN
+                                RUN _ecb_get_num(v, s, ii, 1, 255)
+                                RUN gfx2("tone", 1, v, 0)
+                            ELSE
+                                ERROR 52
+                            ENDIF
                         ENDIF
                     ENDIF
                 ENDIF
