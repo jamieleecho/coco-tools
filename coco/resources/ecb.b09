@@ -228,7 +228,7 @@ param txt: string[80]
 param display: display_t
 
 dim xi, yi, mx: integer
-dim t: string
+dim t: string[80]
 if display.hscl = 1 then
     mx = 39
 else

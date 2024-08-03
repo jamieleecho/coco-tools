@@ -1,6 +1,7 @@
 from typing import List, Union
 from parsimonious import NodeVisitor
 
+from coco import b09
 from coco.b09.grammar import (
     FUNCTIONS,
     FUNCTIONS_TO_STATEMENTS,
@@ -88,6 +89,7 @@ from coco.b09.visitors import (
     LineReferenceVisitor,
     LineZeroFilterVisitor,
     StatementCollectorVisitor,
+    StrVarAllocatorVisitor,
     VarInitializerVisitor,
 )
 from coco.b09.procbank import ProcedureBank
@@ -1134,7 +1136,7 @@ def convert(
     *,
     add_standard_prefix: bool = True,
     add_suffix: bool = True,
-    default_str_len: int = 32,
+    default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     default_width32: bool = True,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
@@ -1208,6 +1210,13 @@ def convert(
 
     # transform functions to proc calls
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
+
+    # allocate sufficient string storage
+    str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
+        default_str_storage=default_str_storage,
+    )
+    basic_prog.visit(str_var_allocator)
+    basic_prog.extend_prefix_lines(str_var_allocator.allocation_lines)
 
     # initialize variables
     if initialize_vars:
@@ -1283,6 +1292,7 @@ def convert_file(
     *,
     add_standard_prefix: bool = True,
     default_width32: bool = True,
+    default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
     output_dependencies: bool = False,
@@ -1292,6 +1302,7 @@ def convert_file(
     progout = convert(
         progin,
         add_standard_prefix=add_standard_prefix,
+        default_str_storage=default_str_storage,
         default_width32=default_width32,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,

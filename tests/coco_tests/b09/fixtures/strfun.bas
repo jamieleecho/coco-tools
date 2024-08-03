@@ -1,0 +1,4 @@
+5 DIM AA$(20)
+10 A$ = STRING$(110, "*") + "HELLO"
+15 AA$(5) = "HELLO WORLD"
+20 PRINT B$

@@ -1,3 +1,4 @@
+from coco import b09
 from coco.b09.elements import (
     AbstractBasicExpression,
     AbstractBasicStatement,
@@ -247,27 +248,29 @@ class VarInitializerVisitor(BasicConstructVisitor):
 
 class StrVarAllocatorVisitor(BasicConstructVisitor):
     vars: Set[str]
-    defaut_str_len: int
+    default_str_storage: int
 
     def __init__(
         self,
         *,
-        default_str_len: int,
+        default_str_storage: int,
     ):
         self._vars = set()
-        self._defaut_str_len = default_str_len
+        self._default_str_storage = default_str_storage
 
     @property
-    def assignment_lines(self) -> List[BasicLine]:
+    def allocation_lines(self) -> List[BasicLine]:
         return (
             [
                 BasicLine(
                     None,
-                    Basic09CodeStatement(f"DIM {var}:STRING[{self._default_str_len}]"),
+                    Basic09CodeStatement(
+                        f"DIM {var}:STRING[{self._default_str_storage}]"
+                    ),
                 )
-                for var in self._vars
+                for var in sorted(self._vars)
             ]
-            if self._defaut_str_len
+            if self._default_str_storage != b09.DEFAULT_STR_STORAGE
             else []
         )
 

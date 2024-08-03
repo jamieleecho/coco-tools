@@ -9,7 +9,7 @@ import os
 import sys
 
 from coco import __version__
-from coco import b09
+from coco.b09.parser import convert_file
 
 
 DESCRIPTION = """Convert a Color BASIC program to a BASIC09 program
@@ -55,6 +55,13 @@ def start(argv):
         help="Don't pre-initialize all variables",
     )
     parser.add_argument(
+        "-s",
+        "--default-string-storage",
+        type=int,
+        default=32,
+        help="Bytes to allocate for each string",
+    )
+    parser.add_argument(
         "-D",
         "--dont-output-dependencies",
         action="store_true",
@@ -72,14 +79,15 @@ def start(argv):
         os.path.basename(args.input_decb_text_program_file.name)
     )[0]
 
-    b09.convert_file(
+    convert_file(
         args.input_decb_text_program_file,
         args.output_b09_text_program_file,
-        procname=procname,
+        default_width32=not args.dont_run_width_32,
+        default_str_storage=args.default_string_storage,
         filter_unused_linenum=args.filter_unused_linenum,
         initialize_vars=not args.dont_initialize_vars,
         output_dependencies=not args.dont_output_dependencies,
-        default_width32=not args.dont_run_width_32,
+        procname=procname,
     )
     args.input_decb_text_program_file.close()
     args.output_b09_text_program_file.close()

@@ -1,1 +1,1 @@
-from .parser import convert as convert, convert_file as convert_file
+DEFAULT_STR_STORAGE: int = 32
