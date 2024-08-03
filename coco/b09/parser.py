@@ -1134,6 +1134,7 @@ def convert(
     *,
     add_standard_prefix: bool = True,
     add_suffix: bool = True,
+    default_str_len: int = 32,
     default_width32: bool = True,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
@@ -1277,24 +1278,25 @@ def convert(
 
 
 def convert_file(
-    input_program_file,
-    output_program_file,
-    procname="",
-    filter_unused_linenum=False,
-    initialize_vars=False,
-    output_dependencies=False,
-    add_standard_prefix=True,
-    default_width32=True,
+    input_program_file: str,
+    output_program_file: str,
+    *,
+    add_standard_prefix: bool = True,
+    default_width32: bool = True,
+    filter_unused_linenum: bool = False,
+    initialize_vars: bool = False,
+    output_dependencies: bool = False,
+    procname: str = "",
 ) -> None:
     progin = input_program_file.read()
     progout = convert(
         progin,
-        procname=procname,
+        add_standard_prefix=add_standard_prefix,
+        default_width32=default_width32,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
         output_dependencies=output_dependencies,
-        add_standard_prefix=add_standard_prefix,
-        default_width32=default_width32,
+        procname=procname,
     )
     progout = progout.replace("\n", "\r")
     output_program_file.write(progout)

@@ -24,7 +24,7 @@ from coco.b09.elements import (
     BasicVar,
 )
 
-from typing import List, TYPE_CHECKING
+from typing import List, Set, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from coco.b09.prog import BasicProg
@@ -221,34 +221,59 @@ class VarInitializerVisitor(BasicConstructVisitor):
         self._vars = set()
 
     @property
-    def assignment_lines(self):
+    def assignment_lines(self) -> List[BasicLine]:
+        return [
+            BasicLine(
+                None,
+                BasicStatements(
+                    [
+                        BasicAssignment(
+                            BasicVar(var, is_str_expr=var.endswith("$")),
+                            BasicLiteral(
+                                "" if var.endswith("$") else 0.0,
+                                is_str_expr=var.endswith("$"),
+                            ),
+                        )
+                        for var in sorted(self._vars)
+                        if ((var.endswith("$") and len(var) <= 3) or len(var) <= 2)
+                    ]
+                ),
+            )
+        ]
+
+    def visit_var(self, var) -> None:
+        self._vars.add(var.name())
+
+
+class StrVarAllocatorVisitor(BasicConstructVisitor):
+    vars: Set[str]
+    defaut_str_len: int
+
+    def __init__(
+        self,
+        *,
+        default_str_len: int,
+    ):
+        self._vars = set()
+        self._defaut_str_len = default_str_len
+
+    @property
+    def assignment_lines(self) -> List[BasicLine]:
         return (
             [
                 BasicLine(
                     None,
-                    BasicStatements(
-                        [
-                            BasicAssignment(
-                                BasicVar(var, is_str_expr=(var[-1] == "$")),
-                                BasicLiteral(
-                                    "" if (var[-1] == "$") else 0.0,
-                                    is_str_expr=(var[-1] == "$"),
-                                ),
-                            )
-                            for var in sorted(self._vars)
-                            if (
-                                (var.startswith("$") and len(var) <= 3) or len(var) <= 2
-                            )
-                        ]
-                    ),
+                    Basic09CodeStatement(f"DIM {var}:STRING[{self._default_str_len}]"),
                 )
+                for var in self._vars
             ]
-            if self._vars
+            if self._defaut_str_len
             else []
         )
 
-    def visit_var(self, var):
-        self._vars.add(var.name())
+    def visit_var(self, var) -> None:
+        if var.name().endswith("$"):
+            self._vars.add(var.name())
 
 
 class JoystickVisitor(BasicConstructVisitor):
