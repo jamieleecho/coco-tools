@@ -160,6 +160,7 @@ class TestB09(unittest.TestCase):
         *,
         add_standard_prefix=False,
         add_suffix=False,
+        default_str_storage=b09.DEFAULT_STR_STORAGE,
         filter_unused_linenum=False,
         initialize_vars=False,
         output_dependencies=False,
@@ -169,6 +170,7 @@ class TestB09(unittest.TestCase):
             progin,
             add_standard_prefix=add_standard_prefix,
             add_suffix=add_suffix,
+            default_str_storage=default_str_storage,
             filter_unused_linenum=filter_unused_linenum,
             initialize_vars=initialize_vars,
             output_dependencies=output_dependencies,
@@ -581,6 +583,48 @@ class TestB09(unittest.TestCase):
             "NEXT tmp_1",
         )
 
+    def test_dim4(self) -> None:
+        self.generic_test_parse(
+            "11 DIM A, B(12)",
+            "11 DIM A, arr_B(13)\n"
+            "FOR tmp_1 = 0 TO 12 \\ "
+            "arr_B(tmp_1) := 0 \\ "
+            "NEXT tmp_1",
+        )
+
+    def test_dim5(self) -> None:
+        self.generic_test_parse(
+            "11 DIM A$, B, C$(12)",
+            "11 DIM A$, arr_C$(13)\n"
+            "FOR tmp_1 = 0 TO 12 \\ "
+            'arr_C$(tmp_1) := "" \\ '
+            "NEXT tmp_1\n"
+            "DIM B",
+        )
+
+    def test_dim6(self) -> None:
+        self.generic_test_parse(
+            "11 DIM A$, B, C$(12)",
+            "11 DIM A$, arr_C$(13): STRING[80]\n"
+            "FOR tmp_1 = 0 TO 12 \\ "
+            'arr_C$(tmp_1) := "" \\ '
+            "NEXT tmp_1\n"
+            "DIM B",
+            default_str_storage=80,
+        )
+
+    def test_dim7(self) -> None:
+        self.generic_test_parse(
+            "11 DIM A$, C$(12):PRINT B$\n",
+            "DIM B$:STRING[80]\n"
+            "11 DIM A$, arr_C$(13): STRING[80]\n"
+            "FOR tmp_1 = 0 TO 12 \\ "
+            'arr_C$(tmp_1) := "" \\ '
+            "NEXT tmp_1\n"
+            "PRINT B$",
+            default_str_storage=80,
+        )
+
     def test_str_dim1(self) -> None:
         self.generic_test_parse(
             "11 DIMA$(12)",
@@ -615,7 +659,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_dim_misc(self) -> None:
-        self.generic_test_parse("11 DIMA$,B", "11 DIM A$, B")
+        self.generic_test_parse("11 DIMA$,B", "11 DIM A$\n" "DIM B")
 
     def test_line_filter(self) -> None:
         self.generic_test_parse(

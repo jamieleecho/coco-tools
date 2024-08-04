@@ -88,6 +88,7 @@ from coco.b09.visitors import (
     LineNumberCheckerVisitor,
     LineReferenceVisitor,
     LineZeroFilterVisitor,
+    SetDimStringStorageVisitor,
     StatementCollectorVisitor,
     StrVarAllocatorVisitor,
     VarInitializerVisitor,
@@ -1211,9 +1212,15 @@ def convert(
     # transform functions to proc calls
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
+    set_string_storage_vistor: SetDimStringStorageVisitor = SetDimStringStorageVisitor(
+        default_str_storage=default_str_storage
+    )
+    basic_prog.visit(set_string_storage_vistor)
+
     # allocate sufficient string storage
     str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
         default_str_storage=default_str_storage,
+        dimmed_var_names=set_string_storage_vistor.dimmed_var_names,
     )
     basic_prog.visit(str_var_allocator)
     basic_prog.extend_prefix_lines(str_var_allocator.allocation_lines)

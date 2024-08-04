@@ -29,7 +29,10 @@ def strfun_prog() -> BasicProg:
 
 
 def test_str_var_allocator(strfun_prog: BasicProg) -> None:
-    target: StrVarAllocatorVisitor = StrVarAllocatorVisitor(default_str_storage=128)
+    target: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
+        default_str_storage=128,
+        dimmed_var_names=set(),
+    )
     strfun_prog.visit(target)
     print(strfun_prog.basic09_text(0))
     code: List[str] = [line.basic09_text(0) for line in target.allocation_lines]
@@ -42,9 +45,24 @@ def test_str_var_allocator(strfun_prog: BasicProg) -> None:
 
 def test_str_var_allocator_default(strfun_prog: BasicProg) -> None:
     target: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
-        default_str_storage=b09.DEFAULT_STR_STORAGE
+        default_str_storage=b09.DEFAULT_STR_STORAGE,
+        dimmed_var_names=set(),
     )
     strfun_prog.visit(target)
     print(strfun_prog.basic09_text(0))
     code: List[str] = [line.basic09_text(0) for line in target.allocation_lines]
     assert code == []
+
+
+def test_str_var_allocator_with_dimmed_vars(strfun_prog: BasicProg) -> None:
+    target: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
+        default_str_storage=128,
+        dimmed_var_names=set(["B$"]),
+    )
+    strfun_prog.visit(target)
+    print(strfun_prog.basic09_text(0))
+    code: List[str] = [line.basic09_text(0) for line in target.allocation_lines]
+    assert code == [
+        "DIM A$:STRING[128]",
+        "DIM tmp_1$:STRING[128]",
+    ]

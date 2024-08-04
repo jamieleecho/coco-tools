@@ -6,6 +6,7 @@ from coco.b09.elements import (
     BasicArrayRef,
     BasicAssignment,
     BasicDataStatement,
+    BasicDimStatement,
     BasicExpressionList,
     BasicForStatement,
     BasicFunctionalExpression,
@@ -247,16 +248,19 @@ class VarInitializerVisitor(BasicConstructVisitor):
 
 
 class StrVarAllocatorVisitor(BasicConstructVisitor):
-    vars: Set[str]
-    default_str_storage: int
+    _vars: Set[str]
+    _default_str_storage: int
+    _dimmed_var_names: Set[str]
 
     def __init__(
         self,
         *,
         default_str_storage: int,
+        dimmed_var_names: Set[str],
     ):
         self._vars = set()
         self._default_str_storage = default_str_storage
+        self._dimmed_var_names = dimmed_var_names
 
     @property
     def allocation_lines(self) -> List[BasicLine]:
@@ -275,8 +279,31 @@ class StrVarAllocatorVisitor(BasicConstructVisitor):
         )
 
     def visit_var(self, var) -> None:
-        if var.name().endswith("$"):
+        if var.name().endswith("$") and var.name() not in self._dimmed_var_names:
             self._vars.add(var.name())
+
+
+class SetDimStringStorageVisitor(BasicConstructVisitor):
+    _default_str_storage: int
+    _dimmed_var_names: Set[str]
+
+    def __init__(self, *, default_str_storage: int):
+        self._default_str_storage = default_str_storage
+        self._dimmed_var_names = set()
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicDimStatement):
+            statement.default_str_storage = self._default_str_storage
+            self._dimmed_var_names.union(
+                [
+                    var.name() if isinstance(var, BasicVar) else var.var.name()
+                    for var in statement.dim_vars
+                ]
+            )
+
+    @property
+    def dimmed_var_names(self) -> Set[str]:
+        return self._dimmed_var_names
 
 
 class JoystickVisitor(BasicConstructVisitor):

@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from itertools import chain
 from typing import List, Literal, TYPE_CHECKING, Union
 
+from coco.b09 import DEFAULT_STR_STORAGE
+
 if TYPE_CHECKING:
     from visitors import BasicConstructVisitor
 
@@ -73,6 +75,9 @@ class AbstractBasicStatement(AbstractBasicConstruct):
             + f"{pre_assignments.basic09_text(indent_level)}"
             + (r" \ " if self._pre_assignment_statements else "")
         )
+
+    def visit(self, vistor: "BasicConstructVisitor") -> None:
+        return vistor.visit_statement(self)
 
 
 class BasicArrayRef(AbstractBasicExpression):
@@ -831,8 +836,12 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 
 
 class BasicDimStatement(AbstractBasicStatement):
+    _default_str_storage: int
+    _dim_vars: List[BasicArrayRef | BasicVar]
+
     def __init__(self, dim_vars):
         super().__init__()
+        self._default_str_storage = DEFAULT_STR_STORAGE
         self._dim_vars = [
             var
             if isinstance(var, BasicVar)
@@ -850,6 +859,18 @@ class BasicDimStatement(AbstractBasicStatement):
             )
             for var in dim_vars
         ]
+
+    @property
+    def default_str_storage(self):
+        return self._default_str_storage
+
+    @property
+    def dim_vars(self) -> List[BasicArrayRef | BasicVar]:
+        return self._dim_vars
+
+    @default_str_storage.setter
+    def default_str_storage(self, val):
+        self._default_str_storage = val
 
     def init_text_for_var(self, dim_var):
         for_statements = (
@@ -890,19 +911,67 @@ class BasicDimStatement(AbstractBasicStatement):
         ).basic09_text(0)
 
     def basic09_text(self, indent_level: int) -> str:
-        dim_var_text = ", ".join(
-            (dim_var.basic09_text(indent_level) for dim_var in self._dim_vars)
+        str_vars: List[BasicArrayRef | BasicVar] = [
+            var
+            for var in self._dim_vars
+            if (isinstance(var, BasicVar) and var.name().endswith("$"))
+            or (isinstance(var, BasicArrayRef) and var.var.name().endswith("$"))
+        ]
+        non_str_vars: List[BasicArrayRef | BasicVar] = [
+            var
+            for var in self._dim_vars
+            if not (
+                (isinstance(var, BasicVar) and var.name().endswith("$"))
+                or (isinstance(var, BasicArrayRef) and var.var.name().endswith("$"))
+            )
+        ]
+
+        str_vars_text: str = (
+            self._basic09_text(
+                str_vars,
+                ""
+                if self.default_str_storage == DEFAULT_STR_STORAGE
+                else f": STRING[{self._default_str_storage}]",
+                indent_level,
+            )
+            + ("\n" if non_str_vars else "")
+            if str_vars
+            else ""
+        )
+        non_str_vars_text: str = (
+            self._basic09_text(non_str_vars, "", indent_level) if non_str_vars else ""
+        )
+
+        return str_vars_text + non_str_vars_text
+
+    def _basic09_text(
+        self, dim_vars: List[BasicArrayRef | BasicVar], suffix: str, indent_level: int
+    ):
+        dim_var_text: str = ", ".join(
+            (dim_var.basic09_text(indent_level) for dim_var in dim_vars)
         )
         init_text = "\n".join(
             (
                 self.init_text_for_var(dim_var)
-                for dim_var in self._dim_vars
+                for dim_var in dim_vars
                 if isinstance(dim_var, BasicArrayRef)
             )
         )
         init_text = "\n" + init_text if init_text else ""
 
-        return f"{super().basic09_text(indent_level)}" f"DIM {dim_var_text}" + init_text
+        return (
+            f"{super().basic09_text(indent_level)}"
+            f"DIM {dim_var_text}" + suffix + init_text
+        )
+
+    @property
+    def scalar_str_vars(self) -> List[str]:
+        """Returns list of scalar string variables"""
+        return [
+            var.name()
+            for var in self._dim_vars
+            if isinstance(var, BasicVar) and var.name().endswith("$")
+        ]
 
 
 class BasicReadStatement(BasicStatement):

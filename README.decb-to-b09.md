@@ -51,6 +51,7 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 * Arrays are limited to no more than 3 dimensions. The size of each dimension
   must be specified as a numeric literal.
 * When translated array names are prefixed with arr_.
+* Re-DIMming variables will not work.
 * Hexadecimal literals of the form 0xABCDEF are supported. For values less
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
@@ -137,9 +138,12 @@ NEXT JJ
 
 ## Common issues with converted programs
 By default, BASIC09 strings have a maximum length of 32 characters. This often
-results in strings getting truncated in non-obvious ways. Resolving these
-problems typically involves finding the variable with the issue and DIMing
-it to be large enough. For example:
+results in strings getting truncated in non-obvious ways.
+
+The simplest way to resolve these issues is to pass the maximum storage space
+for strings via the  `--default-string-storage` option. Alternatively,
+resolving these problems typically involves finding the variable with the issue
+and DIMing it to be large enough. For example:
 ```
 DIM XX$: STRING[256]
 ```
