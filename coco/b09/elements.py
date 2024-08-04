@@ -760,6 +760,7 @@ class BasicForStatement(AbstractBasicStatement):
         visitor.visit_statement(self)
         visitor.visit_for_statement(self)
         self._var.visit(visitor)
+        self._start_exp.visit(visitor)
         self._end_exp.visit(visitor)
         if self._step_exp:
             self._step_exp.visit(visitor)
@@ -837,7 +838,7 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 
 class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
-    _dim_vars: List[BasicArrayRef | BasicVar]
+    _dim_vars: List["BasicArrayRef | BasicVar"]
 
     def __init__(self, dim_vars):
         super().__init__()
@@ -865,7 +866,7 @@ class BasicDimStatement(AbstractBasicStatement):
         return self._default_str_storage
 
     @property
-    def dim_vars(self) -> List[BasicArrayRef | BasicVar]:
+    def dim_vars(self) -> List["BasicArrayRef | BasicVar"]:
         return self._dim_vars
 
     @default_str_storage.setter
@@ -945,7 +946,7 @@ class BasicDimStatement(AbstractBasicStatement):
         return str_vars_text + non_str_vars_text
 
     def _basic09_text(
-        self, dim_vars: List[BasicArrayRef | BasicVar], suffix: str, indent_level: int
+        self, dim_vars: List["BasicArrayRef | BasicVar"], suffix: str, indent_level: int
     ):
         dim_var_text: str = ", ".join(
             (dim_var.basic09_text(indent_level) for dim_var in dim_vars)

@@ -38,3 +38,23 @@ class TestProcedureBank(unittest.TestCase):
         assert all_procedures.endswith(procedure.strip())
         assert all_procedures.startswith("procedure _ecb_text_address\n")
         assert "procedure ecb_cls\n" in all_procedures
+
+    def test_substitutes_str_storage_tag_with_default(self) -> None:
+        target = ProcedureBank()
+        target.add_from_resource("ecb.b09")
+        procedure = "PROCEDURE foo\nRUN ecb_string()\n\n"
+        target.add_from_str(procedure)
+        assert (
+            "param str: STRING\nparam strout: STRING"
+            in target.get_procedure_and_dependencies("foo")
+        )
+
+    def test_substitutes_str_storage_tag(self) -> None:
+        target = ProcedureBank(default_str_storage=80)
+        target.add_from_resource("ecb.b09")
+        procedure = "PROCEDURE foo\nRUN ecb_string()\n\n"
+        target.add_from_str(procedure)
+        assert (
+            "param str: STRING[80]\nparam strout: STRING[80]"
+            in target.get_procedure_and_dependencies("foo")
+        )

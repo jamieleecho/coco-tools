@@ -416,7 +416,7 @@ put #1, tmp_buffer
 
 PROCEDURE ecb_play
 TYPE play_t=oct,lnt,tne,vol,dot:BYTE
-PARAM s:STRING
+PARAM s:STRING<<>>
 PARAM p:play_t
 
 DIM ii, l, d, v, f: INTEGER
@@ -477,7 +477,7 @@ FOR ii=1 TO l
             ENDIF
         ENDIF
 
-        f1 := ((p.oct - 1) * 12) + v
+        f1 := ((p.oct - 2) * 12) + v
         f2 := f1 * f1
         f3 := f1 * f2
         f := FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
@@ -678,8 +678,8 @@ endif
 
 procedure ecb_string
 param count: real
-param str: string
-param strout: string
+param str: string<<>>
+param strout: string<<>>
 dim ii: integer
 
 if count < 0 or len(str) = 0 then
@@ -746,7 +746,7 @@ endif
 
 PROCEDURE _ecb_get_num
 PARAM v: INTEGER
-PARAM s: STRING
+PARAM s: STRING<<>>
 PARAM ii, min, max: INTEGER
 DIM c: BYTE
 DIM jj: INTEGER
@@ -775,7 +775,7 @@ ENDLOOP
 
 PROCEDURE _ecb_get_numx
 PARAM v: INTEGER
-PARAM s: STRING
+PARAM s: STRING<<>>
 PARAM ii, min, max, cur: INTEGER
 DIM c: BYTE
 

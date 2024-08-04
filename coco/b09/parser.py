@@ -1178,7 +1178,7 @@ def convert(
                 None, Basic09CodeStatement("TYPE play_t=oct,lnt,tne,vol,dot:BYTE")
             ),
             BasicLine(None, Basic09CodeStatement("DIM play: play_t")),
-            BasicLine(None, Basic09CodeStatement("play.oct := 2")),
+            BasicLine(None, Basic09CodeStatement("play.oct := 3")),
             BasicLine(None, Basic09CodeStatement("play.lnt := 4")),
             BasicLine(None, Basic09CodeStatement("play.tne := 2")),
             BasicLine(None, Basic09CodeStatement("play.vol := 15")),
@@ -1285,7 +1285,9 @@ def convert(
     # output the program
     program = basic_prog.basic09_text(0)
     if output_dependencies and procname:
-        procedure_bank = ProcedureBank()
+        procedure_bank = ProcedureBank(
+            default_str_storage=default_str_storage,
+        )
         procedure_bank.add_from_resource("ecb.b09")
         procedure_bank.add_from_str(program)
         program = procedure_bank.get_procedure_and_dependencies(procname)

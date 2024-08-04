@@ -55,7 +55,7 @@ $(EXAMPLE_OUTPUT_DIR):
 	mkdir -p $(EXAMPLE_OUTPUT_DIR)
 
 $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR)
-	decb-to-b09 -s40 -w $< $@
+	decb-to-b09 -s50 -w $< $@
 
 clean :
 	rm -rf $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~

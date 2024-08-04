@@ -1107,8 +1107,18 @@ class TestB09(unittest.TestCase):
         )
 
     def test_allocates_extra_str_space(self) -> None:
-        program = parser.convert(
+        program: str = parser.convert(
             "10 PRINT A$",
             default_str_storage=128,
         )
         assert "DIM A$:STRING[128]\n" in program
+
+    def test_subs_str_storage_tags(self) -> None:
+        program: str = parser.convert(
+            '10 A$=STRING$(10, "*")', default_str_storage=128, output_dependencies=True
+        )
+        assert "param str: STRING[128]\n" in program
+
+    def test_initializes_for(self) -> None:
+        program: str = parser.convert("10 FOR X=A TO 10", initialize_vars=True)
+        assert "A := 0.0" in program

@@ -51,6 +51,8 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 * Arrays are limited to no more than 3 dimensions. The size of each dimension
   must be specified as a numeric literal.
 * When translated array names are prefixed with arr_.
+* If DIMmed, variables must be DIMmed earlier in the code (lower line number)
+  being used.
 * Re-DIMming variables will not work.
 * Hexadecimal literals of the form 0xABCDEF are supported. For values less
   than 0x8000, the values are converted to integers of the form $ABCD. For
