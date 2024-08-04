@@ -300,7 +300,7 @@ grammar = Grammar(
                      / str_func_exp_statements
                      / str_array_ref_exp
                      / str_var
-    comment_text    = ~r"[^:\r\n$]*"
+    comment_text    = ~r"[^\r\n$]*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
     eol             = ~r"[\n\r]+"

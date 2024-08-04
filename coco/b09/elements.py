@@ -658,17 +658,25 @@ class BasicSound(Basic2ParamStatement):
         return (
             f"{super().basic09_text(indent_level)}"
             f"RUN ecb_sound({self._exp1.basic09_text(indent_level)}, "
-            f"{self._exp2.basic09_text(indent_level)}, 31.0)"
+            f"{self._exp2.basic09_text(indent_level)}, 31.0, FIX(play.octo))"
         )
 
 
 class BasicPoke(Basic2ParamStatement):
     def basic09_text(self, indent_level: int) -> str:
-        return (
-            f"{super().basic09_text(indent_level)}"
-            f"POKE {self._exp1.basic09_text(indent_level)}, "
-            f"{self._exp2.basic09_text(indent_level)}"
+        known_loc: bool = isinstance(self._exp1, BasicLiteral) or isinstance(
+            self._exp1, HexLiteral
         )
+        if known_loc and self._exp1.literal == 65496:
+            return f"{super().basic09_text(indent_level)}play.octo := 0"
+        elif known_loc and self._exp1.literal == 65497:
+            return f"{super().basic09_text(indent_level)}play.octo := 1"
+        else:
+            return (
+                f"{super().basic09_text(indent_level)}"
+                f"POKE {self._exp1.basic09_text(indent_level)}, "
+                f"{self._exp2.basic09_text(indent_level)}"
+            )
 
 
 class BasicCls(AbstractBasicStatement):

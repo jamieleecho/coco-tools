@@ -415,7 +415,7 @@ put #1, tmp_buffer
 
 
 PROCEDURE ecb_play
-TYPE play_t=oct,lnt,tne,vol,dot:BYTE
+TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE
 PARAM s:STRING<<>>
 PARAM p:play_t
 
@@ -477,7 +477,7 @@ FOR ii=1 TO l
             ENDIF
         ENDIF
 
-        f1 := ((p.oct - 2) * 12) + v
+        f1 := ((p.oct + p.octo - 2) * 12) + v
         f2 := f1 * f1
         f3 := f1 * f2
         f := FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
@@ -646,13 +646,22 @@ poke address, lor(c0, (c - 1) * 16 + c1)
 
 procedure ecb_sound
 param f, d, v:real
+param o: integer
 dim fint, dint, vint:integer
 if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
     error 52
 endif
 
-fint = int(2.49696345 * f + 3456.878733)
-dint = int(d * 4)
+if o = 1 then
+    fint = fix(1.248481725 * f + 3781.439366)
+else
+    fint = fix(2.49696345 * f + 3456.878733)
+endif
+
+if fint > 4095 then
+    fint := 4095
+endif
+dint = fix(d * 4)
 vint = fix(v)
 while (dint > 255) do
     run gfx2("tone", fint, 255, vint)

@@ -353,11 +353,17 @@ class TestB09(unittest.TestCase):
 
     def test_sound(self) -> None:
         self.generic_test_parse(
-            "11 SOUND 100, A+B", "11 RUN ecb_sound(100.0, A + B, 31.0)"
+            "11 SOUND 100, A+B", "11 RUN ecb_sound(100.0, A + B, 31.0, FIX(play.octo))"
         )
 
     def test_poke(self) -> None:
-        self.generic_test_parse("11 POKE65497,A+B", "11 POKE 65497.0, A + B")
+        self.generic_test_parse("11 POKE65498,A+B", "11 POKE 65498.0, A + B")
+
+    def test_poke_65496(self) -> None:
+        self.generic_test_parse("11 POKE65496,A+B", "11 play.octo := 0")
+
+    def test_poke_65497(self) -> None:
+        self.generic_test_parse("11 POKE&HFFD9,A+B", "11 play.octo := 1")
 
     def test_cls(self) -> None:
         self.generic_test_parse(
@@ -1122,3 +1128,9 @@ class TestB09(unittest.TestCase):
     def test_initializes_for(self) -> None:
         program: str = parser.convert("10 FOR X=A TO 10", initialize_vars=True)
         assert "A := 0.0" in program
+
+    def test_comment_wth_colon(self) -> None:
+        self.generic_test_parse(
+            "10 REM PRINT:PRINT",
+            "10 (* PRINT:PRINT *)",
+        )

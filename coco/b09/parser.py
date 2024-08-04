@@ -1175,10 +1175,11 @@ def convert(
                 ),
             ),
             BasicLine(
-                None, Basic09CodeStatement("TYPE play_t=oct,lnt,tne,vol,dot:BYTE")
+                None, Basic09CodeStatement("TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE")
             ),
             BasicLine(None, Basic09CodeStatement("DIM play: play_t")),
             BasicLine(None, Basic09CodeStatement("play.oct := 3")),
+            BasicLine(None, Basic09CodeStatement("play.octo := 0")),
             BasicLine(None, Basic09CodeStatement("play.lnt := 4")),
             BasicLine(None, Basic09CodeStatement("play.tne := 2")),
             BasicLine(None, Basic09CodeStatement("play.vol := 15")),

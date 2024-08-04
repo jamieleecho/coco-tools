@@ -93,6 +93,8 @@ NEXT BB
   pretend that the screen is 32x16.
 * `PEEK` and `POKE` are supported ... but with great power comes great
   responsibility.
+* `POKE 65497, 0` tells `PLAY` and `SOUND` to play an octave higher.
+* `POKE 65496, 0` tells `PLAY` and `SOUND` to play at default octave.
 * `PLAY` does not support the "X" command. Concatenate strings or repeat the
   `PLAY` command instead.
 * Some constructs require introducing an intermediary variable including
