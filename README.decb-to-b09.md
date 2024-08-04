@@ -20,7 +20,6 @@ The utility provides a best effort for conversion which means:
 * Color BASIC has some not very well defined lexing and parsing behavior. We
   disallow these constructs because they lead to behavior that is not very
   clear.
-* We currently only support VDG screens.
 
 ## Supported constructs
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
