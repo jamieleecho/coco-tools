@@ -1127,6 +1127,19 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
+    def visit_hdraw_statement(self, _, visited_children) -> AbstractBasicStatement:
+        str_exp: AbstractBasicExpression
+        _, _, str_exp, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hdraw",
+            BasicExpressionList(
+                [
+                    str_exp,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
 
 class ParseError(Exception):
     pass

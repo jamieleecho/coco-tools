@@ -1134,3 +1134,9 @@ class TestB09(unittest.TestCase):
             "10 REM PRINT:PRINT",
             "10 (* PRINT:PRINT *)",
         )
+
+    def test_hdraw(self) -> None:
+        self.generic_test_parse(
+            '10 HDRAW "UDLR"',
+            '10 run ecb_hdraw("UDLR", display)',
+        )

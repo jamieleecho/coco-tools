@@ -162,6 +162,11 @@ display.hfore = fi
 display.hbck = bi
 
 
+PROCEDURE ecb_hdraw
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param s: string<<>>
+
+
 procedure ecb_hex
 param v: real
 param str: string
