@@ -17,14 +17,14 @@ python3 setup.py
 
 ## Tools
 
-### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
+### [decb-to-b09](./README.decb-to-b09.md)
 
 ```
-usage: decb-to-b09 [-h] [--version] [-l] [-z] program.bas program.b09
+usage: decb-to-b09 [-h] [--version] [-l] [-z] [-D] [-w] program.bas program.b09
 
 Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
-Version: 0.7
+Version: 0.8
 
 positional arguments:
   program.bas           input DECB text program file
@@ -37,6 +37,10 @@ options:
                         Filter out line numbers not referenced by the program
   -z, --dont-initialize-vars
                         Don't pre-initialize all variables
+  -D, --dont-output-dependencies
+                        Don't output required dependencies
+  -w, --dont-run-width-32
+                        if set don't run the default width 32
 ```
 
 ### cm3toppm
@@ -228,6 +232,10 @@ docker-compose run test
 
 # Run tests using the source on the host computer
 docker-compose run testv
+
+# To make changes and develop locally
+pip install -r requirements.txt
+pre-commit install
 ```
 
 ## Credits
@@ -237,4 +245,6 @@ The programs in the examples/decb directory are from the following sources:
 * banner.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/banner.c10
 * cadnza.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cadnza.c10
 * cflip.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cflip.c10
+* loops.bas -- https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf
 * mars.bas -- https://github.com/jggames/trs80mc10/tree/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Text%20Adventures/WorkInProgress/Mars
+* saints.bas -- https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf

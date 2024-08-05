@@ -31,9 +31,7 @@ class TestMaxToPPM(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".ppm", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".ppm", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
@@ -41,21 +39,15 @@ class TestMaxToPPM(unittest.TestCase):
         if os.path.exists(self.outfile.name):
             os.remove(self.outfile.name)
 
-    def test_converts_max_to_ppm(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+    def test_converts_max_to_ppm(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_br(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_br(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_br.ppm"
         )
@@ -63,10 +55,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-br"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_rb(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_rb(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_br.ppm"
         )
@@ -74,10 +64,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-br"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_br2(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_br2(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_br2.ppm"
         )
@@ -85,10 +73,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-br2"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_rb2(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_rb2(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_rb2.ppm"
         )
@@ -96,10 +82,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-rb2"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_br3(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_br3(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_br3.ppm"
         )
@@ -107,10 +91,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-br3"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_rb3(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_rb3(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_rb3.ppm"
         )
@@ -118,10 +100,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-rb3"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_s10(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_s10(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_s10.ppm"
         )
@@ -129,10 +109,8 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-s10"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_max_to_ppm_s11(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_converts_max_to_ppm_s11(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_s11.ppm"
         )
@@ -140,23 +118,17 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-s11"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_specifying_width(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_specifying_width(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_rb_w128.ppm"
         )
         self.outfile.close()
-        coco.maxtoppm.start(
-            [infilename, self.outfile.name, "-rb", "-w", "128"]
-        )
+        coco.maxtoppm.start([infilename, self.outfile.name, "-rb", "-w", "128"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_specifying_height(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_specifying_height(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/eye4_r96.ppm"
         )
@@ -164,21 +136,15 @@ class TestMaxToPPM(unittest.TestCase):
         coco.maxtoppm.start([infilename, self.outfile.name, "-r", "96"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_skipping_bytes(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4_s7.max"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+    def test_skipping_bytes(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4_s7.max")
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name, "-s", "7"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
-    def test_converts_newsroom_files(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/shamrock.art"
-        )
+    def test_converts_newsroom_files(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/shamrock.art")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/shamrock.ppm"
         )
@@ -187,33 +153,25 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @mock.patch("sys.stderr")
-    def test_detects_bad_headers_1(self, mockStderr):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.bad1.max"
-        )
+    def test_detects_bad_headers_1(self, mockStderr) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.bad1.max")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name])
         self.assertFalse(os.path.exists(self.outfile.name))
         mockStderr.write.assert_called_with("bad first byte in header\n")
 
     @mock.patch("sys.stderr")
-    def test_ignores_bad_headers_1(self, mockStderr):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.bad1.max"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+    def test_ignores_bad_headers_1(self, mockStderr) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.bad1.max")
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name, "-i"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
         mockStderr.write.assert_called_with("bad first byte in header\n")
 
     @mock.patch("sys.stderr")
-    def test_detects_bad_headers_2(self, mockStderr):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.bad2.max"
-        )
+    def test_detects_bad_headers_2(self, mockStderr) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.bad2.max")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name])
         self.assertFalse(os.path.exists(self.outfile.name))
@@ -223,13 +181,9 @@ class TestMaxToPPM(unittest.TestCase):
         )
 
     @mock.patch("sys.stderr")
-    def test_ignores_bad_headers_2(self, mockStderr):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.bad2.max"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+    def test_ignores_bad_headers_2(self, mockStderr) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.bad2.max")
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         self.outfile.close()
         coco.maxtoppm.start([infilename, self.outfile.name, "-i"])
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
@@ -239,10 +193,8 @@ class TestMaxToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
+    def test_too_many_arguments(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -262,11 +214,9 @@ class TestMaxToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_max_to_ppm_via_stdio(self):
+    def test_converts_max_to_ppm_via_stdio(self) -> None:
         infile = pkg_resources.resource_stream(__name__, "fixtures/eye4.max")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         read, write = os.pipe()
         os.write(write, infile.read())
         os.close(write)
@@ -279,13 +229,9 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_converts_max_to_ppm_via_stdin(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.max"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/eye4.ppm"
-        )
+    def test_converts_max_to_ppm_via_stdin(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.max")
+        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/eye4.ppm")
         subprocess.check_call(
             [sys.executable, "coco/maxtoppm.py", infilename],
             env={"PYTHONPATH": "."},
@@ -294,7 +240,7 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/maxtoppm.py", "-h"],
@@ -309,7 +255,7 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/maxtoppm.py", "--version"],
@@ -320,7 +266,7 @@ class TestMaxToPPM(unittest.TestCase):
         self.assertRegex(output, self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/maxtoppm.py", "--oops"],
@@ -334,7 +280,7 @@ class TestMaxToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_conflicting_arguments(self):
+    def test_conflicting_arguments(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/maxtoppm.py", "-br", "-rb"],

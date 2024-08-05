@@ -9,7 +9,6 @@
 # reads max art files and converts to ppm
 
 import argparse
-import codecs
 import os
 import sys
 
@@ -50,15 +49,10 @@ def convert(
         return 255 if v > 255 else (0 if v < 0 else v)
 
     # imitate +I and -I colours using Coco palette
-    br2 = [
-        pack(x)
-        for x in [[0, 0, 0], [255, 85, 0], [0, 170, 255], [255, 255, 255]]
-    ]
+    br2 = [pack(x) for x in [[0, 0, 0], [255, 85, 0], [0, 170, 255], [255, 255, 255]]]
     # take names "blue" and "red" too literally like many "patched for Coco3"
     # programs
-    br3 = [
-        pack(x) for x in [[0, 0, 0], [255, 0, 0], [0, 0, 255], [255, 255, 255]]
-    ]
+    br3 = [pack(x) for x in [[0, 0, 0], [255, 0, 0], [0, 0, 255], [255, 255, 255]]]
     # probably not exact...
     semig = [
         pack(x)
@@ -131,9 +125,7 @@ def convert(
                     g = clip(int((y - 0.2721 * i)))
                     b = clip(int((y - 1.1070 * i)))
                     out.write(
-                        strtoio(
-                            pack([(r + r2) >> 1, (g + g2) >> 1, (b + b2) >> 1])
-                        )
+                        strtoio(pack([(r + r2) >> 1, (g + g2) >> 1, (b + b2) >> 1]))
                     )
                     oy = ny
                     x = -x
@@ -144,51 +136,35 @@ def convert(
                 for k in range(4):
                     out.write(
                         strtoio(
-                            br2[
-                                getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)
-                            ]
-                            * 2
+                            br2[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2
                         )
                     )
             elif arte == PIXEL_MODE_RB2:
                 for k in range(4):
                     out.write(
                         strtoio(
-                            br2[
-                                getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2
-                            ]
-                            * 2
+                            br2[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2
                         )
                     )
             elif arte == PIXEL_MODE_BR3:
                 for k in range(4):
                     out.write(
                         strtoio(
-                            br3[
-                                getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)
-                            ]
-                            * 2
+                            br3[getbit(v, 7 - k - k) * 2 + getbit(v, 6 - k - k)] * 2
                         )
                     )
             elif arte == PIXEL_MODE_RB3:
                 for k in range(4):
                     out.write(
                         strtoio(
-                            br3[
-                                getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2
-                            ]
-                            * 2
+                            br3[getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2] * 2
                         )
                     )
             elif arte == PIXEL_MODE_S10:
                 for k in range(4):
                     out.write(
                         strtoio(
-                            semig[
-                                1
-                                + getbit(v, 7 - k - k)
-                                + getbit(v, 6 - k - k) * 2
-                            ]
+                            semig[1 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2]
                             * 2
                         )
                     )
@@ -196,11 +172,7 @@ def convert(
                 for k in range(4):
                     out.write(
                         strtoio(
-                            semig[
-                                5
-                                + getbit(v, 7 - k - k)
-                                + getbit(v, 6 - k - k) * 2
-                            ]
+                            semig[5 + getbit(v, 7 - k - k) + getbit(v, 6 - k - k) * 2]
                             * 2
                         )
                     )
@@ -210,13 +182,11 @@ def convert(
 DESCRIPTION = """Convert RS-DOS MAX and ART images to PPM
 Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: {}""".format(
-    __version__
+Version: {}""".format(__version__)
+PIXEL_MODE_DESCRIPTION = (
+    "Default pixel mode is no artifact (PMODE 4 on " "monitor). The 6 other modes:"
 )
-PIXEL_MODE_DESCRIPTION = 'Default pixel mode is no artifact (PMODE 4 on ' \
-                         'monitor). The 6 other modes:'
-PARSER_MODE_DESCRIPTION = \
-    """Default file format is CocoMax 1/2's .MAX, which is also Graphicom's
+PARSER_MODE_DESCRIPTION = """Default file format is CocoMax 1/2's .MAX, which is also Graphicom's
     .PIC and SAVEM of 4 or 8 pages of PMODE 3/4.
     Also works with any other height of SAVEM (including fractional pages)."""
 

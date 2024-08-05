@@ -1,0 +1,1 @@
+DEFAULT_STR_STORAGE: int = 32

@@ -1,4 +1,5 @@
 IMGTOOL=./coco-dev imgtool
+DECB=./coco-dev decb
 MAME_DIR=~/Applications/mame
 MAME=$(MAME_DIR)/mame
 
@@ -22,19 +23,29 @@ EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES
 
 all: build $(TARGET) $(TARGET_DECB)
 
-build:
-	pycodestyle coco tests setup.py
+
+lint:
+	ruff check
+	ruff linter
+
+format:
+	ruff format
+
+build: lint
 	python3 setup.py install
+
+test:
+	coverage run -m pytest && coverage report --show-missing
 
 $(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
-	bash -c 'for each in $(RESOURCE_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
-	bash -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	zsh -c 'for each in $(RESOURCE_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
+	zsh -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
 	mv $(TMPTARGET) $(@)
 
 $(TARGET_DECB) : $(EXAMPLES_INPUTS)
-	$(IMGTOOL) create coco_jvc_rsdos $(TMPTARGET_DECB)
-	bash -c 'for each in $(EXAMPLES_INPUTS); do $(IMGTOOL) put coco_jvc_rsdos $(TMPTARGET_DECB) $${each} `echo $$(basename $${each}) | tr '[:lower:]' '[:upper:]'`  --ftype=basic --ascii=ascii; done'
+	$(DECB) dskini $(TMPTARGET_DECB)
+	zsh -c 'for each in $(EXAMPLES_INPUTS); do $(DECB) copy -t $${each} $(TMPTARGET_DECB),`basename $${(U)each}`; done'
 	mv $(TMPTARGET_DECB) $(@)
 
 $(TMPTARGET) :
@@ -44,7 +55,7 @@ $(EXAMPLE_OUTPUT_DIR):
 	mkdir -p $(EXAMPLE_OUTPUT_DIR)
 
 $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR)
-	decb-to-b09 $< $@
+	decb-to-b09 -s50 -w $< $@
 
 clean :
 	rm -rf $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~

@@ -1,18 +1,21 @@
 {
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "python.formatting.provider": "none",
+    "black-formatter.args": [
+        "--line-length",
+        "79"
+    ],
+    "black-formatter.importStrategy": "fromEnvironment",
+    "black-py.useIntegratedTerminal": true,
     "python.testing.unittestArgs": [
         "-v",
         "-s",
         "./tests",
         "-p",
-        "*test.py"
+        "test_*.py"
     ],
     "python.testing.pytestEnabled": true,
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestArgs": [
-        "tests",
-    ],
-    "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
-    },
-    "python.formatting.provider": "none",
 }

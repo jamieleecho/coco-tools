@@ -25,19 +25,15 @@ class TestMGEToPPM(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".ppm", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".ppm", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_mge_to_ppm(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/dragon1.mge"
-        )
+    def test_converts_mge_to_ppm(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/dragon1.ppm"
         )
@@ -46,10 +42,8 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/dragon1.mge"
-        )
+    def test_too_many_arguments(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -69,10 +63,8 @@ class TestMGEToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_mge_to_ppm_via_stdio(self):
-        infile = pkg_resources.resource_stream(
-            __name__, "fixtures/dragon1.mge"
-        )
+    def test_converts_mge_to_ppm_via_stdio(self) -> None:
+        infile = pkg_resources.resource_stream(__name__, "fixtures/dragon1.mge")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/dragon1.ppm"
         )
@@ -89,10 +81,8 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_converts_mge_to_ppm_via_stdin(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/dragon1.mge"
-        )
+    def test_converts_mge_to_ppm_via_stdin(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/dragon1.ppm"
         )
@@ -104,7 +94,7 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/mgetoppm.py", "-h"],
@@ -119,7 +109,7 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertRegex(output, self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = iotostr(
             subprocess.check_output(
                 [sys.executable, "coco/mgetoppm.py", "--version"],
@@ -130,7 +120,7 @@ class TestMGEToPPM(unittest.TestCase):
         self.assertRegex(output, self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/mgetoppm.py", "--oops"],

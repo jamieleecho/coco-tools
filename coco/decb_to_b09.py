@@ -9,14 +9,12 @@ import os
 import sys
 
 from coco import __version__
-from coco import b09
+from coco.b09.parser import convert_file
 
 
 DESCRIPTION = """Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -28,48 +26,69 @@ def start(argv):
         description=DESCRIPTION, formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument(
-        'input_decb_text_program_file',
-        metavar='program.bas',
-        type=argparse.FileType('r'),
-        help='input DECB text program file',
+        "input_decb_text_program_file",
+        metavar="program.bas",
+        type=argparse.FileType("r"),
+        help="input DECB text program file",
     )
     parser.add_argument(
-        'output_b09_text_program_file',
-        metavar='program.b09',
-        type=argparse.FileType('w'),
+        "output_b09_text_program_file",
+        metavar="program.b09",
+        type=argparse.FileType("w"),
         help="output BASIC09 text program file",
     )
     parser.add_argument(
-        '--version',
-        action='version',
-        version='%(prog)s {}'.format(__version__),
+        "--version",
+        action="version",
+        version="%(prog)s {}".format(__version__),
     )
     parser.add_argument(
-        '-l', '--filter-unused-linenum',
-        action='store_true',
-        help='Filter out line numbers not referenced by the program',
+        "-l",
+        "--filter-unused-linenum",
+        action="store_true",
+        help="Filter out line numbers not referenced by the program",
     )
     parser.add_argument(
-        '-z', '--dont-initialize-vars',
-        action='store_true',
-        help='Don\'t pre-initialize all variables',
+        "-z",
+        "--dont-initialize-vars",
+        action="store_true",
+        help="Don't pre-initialize all variables",
     )
     parser.add_argument(
-        '-D', '--dont-output-dependencies',
-        action='store_true',
-        help='Don\'t output required dependencies',
+        "-s",
+        "--default-string-storage",
+        type=int,
+        default=32,
+        help="Bytes to allocate for each string",
+    )
+    parser.add_argument(
+        "-D",
+        "--dont-output-dependencies",
+        action="store_true",
+        help="Don't output required dependencies",
+    )
+    parser.add_argument(
+        "-w",
+        "--dont-run-width-32",
+        action="store_true",
+        help="if set don't run the default width 32",
     )
 
     args = parser.parse_args(argv)
     procname = os.path.splitext(
-        os.path.basename(args.input_decb_text_program_file.name))[0]
+        os.path.basename(args.input_decb_text_program_file.name)
+    )[0]
 
-    b09.convert_file(args.input_decb_text_program_file,
-                     args.output_b09_text_program_file,
-                     procname=procname,
-                     filter_unused_linenum=args.filter_unused_linenum,
-                     initialize_vars=not args.dont_initialize_vars,
-                     output_dependencies=not args.dont_output_dependencies)
+    convert_file(
+        args.input_decb_text_program_file,
+        args.output_b09_text_program_file,
+        default_width32=not args.dont_run_width_32,
+        default_str_storage=args.default_string_storage,
+        filter_unused_linenum=args.filter_unused_linenum,
+        initialize_vars=not args.dont_initialize_vars,
+        output_dependencies=not args.dont_output_dependencies,
+        procname=procname,
+    )
     args.input_decb_text_program_file.close()
     args.output_b09_text_program_file.close()
 

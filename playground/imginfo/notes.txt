@@ -1,0 +1,14 @@
+To build the "ideal" image
+1. Build nitros9 from scratch and use 80 track disk
+2. imgtool put coco_jvc_os9 NOS9_6809_L2_v030300_coco3_80d.dsk b09modules CMDS/b09modules
+3. imgtool put coco_jvc_os9 NOS9_6809_L2_v030300_coco3_80d.dsk startup startup
+4. imgtool put coco_jvc_os9 NOS9_6809_L2_v030300_coco3_80d.dsk standard.bl NITROS9/6809L2/BOOTLISTS/standard.bl
+5. boot in mame
+6. attr /dd/CMDS/b09modules e pe
+7. del OS9Boot
+8. chd NITROS9/6809L2/BOOTLISTS
+9. os9gen /dd < standard.bl
+10. boot again in mame 
+11. dmode /dd stp=6
+12. boot again in mame
+

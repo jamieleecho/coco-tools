@@ -25,7 +25,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import argparse
-import os
 import png
 import sys
 
@@ -67,9 +66,7 @@ def unsquash(data, count, orig_len):
 DESCRIPTION = """Convert OS-9 VEF images to PNG
 Copyright (c) 2018-2020  Travis Poppe <tlp@lickwid.net>
 Copyright (c) 2020  Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():
@@ -227,9 +224,7 @@ def start(argv):
             last_count = count_byte + 1
             count_byte = count_byte + count + 1
 
-            image_data += unsquash(
-                data[last_count:count_byte], count, orig_len
-            )
+            image_data += unsquash(data[last_count:count_byte], count, orig_len)
 
             i += 1
     else:

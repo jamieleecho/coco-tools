@@ -20,16 +20,20 @@ The utility provides a best effort for conversion which means:
 * Color BASIC has some not very well defined lexing and parsing behavior. We
   disallow these constructs because they lead to behavior that is not very
   clear.
-* We currently only support VDG screens.
 
 ## Supported constructs
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
-include: ABS, +, AND, ASC, ATN, BUTTON, CHR$, CLS, COS, DATA, DIM, /,
-END, ELSE, =, EXP, FOR, GOTO, GOSUB, >, IF, INKEY$, INPUT, INT, JOYSTK, LEFT$,
-LEN, <, LET, LOG, MID$, *, NEXT, NOT, OPEN, OR, PRINT, READ, REM, RESET,
-RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, -,
-TAB, TAN, THEN, TO, VAL
+include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FOR, GOTO, GOSUB, >, HCIRCLE, HCLS, HCOLOR, HEX$, HLINE, HPRINT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
+
+## Unsupported statements
+AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HBUFF, HDRAW, HGET, HPAINT, HPUT, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
+
+## Unsupported functions
+EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
+
+## Unsupported disk functions and statements
+BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FREE, GET, INPUT #, KILL, LINE INPUT, LOAD, LOADM, LOC, LOF, LSET, MERGE, MKN, OPEN, PRINT #, PRINT # USING, PUT #, RENAME, RSET, RUN, SAVE, SAVEM, UNLOAD, VERIFY ON, VERIFY OFF, WRITE #
 
 ## Supported constructs that need some explanation
 * String literals must be closed.
@@ -46,6 +50,9 @@ TAB, TAN, THEN, TO, VAL
 * Arrays are limited to no more than 3 dimensions. The size of each dimension
   must be specified as a numeric literal.
 * When translated array names are prefixed with arr_.
+* If DIMmed, variables must be DIMmed earlier in the code (lower line number)
+  being used.
+* Re-DIMming variables will not work.
 * Hexadecimal literals of the form 0xABCDEF are supported. For values less
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
@@ -77,11 +84,21 @@ TAB, TAN, THEN, TO, VAL
   NEXT AA
 NEXT BB
 ```
-* PEEK and POKE are supported ... but with great power comes great
+* `WIDTH` is supported, but use with caution as it really confuses BASIC09,
+  making it hard to actually debug programs interactively. `WIDTH` does not
+  cause issues if you don't have to switch between VDG and WIND windows. Use
+  the -w option if the program can run in 40 or 80 columns to avoid
+  unnecessary switching.
+* `PRINT @` will not result in an error on 40 or 80 columns screens but will
+  pretend that the screen is 32x16.
+* `PEEK` and `POKE` are supported ... but with great power comes great
   responsibility.
-
+* `POKE 65497, 0` tells `PLAY` and `SOUND` to play an octave higher.
+* `POKE 65496, 0` tells `PLAY` and `SOUND` to play at default octave.
+* `PLAY` does not support the "X" command. Concatenate strings or repeat the
+  `PLAY` command instead.
 * Some constructs require introducing an intermediary variable including
-  BUTTON, INKEY, JOYSTK and POINT.
+  `BUTTON`, `INKEY`, `JOYSTK` and `POINT`.
 10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
@@ -112,14 +129,24 @@ NEXT JJ
   `12 34`
 
 ## Known broken conversions
-* Passing a hex literal value to something that results in a procedure call
-  generate incorrect code.
 * Statements like this do not generate working code: `A = 3 < 4`
+
+## Line numbers
+* The maximum supported line number is 32700
+
+## Break and error handling
+* There can be at most 1 ON BRK GOTO statement
+* There can be at most 1 ON ERR GOTO statement
+* When either is invoked, it is as if both are invoked at the same time
+
 ## Common issues with converted programs
 By default, BASIC09 strings have a maximum length of 32 characters. This often
-results in strings getting truncated in non-obvious ways. Resolving these
-problems typically involves finding the variable with the issue and DIMing
-it to be large enough. For example:
+results in strings getting truncated in non-obvious ways.
+
+The simplest way to resolve these issues is to pass the maximum storage space
+for strings via the  `--default-string-storage` option. Alternatively,
+resolving these problems typically involves finding the variable with the issue
+and DIMing it to be large enough. For example:
 ```
 DIM XX$: STRING[256]
 ```

@@ -25,19 +25,15 @@ class TestCM3ToPPM(unittest.TestCase):
     VERSION_REGEX = r"{}".format(__version__).replace(".", "\\.")
 
     def setUp(self):
-        self.outfile = tempfile.NamedTemporaryFile(
-            "w", suffix=".ppm", delete=False
-        )
+        self.outfile = tempfile.NamedTemporaryFile("w", suffix=".ppm", delete=False)
 
     def tearDown(self):
         if not self.outfile.closed:
             self.outfile.close()
         os.remove(self.outfile.name)
 
-    def test_converts_cm3_to_ppm(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.cm3"
-        )
+    def test_converts_cm3_to_ppm(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.ppm"
         )
@@ -46,10 +42,8 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_too_many_arguments(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.cm3"
-        )
+    def test_too_many_arguments(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [
@@ -69,7 +63,7 @@ class TestCM3ToPPM(unittest.TestCase):
         )
 
     @unix_only
-    def test_converts_cm3_to_ppm_via_stdio(self):
+    def test_converts_cm3_to_ppm_via_stdio(self) -> None:
         infile = pkg_resources.resource_stream(__name__, "fixtures/clip1.cm3")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.ppm"
@@ -86,10 +80,8 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_converts_cm3_to_ppm_via_stdin(self):
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.cm3"
-        )
+    def test_converts_cm3_to_ppm_via_stdin(self) -> None:
+        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
         comparefilename = pkg_resources.resource_filename(
             __name__, "fixtures/clip1.ppm"
         )
@@ -101,7 +93,7 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
-    def test_help(self):
+    def test_help(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/cm3toppm.py", "-h"],
             env={"PYTHONPATH": "."},
@@ -114,7 +106,7 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.OPTIONAL_ARGS_REGEX)
 
     @unix_only
-    def test_version(self):
+    def test_version(self) -> None:
         output = subprocess.check_output(
             [sys.executable, "coco/cm3toppm.py", "--version"],
             env={"PYTHONPATH": "."},
@@ -123,7 +115,7 @@ class TestCM3ToPPM(unittest.TestCase):
         self.assertRegex(iotostr(output), self.VERSION_REGEX)
 
     @unix_only
-    def test_unknown_argument(self):
+    def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             subprocess.check_output(
                 [sys.executable, "coco/cm3toppm.py", "--oops"],

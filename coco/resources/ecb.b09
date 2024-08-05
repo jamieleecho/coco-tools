@@ -1,45 +1,62 @@
 procedure ecb_at
-    param location: real
-    run ecb_locate(float(land(location, 31)), location / 32.0)
+param location: real
+run ecb_locate(float(land(location, 31)), location / 32.0)
+
+
+procedure ecb_attr
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param f, b, bk, undr: real
+param display: display_t
+dim fi, bi: integer
+fi = f
+bi = b
+display.fore = f
+display.bck = b
+run gfx2("color", fi, bi)
+if bk <> 0.0 then
+    display.blnk := 1
+    run gfx2("BLNKON")
+else
+    display.blnk := 0
+    run gfx2("BLNKOFF")
+endif
+if undr <> 0.0 then
+    display.undrln := 1
+    run gfx2("UNDLNON")
+else
+    display.undrln := 0
+    run gfx2("UNDLNOFF")
+endif
 
 
 procedure ecb_button
-    param button: real
-    param retval: real
-    dim joystk, fire, x, y: integer
+param button: real
+param retval: real
+dim joystk, fire, x, y: integer
 
-    if button < 2 then \ joystk = 0 \ else \ joystk = 1 \ endif
-    run GFX("Joystk", button, fire, x, y)
-    if land(button, 1) = 0 then \ retval = land(fire, 1) \ endif
-    if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
-
-
-procedure ecb_joystk
-    param joystk, joy0x, joy0y, joy1x, joy1y, retval: real
-    dim fire: integer
-
-    if joystk = 0 then
-        run GFX("Joystk", 0, fire, joy0x, joy0y)
-        run GFX("Joystk", 1, fire, joy1x, joy1y)
-    endif
-
-    if joystk = 0 then retval = joy0x \ endif
-    if joystk = 1 then retval = joy0y \ endif
-    if joystk = 2 then retval = joy1x \ endif
-    if joystk = 3 then retval = joy1y \ endif
+if button < 2 then \ joystk = 0 \ else \ joystk = 1 \ endif
+run GFX("Joystk", button, fire, x, y)
+if land(button, 1) = 0 then \ retval = land(fire, 1) \ endif
+if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_cls
-    param color: real
-    dim a, b, ii: integer
-    dim c: byte
-    if color = 1 or color > 8 then
-        c = $0c
-        put #1, c
-        if color > 8 then
-            print("MICROSOFT")
-        endif
-    else
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param color: real
+param display: display_t
+dim a, b, ii: integer
+dim c: byte
+
+if color = 1 or color > 8 then
+    c = $0c
+    put #1, c
+    if color > 8 then
+        print("MICROSOFT")
+    endif
+else
+    run _ecb_wintype(1, a)
+
+    if a=0 then
         c = $01
         put #1,c
         run _ecb_text_address(a)
@@ -54,205 +71,987 @@ procedure ecb_cls
                 poke ii,c
             next ii
         endif
+    else
+        display.bck = color
+        display.brdr = color
+        a = display.fore
+        b = color
+        run gfx2("color", a, b, b)
+        run gfx2("clear")
+        run gfx2("border", b)
     endif
+endif
+
+
+procedure ecb_harc
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y, r, c, rt, sp, ep: real
+param display: display_t
+dim rx, ry, pi2: real
+dim sx, sy, ex, ey: integer
+rx = r
+ry = r * rt
+ry = ry / display.hscl
+pi2 = 2 * pi
+sx = fix(rx * cos(sp * 2 * pi))
+sy = fix(ry * sin(sp * 2 * pi))
+ex = fix(rx * cos(ep * 2 * pi))
+ey = fix(ry * sin(ep * 2 * pi))
+
+run gfx2(display.hpth, "color", fix(c))
+run gfx2(display.hpth, "arc", fix(x), fix(y), fix(rx), fix(ry), sx, sy, ex, ey)
+run gfx2(display.hpth, "color", display.hfore)
+run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
+
+
+procedure ecb_hcircle
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y, r, c, rt: real
+dim rx, ry: real
+param display: display_t
+if rt < 1 then
+    rx = r
+    ry = r * rt
+else
+    rx = r / rt
+    ry = r
+endif
+run gfx2(display.hpth, "color", fix(c))
+run gfx2(display.hpth, "ellipse", fix(x), fix(y), fix(rx), fix(ry) / display.hscl)
+run gfx2(display.hpth, "color", display.hfore)
+run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
+
+
+procedure ecb_hcls
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param n: real
+param display: display_t
+
+dim ni: integer
+ni = fix(n)
+if ni < -1 or ni > 15 or display.hpth = $ff then
+    error 52
+else
+    if ni <> -1.0 then
+        run gfx2(display.hpth, "color", 0, ni)
+    endif
+    run gfx2(display.hpth, "clear")
+    if ni <> -1.0 then
+        run gfx2(display.hpth, "color", display.hbck, display.hfore)
+    endif
+endif
+
+
+procedure ecb_hcolor
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param f, b: real
+param display: display_t
+dim fi, bi: integer
+
+fi = fix(f)
+bi = fix(b)
+if (fi < 0) or (fi > 15) or (bi > 15) then
+    error 52
+endif
+
+if (bi < 0) then
+    bi = display.hbck
+endif
+run gfx2(display.hpth, "color", fi, bi)
+display.hfore = fi
+display.hbck = bi
 
 
 procedure ecb_hex
-    param v: real
-    param str: string
-    dim ival: integer
-    dim tmp: string
+param v: real
+param str: string
+dim ival: integer
+dim t: string
 
-    if v < 0 or v >= 65536 then
-        error 52
+if v < 0 or v >= 65536 then
+    error 52
+endif
+
+ival := v
+run _ecb_hex_digit(land($f, v / $1000), str)
+run _ecb_hex_digit(land($f, v / $100), t)
+str := str + t
+run _ecb_hex_digit(land($f, v / $10), t)
+str := str + t
+run _ecb_hex_digit(land($f, v), t)
+str := str + t
+
+
+procedure ecb_hline
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param rd: string
+param x0, y0, x1, y1: real
+param m, t: string
+param display: display_t
+
+dim f: string[5]
+dim xx0, yy0, xx1, yy1: integer
+if t = "B" then
+    f = "BOX"
+else
+    if t = "BF" then
+        f = "BAR"
+    else
+        f = "LINE"
+    endif
+endif
+if rd = "r" then
+    xx0 = display.hpx
+    yy0 = display.hpy
+else
+    xx0 = fix(x0)
+    yy0 = fix(y0)
+endif
+xx1 = fix(x1)
+yy1 = fix(y1)
+if m = "PRESET" then
+    run gfx2(display.hpth, "color", display.hbck)
+endif
+print m, f, xx0, yy0, xx1, yy1
+run gfx2(display.hpth, f, xx0, yy0, xx1, yy1)
+if m = "PRESET" then
+    run gfx2(display.hpth, "color", display.hfore)
+endif
+display.hpx = xx1
+display.hpy = yy1
+
+
+procedure ecb_hprint
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y: real
+param txt: string[80]
+param display: display_t
+
+dim xi, yi, mx: integer
+dim t: string[80]
+if display.hscl = 1 then
+    mx = 39
+else
+    mx = 79
+endif
+xi = fix(x)
+yi = fix(y)
+if yi < 0 then
+    yi = 0
+else
+    if yi >= 23 then
+        yi = 23
+        mx = mx - 1
+    endif
+endif
+if xi < 0 then
+    xi = 0
+else 
+    if xi >= mx then
+        xi = mx
+    endif
+endif
+
+t = left$(txt, mx - xi + 1)
+run gfx2(display.hpth, "curxy", xi, yi)
+print #display.hpth, t;
+
+
+procedure ecb_hscreen
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param n: real
+param display: display_t
+base 0
+
+dim buff(2): byte
+dim ii, ni, mode, width, path, path0: integer
+dim pathname: string
+ni = fix(n)
+
+if ni < 0 or ni > 4 then
+    error 52
+endif
+
+buff(0) = $1b
+buff(1) = $21
+if ni = 0 then
+    if display.hpth <> $ff then
+        run gfx2(display.hpth, "dwend")
+        close #display.hpth
     endif
 
-    ival = v
-    run _ecb_hex_digit(land($f, v / $1000), str)
-    run _ecb_hex_digit(land($f, v / $100), tmp)
-    str = str + tmp
-    run _ecb_hex_digit(land($f, v / $10), tmp)
-    str = str + tmp
-    run _ecb_hex_digit(land($f, v), tmp)
-    str = str + tmp
-
-
-procedure ecb_locate
-    param x, y: real
-
-    dim tmp_buffer(3): byte
-    tmp_buffer(1) = $02
-    tmp_buffer(2) = $20 + x
-    tmp_buffer(3) = $20 + y
-    put #1, tmp_buffer
-
-
-procedure ecb_point
-    param x, y, c0: real
-    dim address, c, cc: integer
-    run _ecb_get_point_info(x, y, address, c, cc)
-    if address = -1 then
-        error 52
+    if display.tpth <> $ff then
+        close #0
+        run _ecb_dup(fix(display.tpth), path0)
+        close #display.tpth
+        display.tpth = $ff
+        put #0, buff
     endif
-    if cc > $80 then
-        if land(c, cc) <> 0 then
-            c0 = 1 + land($7f, cc) / 16
+else
+    width = 40
+    display.hscl = 1
+    display.hpx = 159
+    display.hpy = 95
+    if ni = 1 then
+        mode = 6
+    else 
+        if ni = 2 then
+            mode = 8
         else
-            c0 = 0
-        endif
-    else
-        c0 = -1
-    endif
-
-
-procedure ecb_read_filter
-    param inval: string
-    param outval: real
-    if inval = "" then
-        outval = 0.0
-    else
-        outval = val(inval)
-    endif
-
-
-procedure ecb_reset
-    param x, y: real
-    dim address, c0, c1: integer
-    run _ecb_get_point_info(x, y, address, c1, c0)
-    if address = -1 then
-        error 52
-    endif
-    if c0 < $80 then
-        c0 = $80
-    else
-        c0 = land(c0, $8f)
-    endif
-    poke address, land(c0, $ff - c1)
-
-
-procedure ecb_set
-    param x, y, c: real
-    dim address, c0, c1: integer
-    if c < 0 or c > 8 then
-        error 52
-    endif
-    if c = 0 then
-        c = 1
-    endif
-    run _ecb_get_point_info(x, y, address, c1, c0)
-    if address = -1 then
-        error 52
-    endif
-    if c0 < $80 then
-        c0 = $80
-    else
-        c0 = land(c0, $8f)
-    endif
-    poke address, lor(c0, (c - 1) * 16 + c1)
-
-
-procedure ecb_sound
-    param f, d, v:real
-    dim fint, dint, vint:integer
-    if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
-        error 52
-    endif
-
-    fint = int(2.49696345 * f + 3456.878733)
-    dint = int(d * 4)
-    vint = fix(v)
-    while (dint > 255) do
-        run gfx2("tone", fint, 255, vint)
-        dint = dint - 255
-    endwhile
-    run gfx2("tone", fint, dint, vint)
-
-
-procedure _ecb_text_address
-    param address: integer
-    type rregisters = cc, a, b, dp:byte; x, y, u:integer
-    dim rregs: rregisters
-    dim reqid: byte
-
-    (* getstat ss.alfas *)
-    rregs.a = 1
-    rregs.b = $1c
-    reqid = $8d
-    run syscall(reqid, rregs)
-    if land(rregs.cc, 1) <> 0 then
-        address = -1
-    else
-        address = rregs.x
-    endif
-
-
-procedure ecb_str
-    param valin: real
-    param valout: string
-    valout = str$(valin)
-    if mid$(valout, len(valout), 1) = "." then
-        valout = " " + left$(valout, len(valout) - 1) + " "
-    else
-        if valout = ".0" then
-            valout = " 0 "
-        else
-            valout = " " + valout + " "
+            width = 80
+            display.hpx = 319
+            display.hscl = 2
+            if ni = 3 then
+                mode = 5
+            else
+                mode = 7
+            endif
         endif
     endif
 
-
-procedure _ecb_hex_digit
-    param v: real
-    param s: string
-    if v < 10 then
-        s = chr$(v + asc("0"))
+    if display.hpth = $ff then
+        open #path, "/w":update
+        run _ecb_devnm(path, pathname)
+        pathname = "/" + pathname
+        close #path
+        shell("xmode " + pathname + " par=80 pau=0 upc=0 eko=0")
+        open #path, pathname:update
+        display.hpth = path
     else
-        s = chr$(v + asc("A"))
+        run gfx2(display.hpth, "dwend")
     endif
+    run gfx2(display.hpth, "dwset", mode, 0, 0, width, 24, display.hfore, display.hbck, 14)
+    run gfx2(display.hpth, "curoff")
+    run gfx2(display.hpth, "scalesw", "off")
+    run gfx2(display.hpth, "tcharsw", "on")
+    run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
+    for ii=0 to 15
+        run gfx2(display.hpth, "palette", ii, display.pal(ii))
+    next ii
+    run _ecb_input_suffix
+    put #display.hpth, buff
+
+    if display.tpth = $ff then
+        run _ecb_dup(0, path0)
+        display.tpth = path0
+    endif
+    close #0
+    run _ecb_dup(fix(display.hpth), path0)
+
+endif
 
 
-procedure _ecb_get_point_info
-    param x, y: real
-    param address, mask, c0: integer
-    if x < 0 or x > 63 or y < 0 or y > 31 then
-        error 52
+procedure ecb_hreset
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y: real
+param display: display_t
+run gfx2(display.hpth, "color", display.hbck)
+run gfx2(display.hpth, "point", fix(x), fix(y))
+run gfx2(display.hpth, "color", display.hfore)
+
+
+procedure ecb_hset
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y: real
+param display: display_t
+run gfx2(display.hpth, "point", fix(x), fix(y))
+
+
+procedure ecb_hset3
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param x, y, c: real
+param display: display_t
+run gfx2(display.hpth, "color", fix(c))
+run gfx2(display.hpth, "point", fix(x), fix(y))
+run gfx2(display.hpth, "color", display.fore)
+
+
+procedure ecb_instr
+param index: real
+param str0: string
+param str1: string
+param outindex: real
+dim ii: integer
+
+for ii = fix(index) to len(str0) - len(str1)
+    if str1 = mid$(str0, ii, ii + len(str1)) then
+        outindex = ii
     endif
-    run _ecb_text_address(address)
-    if address = -1 then
-        error 52
-    endif
-    address = address + (y / 2) * 32 + (x / 2)
-    mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
-    c0 = peek(fix(address))
+next ii
 
 
 procedure ecb_int
-    param v, retval: real
-    if v >= 0 then
-        retval = int(v)
+param v, retval: real
+if v >= 0 then
+    retval = int(v)
+else
+    retval = int(v - 0.999999999)
+endif
+
+
+procedure ecb_joystk
+param joystk, joy0x, joy0y, joy1x, joy1y, retval: real
+dim fire: integer
+
+if joystk = 0 then
+    run GFX("Joystk", 0, fire, joy0x, joy0y)
+    run GFX("Joystk", 1, fire, joy1x, joy1y)
+endif
+
+if joystk = 0 then retval = joy0x \ endif
+if joystk = 1 then retval = joy0y \ endif
+if joystk = 2 then retval = joy1x \ endif
+if joystk = 3 then retval = joy1y \ endif
+
+
+procedure ecb_locate
+param x, y: real
+
+dim tmp_buffer(3): byte
+tmp_buffer(1) = $02
+tmp_buffer(2) = $20 + x
+tmp_buffer(3) = $20 + y
+put #1, tmp_buffer
+
+
+PROCEDURE ecb_play
+TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE
+PARAM s:STRING<<>>
+PARAM p:play_t
+
+DIM ii, l, d, v, f: INTEGER
+DIM c, cc: BYTE
+DIM f1, f2, f3: REAL
+
+l = LEN(s)
+FOR ii=1 TO l
+    c = ASC(MID$(s, ii, 1))
+    IF ((c >= 65) AND (c <= 71)) OR ((c >= 48) AND (c <= 57)) THEN
+        IF (c <= 57) THEN
+            RUN _ecb_get_num(v, s, ii, 1, 12)
+        ELSE
+            IF c = 65 THEN
+                v := 10
+            ENDIF
+            IF c = 66 THEN
+                v := 12
+            ENDIF
+            IF c = 67 THEN
+                v := 1
+            ENDIF
+            IF c = 68 THEN
+                v := 3
+            ENDIF
+            IF c = 69 THEN
+                v := 5
+            ENDIF
+            IF c = 70 THEN
+                v := 6
+            ENDIF
+            IF c = 71 THEN
+                v := 8
+            ENDIF
+
+            IF ii < l THEN
+                cc = ASC(MID$(s, ii + 1, 1))
+                IF (cc = 35) OR (cc = 43) OR (cc = 45) THEN
+                    ii := ii + 1
+                    IF cc = 45 THEN
+                        v := v - 1
+                    ELSE
+                        v := v + 1
+                    ENDIF
+                ENDIF
+            ENDIF
+
+            IF ii < l THEN
+                cc = ASC(MID$(s, ii + 1, 1))
+                IF cc = 46 THEN
+                    ii := ii + 1
+                    IF cc = 45 THEN
+                        v := v - 1
+                    ELSE
+                        v := v + 1
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDIF
+
+        f1 := ((p.oct + p.octo - 2) * 12) + v
+        f2 := f1 * f1
+        f3 := f1 * f2
+        f := FIX(3252 + 41.8 * f1 + -0.767 * f2 + 5.05E-03 * f3)
+        d := 255/(p.lnt * p.tne)
+        d := d + (p.dot * (d / 2))
+        v := 2 * p.vol
+        WHILE d >= 255 DO
+            RUN gfx2("tone", f, 255, v)
+            d := d - 255
+        ENDWHILE
+        IF d > 0 THEN
+            RUN gfx2("tone", f, d, v)
+        ENDIF
+    ELSE
+        IF c = 59 THEN
+        ELSE
+            ii := ii + 1
+            IF c = 76 THEN
+                RUN _ecb_get_numx(v, s, ii, 1, 99, fix(p.lnt))
+                p.lnt := v
+                p.dot = 0
+                ii := ii + 1
+                WHILE ii <= len(s) DO
+                    c := ASC(MID$(s, ii, 1))
+                    EXITIF c <> 46 THEN
+                    ENDEXIT
+                    p.dot := p.dot + 1
+                    ii := ii + 1
+                ENDWHILE
+                ii := ii - 1
+            ELSE
+                IF c = 79 THEN
+                    RUN _ecb_get_numx(v, s, ii, 1, 6, fix(p.oct))
+                    p.oct := v
+                ELSE
+                    IF c = 84 THEN
+                        RUN _ecb_get_numx(v, s, ii, 1, 255, fix(p.tne))
+                        p.tne := v
+                    ELSE
+                        IF c = 86 THEN
+                            RUN _ecb_get_numx(v, s, ii, 0, 31, fix(p.vol))
+                            p.vol := v
+                        ELSE
+                            IF c = 80 THEN
+                                RUN _ecb_get_num(v, s, ii, 1, 255)
+                                RUN gfx2("tone", 1, v, 0)
+                            ELSE
+                                ERROR 52
+                            ENDIF
+                        ENDIF
+                    ENDIF
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDIF
+
+NEXT ii
+
+
+procedure ecb_set_palette
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param pr, cc: real
+param display: display_t
+
+dim pri, cci: integer
+pri = fix(pr)
+cci = fix(cc)    
+run gfx2("palette", pri, cci)
+if (display.vpth <> $ff) then
+    run gfx2(display.vpth, "palette", pri, cci)
+endif
+if (display.wpth <> $ff) then
+    run gfx2(display.wpth, "palette", pri, cci)
+endif
+if (display.hpth <> $ff) then
+    run gfx2(display.hpth, "palette", pri, cci)
+endif
+display.pal(pri + 1) = cci
+
+
+procedure ecb_set_palette_cmp
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param display: display_t
+dim ii, cc: integer
+for ii = 0 to 15
+    read cc
+    run ecb_set_palette(ii, cc, display)
+next ii
+data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
+
+
+procedure ecb_set_palette_rgb
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param display: display_t
+dim ii, cc: integer
+for ii = 0 to 15
+    read cc
+    run ecb_set_palette(ii, cc, display)
+next ii
+data 18, 36, 11, 7, 63, 31, 9, 38, 0, 18, 0, 63, 0, 18, 0, 38
+
+
+procedure ecb_point
+param x, y, c0: real
+dim address, c, cc: integer
+run _ecb_get_point_info(x, y, address, c, cc)
+if address = -1 then
+    error 52
+endif
+if cc > $80 then
+    if land(c, cc) <> 0 then
+        c0 = 1 + land($7f, cc) / 16
     else
-        retval = int(v - 0.999999999)
+        c0 = 0
     endif
+else
+    c0 = -1
+endif
+
+
+procedure ecb_read_filter
+param inval: string
+param outval: real
+if inval = "" then
+    outval = 0.0
+else
+    outval = val(inval)
+endif
+
+
+procedure ecb_reset
+param x, y: real
+dim address, c0, c1: integer
+run _ecb_get_point_info(x, y, address, c1, c0)
+if address = -1 then
+    error 52
+endif
+if c0 < $80 then
+    c0 = $80
+else
+    c0 = land(c0, $8f)
+endif
+poke address, land(c0, $ff - c1)
+
+
+procedure ecb_set
+param x, y, c: real
+dim address, c0, c1: integer
+if c < 0 or c > 8 then
+    error 52
+endif
+if c = 0 then
+    c = 1
+endif
+run _ecb_get_point_info(x, y, address, c1, c0)
+if address = -1 then
+    error 52
+endif
+if c0 < $80 then
+    c0 = $80
+else
+    c0 = land(c0, $8f)
+endif
+poke address, lor(c0, (c - 1) * 16 + c1)
+
+
+procedure ecb_sound
+param f, d, v:real
+param o: integer
+dim fint, dint, vint:integer
+if f < 0 or f > 255 or d < 0 or d > 255 or v < 0 or v > 63 then
+    error 52
+endif
+
+if o = 1 then
+    fint = fix(1.248481725 * f + 3781.439366)
+else
+    fint = fix(2.49696345 * f + 3456.878733)
+endif
+
+if fint > 4095 then
+    fint := 4095
+endif
+dint = fix(d * 4)
+vint = fix(v)
+while (dint > 255) do
+    run gfx2("tone", fint, 255, vint)
+    dint = dint - 255
+endwhile
+run gfx2("tone", fint, dint, vint)
+
+
+procedure ecb_str
+param valin: real
+param valout: string
+valout = str$(valin)
+if mid$(valout, len(valout), 1) = "." then
+    valout = " " + left$(valout, len(valout) - 1) + " "
+else
+    if valout = ".0" then
+        valout = " 0 "
+    else
+        valout = " " + valout + " "
+    endif
+endif
+
+
+procedure ecb_string
+param count: real
+param str: string<<>>
+param strout: string<<>>
+dim ii: integer
+
+if count < 0 or len(str) = 0 then
+    error 52
+endif
+
+strout = ""
+for ii=1 to count
+    strout = strout + mid$(str, 1, 1)
+next ii
 
 
 procedure _ecb_cursor_color
-    param v: integer
-    dim tmp_buffer(2): byte
-    tmp_buffer(1) = $05
-    tmp_buffer(2) = v + $20
-    put #1, tmp_buffer
+param v: integer
+dim tmp_buffer(2): byte
+tmp_buffer(1) = $05
+tmp_buffer(2) = v + $20
+put #1, tmp_buffer
 
 
-procedure _ecb_start
-    run _ecb_cursor_color(0)
-    SHELL("tmode pau=0")
+procedure _ecb_devnm
+param inpath: integer
+param name: string
+type rregisters = cc, a, b, dp:byte; x, y, u:integer
+dim rregs: rregisters
+dim reqid: byte
+dim ii, xx: integer
+
+(* getstat SS.DevNm *)
+rregs.a = inpath
+rregs.b = $e
+rregs.x = addr(name)
+reqid = $8d
+run syscall(reqid, rregs)
+if land(rregs.cc, 1) <> 0 then
+    error rregs.b
+else
+    xx = addr(name)
+    for ii=0 to 31
+        if peek(xx + ii) >= 128 then
+            poke xx + ii, land(peek(xx + ii), 127)
+            name = left$(name, ii + 1)
+            ii = 32
+        endif
+    next ii
+endif
+
+
+procedure _ecb_dup
+param inpath, outpath: integer
+type rregisters = cc, a, b, dp:byte; x, y, u:integer
+dim rregs: rregisters
+dim reqid: byte
+
+rregs.a = inpath
+reqid = $82
+run syscall(reqid, rregs)
+if land(rregs.cc, 1) <> 0 then
+    error rregs.b
+else
+    outpath = rregs.a
+endif
+
+
+PROCEDURE _ecb_get_num
+PARAM v: INTEGER
+PARAM s: STRING<<>>
+PARAM ii, min, max: INTEGER
+DIM c: BYTE
+DIM jj: INTEGER
+
+jj := ii
+LOOP
+    IF (ii <= LEN(s)) THEN
+        c := ASC(MID$(s, ii, 1))
+    ELSE
+        c := 0
+    ENDIF
+    EXITIF ((c < 48) OR (c > 57) OR (ii > LEN(s))) THEN
+        IF ii = jj THEN
+            ERROR 52
+        ENDIF
+        v := VAL(MID$(s, jj, ii - jj))
+        IF (v < min) OR (v > max) THEN
+            ERROR 52
+        ENDIF
+        ii := ii - 1
+    ENDEXIT
+    ii := ii + 1
+    c := ASC(MID$(s, ii, 1))
+ENDLOOP
+
+
+PROCEDURE _ecb_get_numx
+PARAM v: INTEGER
+PARAM s: STRING<<>>
+PARAM ii, min, max, cur: INTEGER
+DIM c: BYTE
+
+IF (ii <= LEN(s)) THEN
+    c := ASC(MID$(s, ii, 1))
+ELSE
+    c := 0
+ENDIF
+
+IF c = 43 OR c = 45 OR c = 60 OR c = 62 THEN
+    IF c = 43 THEN
+        v := cur + 1
+    ELSE
+        IF c = 45 THEN
+            v := cur - 1
+        ELSE
+            IF c = 60 THEN
+                v := cur / 2
+            ELSE
+                v := cur * 2
+            ENDIF
+        ENDIF
+    ENDIF
+    IF (v < min) OR (v > max) THEN
+        ERROR 52
+    ENDIF
+ELSE
+    RUN _ecb_get_num(v, s, ii, min, max)
+ENDIF
+
+
+procedure _ecb_get_point_info
+param x, y: real
+param address, mask, c0: integer
+if x < 0 or x > 63 or y < 0 or y > 31 then
+    error 52
+endif
+run _ecb_text_address(address)
+if address = -1 then
+    error 52
+endif
+address = address + (y / 2) * 32 + (x / 2)
+mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
+c0 = peek(fix(address))
+
+
+procedure _ecb_hex_digit
+param v: real
+param s: string
+if v < 10 then
+    s = chr$(v + asc("0"))
+else
+    s = chr$(v + asc("A"))
+endif
 
 
 procedure _ecb_input_prefix
-    run _ecb_cursor_color(1)
-    SHELL("tmode eko=1")
+run _ecb_cursor_color(1)
+SHELL("tmode eko=1")
 
 
 procedure _ecb_input_suffix
-    run _ecb_cursor_color(0)
-    SHELL("tmode eko=0")
+run _ecb_cursor_color(0)
+SHELL("tmode eko=0")
+
+
+procedure _ecb_palette
+param address: integer
+type rregisters = cc, a, b, dp:byte; x, y, u:integer
+dim rregs: rregisters
+dim reqid: byte
+
+(* getstat ss.alfas *)
+rregs.a = 1
+rregs.b = $91
+reqid = $8d
+run syscall(reqid, rregs)
+if land(rregs.cc, 1) <> 0 then
+    address = -1
+else
+    address = rregs.x
+endif
+
+
+procedure _ecb_start
+base 0
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param display: display_t
+param w: integer
+display.tpth = $ff
+display.vpth = $ff
+display.wpth = $ff
+display.hpth = $ff
+display.blnk = 0
+display.undrln = 0
+display.bck = 0
+display.fore = 0
+display.brdr = 0
+display.hbck = 0
+display.hfore = 1
+
+dim ii, c: integer
+
+for ii=0 to 15
+    read c
+    display.pal(ii) = c
+    run gfx2("palette", ii, c)
+next ii
+
+if w <> 0 then
+    run _ecb_width(32, display)
+endif
+shell("tmode pau=0 eko=0 upc=0")
+run _ecb_cursor_color(0)
+
+data $12, $36, $09, $24, $3f, $1b, $2d, $26
+data $00, $12, $00, $3f, $00, $12, $00, $26
+
+
+procedure _ecb_text_address
+param address: integer
+type rregisters = cc, a, b, dp:byte; x, y, u:integer
+dim rregs: rregisters
+dim reqid: byte
+
+(* getstat ss.alfas *)
+rregs.a = 1
+rregs.b = $1c
+reqid = $8d
+run syscall(reqid, rregs)
+if land(rregs.cc, 1) <> 0 then
+    address = -1
+else
+    address = rregs.x
+endif
+
+
+procedure _ecb_width
+base 0
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+param width: real
+param display: display_t
+dim path, path0, ii, c, o: integer
+dim buff2(2): byte
+dim buff12(12): byte
+dim wintype: integer
+dim pathname: string
+
+if width <> 32 and width <> 40 and width <> 80 then
+    error 52
+endif
+
+path = $ff
+
+(* Cache the current path if needed... *)
+run _ecb_wintype(1, wintype)
+run _ecb_devnm(1, pathname)
+pathname = "/" + pathname
+if wintype = 0 then
+    if display.vpth = $ff then
+        open #path0, pathname:update
+        display.vpth = path0
+    endif
+else
+    if display.wpth = $ff then
+        open #path0, pathname:update
+        display.wpth = path0
+    endif
+endif
+
+if width = 32 and display.vpth <> $ff then
+    path = display.vpth
+endif
+if width <> 32 and display.wpth <> $ff then
+    path = display.wpth
+endif
+
+o = 2
+buff2(0) = $1b
+buff2(1) = $21
+buff12(0)  = $1b
+buff12(1)  = $24
+if path = $ff then
+    (* Get the path to the next free descriptor *)
+    o = 0
+    buff12(10) = 0
+    buff12(11) = 0
+    open #path, "/w":update
+    run _ecb_devnm(path, pathname)
+    pathname = "/" + pathname
+    close #path
+
+    (* Make sure it is the right type *)
+    run _ecb_input_suffix
+    if width = 32 then
+        shell("xmode " + pathname + " par=0 pau=0 upc=0 eko=0")
+    else
+        shell("xmode " + pathname + " par=80 pau=0 upc=0 eko=0")
+    endif
+
+    (* Open for reals *)
+    open #path, pathname:update
+endif
+
+(* Set the window style *)
+if width > 32 then
+    for ii=0 to 9
+        read c
+        buff12(ii + o) = c
+    next ii
+
+    if width = 40 then
+        buff12(2 + o)  = $01
+        buff12(5 + o)  = $28
+    endif
+
+    put #path, buff12
+    display.wpth = path
+else
+    display.vpth = path
+endif
+
+for ii=0 to 15
+    c = display.pal(ii)
+    run gfx2(path, "palette", ii, c)
+next ii
+
+(* Display window *)
+put #path, buff2
+
+(* Replace stdin, stdout and stderr *)
+for ii=1 to 3
+    close #(ii - 1)
+    run _ecb_dup(path, path0)
+    if path0 <> ii - 1 then
+        error 52
+    endif
+next ii
+
+if display.tpth <> $ff then
+    close #display.tpth
+    run _ecb_dup(path, path0)
+    display.tpth = path0
+endif
+
+data $1b, $20, $02, $00, $00, $50, $18, $00
+data $00, $00
+
+
+procedure _ecb_wintype
+param inpath, wintype: integer
+type rregisters = cc, a, b, dp:byte; x, y, u:integer
+dim rregs: rregisters
+dim reqid: byte
+
+(* getstat SS.ScTyp *)
+rregs.a = inpath
+rregs.b = $93
+reqid = $8d
+run syscall(reqid, rregs)
+if land(rregs.cc, 1) <> 0 then
+    if rregs.b = 208 then
+        wintype = 0
+    else
+        error rregs.b
+    endif
+else
+    wintype = rregs.b
+endif
+

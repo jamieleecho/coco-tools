@@ -34,7 +34,7 @@ def convert(input_image_stream, output_image_stream):
     out = output_image_stream
     escape = ord(iotostr(f.read(1)))
     packed = ord(iotostr(f.read(1)))
-    bcolor = ord(iotostr(f.read(1)))
+    f.read(1)  # bcolor
     if packed == 0:
         raise Exception("not packed")
     palette = [ord(ii) for ii in iotostr(f.read(16))]
@@ -55,9 +55,7 @@ def convert(input_image_stream, output_image_stream):
 
 DESCRIPTION = """Convert RS-DOS RAT images to PPM
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
-Version: {}""".format(
-    __version__
-)
+Version: {}""".format(__version__)
 
 
 def main():

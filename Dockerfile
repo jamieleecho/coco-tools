@@ -1,5 +1,4 @@
 FROM jamieleecho/coco-dev:latest
-MAINTAINER Jamie Cho version: 0.8
 
 # Store stuff in a semi-reasonable spot
 RUN rm -rf coco-tools && mkdir /root/coco-tools
@@ -15,7 +14,7 @@ RUN pip3 install -r requirements.txt
 COPY setup.py ./
 COPY README.md ./
 COPY tests ./tests
-COPY src ./src
+COPY coco ./coco
 
 # Install coco-tools
 RUN python3 setup.py install

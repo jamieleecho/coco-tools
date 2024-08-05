@@ -34,22 +34,18 @@ else:
 
 
 def check_positive(value):
-    """ Argparse validator for integers > 0 """
+    """Argparse validator for integers > 0"""
     ivalue = int(value)
     if ivalue <= 0:
-        raise argparse.ArgumentTypeError(
-            "%s is an invalid positive int value" % value
-        )
+        raise argparse.ArgumentTypeError("%s is an invalid positive int value" % value)
     return ivalue
 
 
 def check_zero_or_positive(value):
-    """ Argparse validator for integers >= 0 """
+    """Argparse validator for integers >= 0"""
     ivalue = int(value)
     if ivalue < 0:
-        raise argparse.ArgumentTypeError(
-            "%s is an invalid int value >= 0" % value
-        )
+        raise argparse.ArgumentTypeError("%s is an invalid int value >= 0" % value)
     return ivalue
 
 

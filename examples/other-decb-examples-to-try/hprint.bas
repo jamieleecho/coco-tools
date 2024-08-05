@@ -1,0 +1,5 @@
+10 HSCREEN 2
+20 HPRINT(24, 11), "Hello World"
+30 HPRINT(38, 23), "Oops"
+40 HPRINT(20, 11), "Overlap"
+50 GOTO 50
