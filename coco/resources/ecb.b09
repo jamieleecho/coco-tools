@@ -4,7 +4,7 @@ run ecb_locate(float(land(location, 31)), location / 32.0)
 
 
 procedure ecb_attr
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param f, b, bk, undr: real
 param display: display_t
 dim fi, bi: integer
@@ -41,7 +41,7 @@ if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_cls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param color: real
 param display: display_t
 dim a, b, ii: integer
@@ -84,7 +84,7 @@ endif
 
 
 procedure ecb_harc
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y, r, c, rt, sp, ep: real
 param display: display_t
 dim rx, ry, pi2: real
@@ -105,7 +105,7 @@ run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
 
 
 procedure ecb_hcircle
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y, r, c, rt: real
 dim rx, ry: real
 param display: display_t
@@ -123,7 +123,7 @@ run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
 
 
 procedure ecb_hcls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param n: real
 param display: display_t
 
@@ -143,7 +143,7 @@ endif
 
 
 procedure ecb_hcolor
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param f, b: real
 param display: display_t
 dim fi, bi: integer
@@ -163,8 +163,100 @@ display.hbck = bi
 
 
 PROCEDURE ecb_hdraw
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
-param s: string<<>>
+TYPE display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
+PARAM s: STRING<<>>
+PARAM d: display_t
+DIM b, n, ax, ay: BOOLEAN
+DIM c: BYTE
+DIM ii, scl, v, xx, yy: INTEGER
+
+b := FALSE
+n := FALSE
+scl := 4
+
+ii := 1
+WHILE ii < LEN(s) DO
+    ax := FALSE
+    ay := FALSE
+    LOOP
+        c := ASC(MID$(s, ii, 1))
+        ii := ii + 1
+
+        EXITIF c = 65 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 3)
+            d.hagl = v
+        ENDEXIT
+        EXITIF c = 67 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 15)
+            RUN gfx2(d.hpth, "COLOR", v)
+            d.hfore = v
+        ENDEXIT
+        EXITIF c = 83 THEN
+            c = ASC(MID$(s, ii + 1, 1))
+            IF c = 43 OR c = 45 THEN
+                ii := ii + 1
+            ELSE
+                ax = TRUE
+            ENDIF
+            RUN _ecb_get_num(xx, s, ii, 0, 2048)
+            if c = 45 THEN
+                xx := -xx
+            ENDIF
+            ii := ii + 1
+            c = ASC(MID$(s, ii, 1))
+            IF c <> 44 THEN
+                ERROR 52
+            ENDIF
+            c = ASC(MID$(s, ii + 1, 1))
+            IF c = 43 OR c = 45 THEN
+                ii := ii + 1
+            ELSE
+                ay := TRUE
+            ENDIF
+            RUN _ecb_get_num(yy, s, ii, 0, 2048)
+            if c = 45 THEN
+                yy := -yy
+            ENDIF
+        ENDEXIT
+
+        EXITIF c = 66 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 32767)
+        ENDEXIT
+        EXITIF c = 78 THEN
+        ENDEXIT
+
+        EXITIF c = 59 THEN
+        ENDEXIT
+
+        LOOP
+            xx := 0
+            yy := 0
+            
+            EXITIF c = 85 THEN
+            ENDEXIT
+            EXITIF c = 68 THEN
+            ENDEXIT
+            EXITIF c = 76 THEN
+            ENDEXIT
+            EXITIF c = 82 THEN
+            ENDEXIT
+
+            EXITIF c = 69 THEN
+            ENDEXIT
+            EXITIF c = 70 THEN
+            ENDEXIT
+            EXITIF c = 71 THEN
+            ENDEXIT
+            EXITIF c = 72 THEN
+            ENDEXIT
+
+            EXITIF c = 77 THEN
+            ENDEXIT
+
+        ENDLOOP
+
+    ENDLOOP
+ENDWHILE
 
 
 procedure ecb_hex
@@ -188,7 +280,7 @@ str := str + t
 
 
 procedure ecb_hline
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param rd: string
 param x0, y0, x1, y1: real
 param m, t: string
@@ -227,7 +319,7 @@ display.hpy = yy1
 
 
 procedure ecb_hprint
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y: real
 param txt: string[80]
 param display: display_t
@@ -263,7 +355,7 @@ print #display.hpth, t;
 
 
 procedure ecb_hscreen
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param n: real
 param display: display_t
 base 0
@@ -294,6 +386,8 @@ if ni = 0 then
     endif
 else
     width = 40
+    display.hbck = 0
+    display.hfore = 1
     display.hscl = 1
     display.hpx = 159
     display.hpy = 95
@@ -347,7 +441,7 @@ endif
 
 
 procedure ecb_hreset
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y: real
 param display: display_t
 run gfx2(display.hpth, "color", display.hbck)
@@ -356,14 +450,14 @@ run gfx2(display.hpth, "color", display.hfore)
 
 
 procedure ecb_hset
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y: real
 param display: display_t
 run gfx2(display.hpth, "point", fix(x), fix(y))
 
 
 procedure ecb_hset3
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param x, y, c: real
 param display: display_t
 run gfx2(display.hpth, "color", fix(c))
@@ -543,7 +637,7 @@ NEXT ii
 
 
 procedure ecb_set_palette
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param pr, cc: real
 param display: display_t
 
@@ -564,7 +658,7 @@ display.pal(pri + 1) = cci
 
 
 procedure ecb_set_palette_cmp
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -575,7 +669,7 @@ data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
 
 procedure ecb_set_palette_rgb
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -876,7 +970,7 @@ endif
 
 procedure _ecb_start
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param display: display_t
 param w: integer
 display.tpth = $ff
@@ -888,8 +982,7 @@ display.undrln = 0
 display.bck = 0
 display.fore = 0
 display.brdr = 0
-display.hbck = 0
-display.hfore = 1
+display.hagl = 0
 
 dim ii, c: integer
 
@@ -929,7 +1022,7 @@ endif
 
 procedure _ecb_width
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 param width: real
 param display: display_t
 dim path, path0, ii, c, o: integer
