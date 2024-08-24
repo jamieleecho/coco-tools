@@ -163,6 +163,7 @@ display.hbck = bi
 
 
 PROCEDURE ecb_hdraw
+TRON
 TYPE display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 PARAM s: STRING<<>>
 PARAM d: display_t
@@ -192,7 +193,13 @@ WHILE ii < LEN(s) DO
             d.hfore = v
         ENDEXIT
         EXITIF c = 83 THEN
-            c = ASC(MID$(s, ii + 1, 1))
+            RUN _ecb_get_num(v, s, ii, 0, 62)
+            d.hscl = v
+        ENDEXIT
+
+        EXITIF c = 66 THEN
+            c = ASC(MID$(s, ii, 1))
+
             IF c = 43 OR c = 45 THEN
                 ii := ii + 1
             ELSE
@@ -203,11 +210,13 @@ WHILE ii < LEN(s) DO
                 xx := -xx
             ENDIF
             ii := ii + 1
+
             c = ASC(MID$(s, ii, 1))
             IF c <> 44 THEN
                 ERROR 52
             ENDIF
-            c = ASC(MID$(s, ii + 1, 1))
+            ii := ii + 1
+            c = ASC(MID$(s, ii, 1))
             IF c = 43 OR c = 45 THEN
                 ii := ii + 1
             ELSE
@@ -217,11 +226,9 @@ WHILE ii < LEN(s) DO
             if c = 45 THEN
                 yy := -yy
             ENDIF
+            ii := ii + 1
         ENDEXIT
 
-        EXITIF c = 66 THEN
-            RUN _ecb_get_num(v, s, ii, 0, 32767)
-        ENDEXIT
         EXITIF c = 78 THEN
         ENDEXIT
 
@@ -252,10 +259,19 @@ WHILE ii < LEN(s) DO
 
             EXITIF c = 77 THEN
             ENDEXIT
-
         ENDLOOP
-
     ENDLOOP
+
+    IF NOT ax THEN
+        xx := xx + d.hpx
+    ENDIF
+
+    IF NOT ay THEN
+        yy := yy + d.hpy
+    ENDIF
+
+    RUN ecb_hline("d", FLOAT(d.hpx), FLOAT(d.hpy), FLOAT(xx), FLOAT(yy), "PSET", "L", d)
+
 ENDWHILE
 
 
