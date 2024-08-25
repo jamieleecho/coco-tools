@@ -256,7 +256,7 @@ WHILE ii < LEN(s) DO
         ENDEXIT
         
         IF ii < LEN(s) THEN
-            cc := ASC(MID$(s, ii + 1, 1))
+            cc := ASC(MID$(s, ii, 1))
             IF cc < 48 OR cc > 57 THEN
                 v := 1
             ELSE
@@ -370,9 +370,26 @@ WHILE ii < LEN(s) DO
     ENDIF
 
     IF dd THEN
+        IF xx < 0 THEN
+            xx := 0
+        ENDIF
+        IF d.hscl = 1 AND xx > 319 THEN
+            xx := 319
+        ENDIF
+        IF d.hscl = 2 AND xx > 639 THEN
+            xx := 639
+        ENDIF
+
+        IF yy < 0 THEN
+            yy := 0
+        ENDIF
+        IF yy > 191 THEN
+            yy := 191
+        ENDIF
+
         IF b THEN
-            d.hpx := FIX(xx)
-            d.hpy := FIX(yy)
+            d.hpx := xx
+            d.hpy := yy
             b := FALSE
         ELSE
             RUN ecb_hline("d", FLOAT(d.hpx), FLOAT(d.hpy), FLOAT(xx), FLOAT(yy), "PSET", "L", d)
@@ -1006,7 +1023,6 @@ LOOP
         ii := ii - 1
     ENDEXIT
     ii := ii + 1
-    c := ASC(MID$(s, ii, 1))
 ENDLOOP
 
 
