@@ -166,8 +166,8 @@ PROCEDURE ecb_hdraw
 TYPE display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl: byte; hpx: integer
 PARAM s: STRING<<>>
 PARAM d: display_t
-DIM b, n, a: BOOLEAN
-DIM c: BYTE
+DIM b, n, a, hc: BOOLEAN
+DIM c, cc: BYTE
 DIM ii, scl, v, xx, yy: INTEGER
 
 n := FALSE
@@ -183,23 +183,29 @@ WHILE ii < LEN(s) DO
     LOOP
         c := ASC(MID$(s, ii, 1))
         ii := ii + 1
+        hc := FALSE
 
         IF c = 65 THEN
             RUN _ecb_get_num(v, s, ii, 0, 3)
             d.hagl = v
+            hc = TRUE
         ENDIF
         IF c = 66 THEN
             b := TRUE
+            hc = TRUE
         ENDIF
         IF c = 67 THEN
             RUN _ecb_get_num(v, s, ii, 0, 15)
             ii := ii + 1
             RUN gfx2(d.hpth, "COLOR", v)
             d.hfore = v
+            hc = TRUE
         ENDIF
         IF c = 83 THEN
             RUN _ecb_get_num(v, s, ii, 0, 62)
+            ii := ii + 1
             d.hscl = v
+            hc = TRUE
         ENDIF
 
         EXITIF c = 77 THEN
@@ -210,7 +216,7 @@ WHILE ii < LEN(s) DO
             ELSE
                 a = TRUE
             ENDIF
-            RUN _ecb_get_num(xx, s, ii, 0, 2047)
+            RUN _ecb_get_num(xx, s, ii, 0, 639)
             if c = 45 THEN
                 xx := -xx
             ENDIF
@@ -227,9 +233,9 @@ WHILE ii < LEN(s) DO
                     ERROR 52
                 ENDIF
                 ii := ii + 1
-                yy = 2047
+                yy = 639
             ENDIF
-            RUN _ecb_get_num(yy, s, ii, 0, 2047)
+            RUN _ecb_get_num(yy, s, ii, 0, 639)
             if c = 45 THEN
                 yy := -yy
             ENDIF
@@ -239,13 +245,45 @@ WHILE ii < LEN(s) DO
         EXITIF c = 59 THEN
         ENDEXIT
 
+        
+        IF ii < LEN(s) THEN
+            cc := ASC(MID$(s, ii + 1, 1))
+            IF cc < 48 OR cc > 57 THEN
+                v := 1
+            ELSE
+                v := 0
+            ENDIF
+        ELSE
+            v := 1
+        ENDIF
+
         EXITIF c = 85 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                yy := -v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 68 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                yy := v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 76 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := -v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 82 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
 
         EXITIF c = 69 THEN
@@ -256,6 +294,10 @@ WHILE ii < LEN(s) DO
         ENDEXIT
         EXITIF c = 72 THEN
         ENDEXIT
+
+        IF NOT hc THEN
+            ERROR 52
+        ENDIF
     ENDLOOP
 
     IF a THEN
@@ -325,7 +367,6 @@ yy1 = fix(y1)
 if m = "PRESET" then
     run gfx2(display.hpth, "color", display.hbck)
 endif
-print m, f, xx0, yy0, xx1, yy1
 run gfx2(display.hpth, f, xx0, yy0, xx1, yy1)
 if m = "PRESET" then
     run gfx2(display.hpth, "color", display.hfore)
