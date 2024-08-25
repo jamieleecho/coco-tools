@@ -260,39 +260,63 @@ WHILE ii < LEN(s) DO
         EXITIF c = 85 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
-                yy := -v
             ENDIF
+            yy := -v
             ii := ii + 1
         ENDEXIT
         EXITIF c = 68 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
-                yy := v
             ENDIF
+            yy := v
             ii := ii + 1
         ENDEXIT
         EXITIF c = 76 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
-                xx := -v
             ENDIF
+            xx := -v
             ii := ii + 1
         ENDEXIT
         EXITIF c = 82 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
-                xx := v
             ENDIF
+            xx := v
             ii := ii + 1
         ENDEXIT
 
         EXITIF c = 69 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+            ENDIF
+            xx := v
+            yy := -v
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 70 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+            ENDIF
+            xx := v
+            yy := v
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 71 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := -v
+                yy := v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
         EXITIF c = 72 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := -v
+                yy := -v
+            ENDIF
+            ii := ii + 1
         ENDEXIT
 
         IF NOT hc THEN
