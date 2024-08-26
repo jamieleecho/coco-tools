@@ -255,7 +255,7 @@ WHILE ii < LEN(s) DO
         EXITIF c = 59 THEN
         ENDEXIT
         
-        IF ii < LEN(s) THEN
+        IF ii <= LEN(s) THEN
             cc := ASC(MID$(s, ii, 1))
             IF cc < 48 OR cc > 57 THEN
                 v := 1
@@ -269,33 +269,33 @@ WHILE ii < LEN(s) DO
         EXITIF c = 85 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
             ENDIF
             yy := -v
-            ii := ii + 1
             dd := TRUE
         ENDEXIT
         EXITIF c = 68 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
             ENDIF
             yy := v
-            ii := ii + 1
             dd := TRUE
         ENDEXIT
         EXITIF c = 76 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
             ENDIF
             xx := -v
-            ii := ii + 1
             dd := TRUE
         ENDEXIT
         EXITIF c = 82 THEN
             IF v = 0 THEN
                 RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
             ENDIF
             xx := v
-            ii := ii + 1
             dd := TRUE
         ENDEXIT
 
