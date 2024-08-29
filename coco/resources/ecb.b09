@@ -1102,15 +1102,26 @@ dim rregs: rregisters
 dim reqid: byte
 
 (* getstat ss.alfas *)
+reqid = $8d
 rregs.a = 1
 rregs.b = $91
-reqid = $8d
 run syscall(reqid, rregs)
 if land(rregs.cc, 1) <> 0 then
     address = -1
 else
     address = rregs.x
 endif
+
+
+PROCEDURE _ecb_pid
+TYPE rregisters = cc, a, b, dp:BYTE; x, y, u:INTEGER
+PARAM pid: INTEGER
+DIM rregs: rregisters
+DIM reqid: BYTE
+(* F$ID *)
+reqid = $0c
+run syscall(reqid, rregs)
+pid = rregs.a
 
 
 procedure _ecb_start
@@ -1298,4 +1309,3 @@ if land(rregs.cc, 1) <> 0 then
 else
     wintype = rregs.b
 endif
-
