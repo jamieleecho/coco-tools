@@ -1146,3 +1146,15 @@ class TestB09(unittest.TestCase):
             "10 HBUFF 10, 123",
             "10 run ecb_hbuff(10.0, 123.0, pid, display)",
         )
+
+    def test_adds_hbuff_prefix(self) -> None:
+        program = parser.convert(
+            "10 HBUFF 10, 123",
+            procname="do_cls",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "dim pid: integer\n" in program
+        assert "RUN _ecb_init_hbuff(pid)" in program

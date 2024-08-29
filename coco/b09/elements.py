@@ -353,9 +353,9 @@ class BasicIf(AbstractBasicStatement):
 
 
 class BasicLine(AbstractBasicConstruct):
-    def __init__(self, num: Union[int, None], statements: "BasicStatements"):
+    def __init__(self, num: Union[int, None], statements: "BasicStatement"):
         self._num: Union[int, None] = num
-        self._statements: BasicStatements = statements
+        self._statements: BasicStatement = statements
         self._is_referenced: bool = True
 
     @property
@@ -1287,17 +1287,16 @@ class LineSuffix:
 
 class BasicHbuffStatement(BasicRunCall):
     def __init__(
-            self,
-            *,
-            buffer: AbstractBasicExpression,
-            size: AbstractBasicExpression
-            ):
+        self, *, buffer: AbstractBasicExpression, size: AbstractBasicExpression
+    ):
         super().__init__(
             "run ecb_hbuff",
-                BasicExpressionList([
+            BasicExpressionList(
+                [
                     buffer,
                     size,
                     BasicVar("pid"),
                     BasicVar("display"),
-                ])
+                ]
+            ),
         )

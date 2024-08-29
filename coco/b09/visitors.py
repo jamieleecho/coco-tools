@@ -11,6 +11,7 @@ from coco.b09.elements import (
     BasicForStatement,
     BasicFunctionalExpression,
     BasicGoStatements,
+    BasicHbuffStatement,
     BasicJoystkExpression,
     BasicInputStatement,
     BasicLine,
@@ -439,3 +440,18 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
         if not isinstance(exp, BasicFunctionalExpression) or exp.var:
             return
         self._statement.transform_function_to_call(exp)
+
+
+class BasicHbuffPresenceVisitor(BasicConstructVisitor):
+    _hasHbuff: bool
+
+    def __init__(self):
+        self._hasHbuff = False
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicHbuffStatement):
+            self._hasHbuff = True
+
+    @property
+    def has_hbuff(self) -> bool:
+        return self._hasHbuff

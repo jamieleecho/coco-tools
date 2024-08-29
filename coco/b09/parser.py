@@ -80,6 +80,7 @@ from coco.b09.prog import BasicProg
 from coco.b09.visitors import (
     BasicEmptyDataElementVisitor,
     BasicFunctionalExpressionPatcherVisitor,
+    BasicHbuffPresenceVisitor,
     BasicInputStatementPatcherVisitor,
     BasicNextPatcherVisitor,
     BasicPrintStatementPatcherVisitor,
@@ -1302,6 +1303,24 @@ def convert(
     )
     if add_suffix:
         basic_prog.append_lines(suffix_lines)
+
+    # detect hbuff
+    if add_standard_prefix:
+        hbuff_visitor = BasicHbuffPresenceVisitor()
+        basic_prog.visit(hbuff_visitor)
+        if hbuff_visitor.has_hbuff:
+            basic_prog.insert_lines_at_beginning(
+                [
+                    BasicLine(None, Basic09CodeStatement("dim pid: integer")),
+                    BasicLine(
+                        None,
+                        BasicRunCall(
+                            "RUN _ecb_init_hbuff",
+                            BasicExpressionList([BasicVar("pid")]),
+                        ),
+                    ),
+                ]
+            )
 
     # output the program
     program = basic_prog.basic09_text(0)

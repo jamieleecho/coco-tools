@@ -3,9 +3,16 @@ import pkg_resources
 from typing import List
 
 from coco import b09
+from coco.b09.elements import (
+    BasicHbuffStatement,
+    BasicLiteral,
+)
 from coco.b09.parser import BasicProg, BasicVisitor, grammar
 from coco.b09.visitors import (
+    BasicExpressionList,
     BasicFunctionalExpressionPatcherVisitor,
+    BasicHbuffPresenceVisitor,
+    BasicRunCall,
     StrVarAllocatorVisitor,
 )
 
@@ -66,3 +73,32 @@ def test_str_var_allocator_with_dimmed_vars(strfun_prog: BasicProg) -> None:
         "DIM A$:STRING[128]",
         "DIM tmp_1$:STRING[128]",
     ]
+
+
+@pytest.fixture
+def hbuff_visitor() -> BasicHbuffPresenceVisitor:
+    return BasicHbuffPresenceVisitor()
+
+
+def test_hbuff_visitor_init(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
+    assert hbuff_visitor.has_hbuff == False
+
+
+def test_hbuff_visitor_detects_hbuff(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
+    hbuff_visitor.visit_statement(
+        BasicHbuffStatement(
+            buffer=BasicLiteral(1),
+            size=BasicLiteral(10),
+        )
+    )
+    assert hbuff_visitor.has_hbuff == True
+
+
+def test_hbuff_visitor_ignores_others(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
+    hbuff_visitor.visit_statement(
+        BasicRunCall(
+            "run foo",
+            BasicExpressionList([]),
+        )
+    )
+    assert hbuff_visitor.has_hbuff == False
