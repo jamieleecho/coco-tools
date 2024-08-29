@@ -41,6 +41,7 @@ from coco.b09.elements import (
     BasicFunctionCall,
     BasicFunctionalExpression,
     BasicGoto,
+    BasicHbuffStatement,
     BasicIf,
     BasicInputStatement,
     BasicJoystkExpression,
@@ -1139,6 +1140,12 @@ class BasicVisitor(NodeVisitor):
                 ]
             ),
         )
+
+    def visit_hbuff_statement(self, _, visited_children) -> AbstractBasicStatement:
+        buffer_exp: AbstractBasicExpression
+        size_exp: AbstractBasicExpression
+        _, _, buffer_exp, _, _, _, size_exp, _ = visited_children
+        return BasicHbuffStatement(buffer=buffer_exp, size=size_exp)
 
 
 class ParseError(Exception):

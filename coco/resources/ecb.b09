@@ -998,6 +998,15 @@ else
 endif
 
 
+PROCEDURE _ecb_free_all_buffers
+PARAM path, pid: INTEGER
+DIM ii: INTEGER
+ON ERROR GOTO 10
+FOR ii=1 TO 255
+    RUN gfx2(path, "KILLBUFF", pid, ii)
+10 NEXT ii
+
+
 PROCEDURE _ecb_get_num
 PARAM v: INTEGER
 PARAM s: STRING<<>>

@@ -1140,3 +1140,9 @@ class TestB09(unittest.TestCase):
             '10 HDRAW "UDLR"',
             '10 run ecb_hdraw("UDLR", display)',
         )
+
+    def test_hbuff(self) -> None:
+        self.generic_test_parse(
+            "10 HBUFF 10, 123",
+            "10 run ecb_hbuff(10.0, 123.0, pid, display)",
+        )

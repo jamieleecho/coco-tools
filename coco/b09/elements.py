@@ -1283,3 +1283,21 @@ class LineSuffix:
     @property
     def line_type(self) -> LineType:
         return self._line_type
+
+
+class BasicHbuffStatement(BasicRunCall):
+    def __init__(
+            self,
+            *,
+            buffer: AbstractBasicExpression,
+            size: AbstractBasicExpression
+            ):
+        super().__init__(
+            "run ecb_hbuff",
+                BasicExpressionList([
+                    buffer,
+                    size,
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ])
+        )

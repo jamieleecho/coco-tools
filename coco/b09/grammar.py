@@ -132,6 +132,7 @@ KEYWORDS = "|".join(
             "FOR",
             "GOSUB",
             "GOTO",
+            "HBUFF",
             "HCIRCLE",
             "HCLS",
             "HCOLOR",
@@ -282,6 +283,7 @@ grammar = Grammar(
                     / hset_statement
                     / play_statement
                     / hdraw_statement
+                    / hbuff_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -462,5 +464,6 @@ grammar = Grammar(
     erno_expr                = "ERNO" space*
     play_statement           = "PLAY" space* str_exp space*
     hdraw_statement          = "HDRAW" space* str_exp space*
+    hbuff_statement          = "HBUFF" space* exp space* "," space* exp space*
     """  # noqa
 )
