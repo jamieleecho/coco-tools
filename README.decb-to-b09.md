@@ -103,6 +103,15 @@ NEXT BB
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
 ```
+* `HPAINT` ignores the stop color. Instead, the flood fill continues until
+  it hits boundaries with colors that are different from the color under the
+  initial pixel.
+* `HBUFF` can reserve upto 8KB of space in total, but each buffer allocates
+  20 bytes more than the equivalent DECB program. It is therefore possible that
+  DECB programs that use close to 8KB of space may not run properly.
+* `HPUT` ignores the end pixels and instead always draws the same shape
+  specified by `HGET`. The only supported DECB drawing modes are `PSET`, `AND`
+  and `OR`. An `XOR` mode is added for convenience.
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:

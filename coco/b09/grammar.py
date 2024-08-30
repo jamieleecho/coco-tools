@@ -475,7 +475,7 @@ grammar = Grammar(
     hbuff_statement          = "HBUFF" space* exp space* "," space* exp space*
     hget_statement           = "HGET" space* coords "-" space* coords "," space* exp space*
     hput_statement           = "HPUT" space* coords "-" space* coords "," space* exp space* "," space* draw_mode space*
-    draw_mode                = "PSET" / "PRESET" / "AND" / "OR" / "NOT"
+    draw_mode                = "PSET" /"AND" / "OR" / "XOR"
     hpaint_statement         = "HPAINT" space* coords "," space* exp space* "," space* exp space*
     """  # noqa
 )
