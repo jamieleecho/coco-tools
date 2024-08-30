@@ -1144,7 +1144,7 @@ class TestB09(unittest.TestCase):
     def test_hbuff(self) -> None:
         self.generic_test_parse(
             "10 HBUFF 10, 123",
-            "10 run ecb_hbuff(10.0, 123.0, pid, display)",
+            "10 run _ecb_hbuff(10.0, 123.0, pid, display)",
         )
 
     def test_adds_hbuff_prefix(self) -> None:

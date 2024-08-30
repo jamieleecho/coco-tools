@@ -1290,7 +1290,7 @@ class BasicHbuffStatement(BasicRunCall):
         self, *, buffer: AbstractBasicExpression, size: AbstractBasicExpression
     ):
         super().__init__(
-            "run ecb_hbuff",
+            "run _ecb_hbuff",
             BasicExpressionList(
                 [
                     buffer,

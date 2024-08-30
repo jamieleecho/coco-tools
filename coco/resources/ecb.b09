@@ -1084,6 +1084,14 @@ mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
 c0 = peek(fix(address))
 
 
+PROCEDURE _ecb_hbuff
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM b, s: REAL
+PARAM pid: INTEGER
+PARAM d: display_t
+RUN GFX2(d.hpth, "DEFBUFF", pid, FIX(b), FIX(s) + 20)
+
+
 procedure _ecb_hex_digit
 param v: real
 param s: string
@@ -1092,6 +1100,18 @@ if v < 10 then
 else
     s = chr$(v + asc("A"))
 endif
+
+
+PROCEDURE _ecb_init_hbuff
+PARAM pid: INTEGER
+DIM ii, path: INTEGER
+RUN _ecb_pid(pid)
+OPEN #path, "/w":update
+ON ERROR GOTO 10
+FOR ii=1 TO 255
+    RUN GFX2(path, "KILLBUFF", pid, ii)
+10 NEXT ii
+CLOSE #path
 
 
 procedure _ecb_input_prefix

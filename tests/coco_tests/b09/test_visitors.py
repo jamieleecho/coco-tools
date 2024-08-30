@@ -81,7 +81,7 @@ def hbuff_visitor() -> BasicHbuffPresenceVisitor:
 
 
 def test_hbuff_visitor_init(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
-    assert hbuff_visitor.has_hbuff == False
+    assert not hbuff_visitor.has_hbuff
 
 
 def test_hbuff_visitor_detects_hbuff(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
@@ -91,7 +91,7 @@ def test_hbuff_visitor_detects_hbuff(hbuff_visitor: BasicHbuffPresenceVisitor) -
             size=BasicLiteral(10),
         )
     )
-    assert hbuff_visitor.has_hbuff == True
+    assert hbuff_visitor.has_hbuff
 
 
 def test_hbuff_visitor_ignores_others(hbuff_visitor: BasicHbuffPresenceVisitor) -> None:
@@ -101,4 +101,4 @@ def test_hbuff_visitor_ignores_others(hbuff_visitor: BasicHbuffPresenceVisitor) 
             BasicExpressionList([]),
         )
     )
-    assert hbuff_visitor.has_hbuff == False
+    assert not hbuff_visitor.has_hbuff
