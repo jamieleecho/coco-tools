@@ -133,12 +133,15 @@ KEYWORDS = "|".join(
             "GOSUB",
             "GOTO",
             "HBUFF",
+            "HGET"
             "HCIRCLE",
             "HCLS",
             "HCOLOR",
             "HEX$",
             "HLINE",
+            "HPAINT",
             "HPRINT",
+            "HPUT",
             "HRESET",
             "HSET",
             "HSCREEN",
@@ -165,7 +168,9 @@ KEYWORDS = "|".join(
             "PEEK",
             "PLAY",
             "POKE",
+            "PRESET",
             "PRINT",
+            "PSET",
             "READ",
             "REM",
             "RESET",
@@ -284,6 +289,9 @@ grammar = Grammar(
                     / play_statement
                     / hdraw_statement
                     / hbuff_statement
+                    / hget_statement
+                    / hput_statement
+                    / hpaint_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* comment?
@@ -465,5 +473,9 @@ grammar = Grammar(
     play_statement           = "PLAY" space* str_exp space*
     hdraw_statement          = "HDRAW" space* str_exp space*
     hbuff_statement          = "HBUFF" space* exp space* "," space* exp space*
+    hget_statement           = "HGET" space* coords "-" space* coords "," space* exp space*
+    hput_statement           = "HPUT" space* coords "-" space* coords "," space* exp space* "," space* draw_mode space*
+    draw_mode                = "PSET" / "PRESET" / "AND" / "OR" / "NOT"
+    hpaint_statement         = "HPAINT" space* coords "," space* exp space* "," space* exp space*
     """  # noqa
 )

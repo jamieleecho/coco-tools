@@ -1147,6 +1147,24 @@ class BasicVisitor(NodeVisitor):
         size_exp: AbstractBasicExpression
         _, _, buffer_exp, _, _, _, size_exp, _ = visited_children
         return BasicHbuffStatement(buffer=buffer_exp, size=size_exp)
+    
+    def visit_hpaint_statement(self, _, visited_children) -> AbstractBasicStatement:
+        coords: Coordinates
+        color: AbstractBasicExpression
+        stop_color: AbstractBasicExpression
+        _, _, coords, _, _, color, _, _, _, stop_color, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hpaint",
+            BasicExpressionList(
+                [
+                    coords.x,
+                    coords.y,
+                    color,
+                    stop_color,
+                    BasicVar("display"),
+                ]
+            ),
+        )
 
 
 class ParseError(Exception):
