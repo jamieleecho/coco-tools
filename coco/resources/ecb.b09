@@ -500,6 +500,14 @@ run gfx2(display.hpth, "curxy", xi, yi)
 print #display.hpth, t;
 
 
+PROCEDURE ecb_hpaint
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+param x, y, c, c0: real
+param d: display_t
+RUN GFX2(d.hpth, "COLOR", FIX(c))
+RUN GFX2(d.hpth, "FILL", FIX(x), FIX(y))
+
+
 procedure ecb_hscreen
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param n: real

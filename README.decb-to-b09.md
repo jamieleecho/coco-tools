@@ -103,6 +103,8 @@ NEXT BB
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
 ```
+* Drawing commands use the OS-9 Windowing System drawing commands and will
+  produce slighly different shapes.
 * `HPAINT` ignores the stop color. Instead, the flood fill continues until
   it hits boundaries with colors that are different from the color under the
   initial pixel.
