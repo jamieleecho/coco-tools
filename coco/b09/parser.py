@@ -44,6 +44,7 @@ from coco.b09.elements import (
     BasicGoto,
     BasicHbuffStatement,
     BasicIf,
+    BasicIfElse,
     BasicInputStatement,
     BasicJoystkExpression,
     BasicKeywordStatement,
@@ -61,6 +62,7 @@ from coco.b09.elements import (
     BasicPrintControl,
     BasicPrintStatement,
     BasicReadStatement,
+    BasicStatementsOrBasicGoto,
     BasicRunCall,
     BasicSound,
     BasicStatements,
@@ -197,6 +199,28 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _ = visited_children
         return exp
 
+    def visit_if_else_stmnt(self, _, visited_children) -> BasicIf:
+        _, _, if_exp, _, _, _, line_or_stmnts, _, else_statement = visited_children
+        return BasicIfElse(
+            if_exp=if_exp,
+            then_statements=line_or_stmnts,
+            else_if_statements=[],
+            else_statements=else_statement,
+        )
+
+    def visit_else_stmnt(self, _, visited_children) -> BasicStatementsOrBasicGoto:
+        statements: BasicStatementsOrBasicGoto
+        _, _, statements, _ = visited_children
+        return statements
+
+    def visit_if_if_else_stmnt(self, _, visited_children) -> BasicIf:
+        _, _, if_exp, _, _, _, line_or_stmnts, _, else_if_statements = visited_children
+        return BasicIfElse(
+            if_exp=if_exp,
+            then_statements=line_or_stmnts,
+            else_if_statements=else_if_statements,
+        )
+
     def visit_if_stmnt(self, _, visited_children):
         _, _, exp, _, _, _, statements = visited_children
         is_bool = isinstance(
@@ -205,6 +229,15 @@ class BasicVisitor(NodeVisitor):
         )
         exp = exp if is_bool else BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
         return BasicIf(exp, statements)
+
+    def visit_else_if_stmnts(self, _, visited_children: List[BasicIf]) -> List[BasicIf]:
+        return visited_children
+
+    def visit_else_if_stmnt(self, _, visited_children) -> BasicIf:
+        _, _, _, _, if_exp, _, _, _, line_or_stmnts, _ = visited_children
+        if isinstance(line_or_stmnts, BasicGoto):
+            line_or_stmnts.implicit = False
+        return BasicIf(if_exp, line_or_stmnts)
 
     def visit_if_exp(self, _, visited_children) -> AbstractBasicExpression:
         return visited_children[0]
@@ -259,7 +292,9 @@ class BasicVisitor(NodeVisitor):
     def visit_num_gtle_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
-    def visit_num_gtle_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+    def visit_num_gtle_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
         return visited_children
 
     def visit_num_gtle_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
@@ -284,6 +319,13 @@ class BasicVisitor(NodeVisitor):
     ) -> Union[BasicStatements, BasicGoto]:
         if isinstance(visited_children[0], int):
             return BasicGoto(visited_children[0], True)
+        return visited_children[0]
+
+    def visit_explicit_line_or_stmnts(
+        self, _, visited_children
+    ) -> Union[BasicStatements, BasicGoto]:
+        if isinstance(visited_children[0], int):
+            return BasicGoto(visited_children[0], False)
         return visited_children[0]
 
     def visit_literal(self, _, visited_children):
@@ -443,7 +485,9 @@ class BasicVisitor(NodeVisitor):
     def visit_num_prod_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
-    def visit_num_prod_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+    def visit_num_prod_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
         return visited_children
 
     def visit_num_prod_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
@@ -453,19 +497,28 @@ class BasicVisitor(NodeVisitor):
     def visit_num_power_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
-    def visit_num_power_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+    def visit_num_power_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
         return visited_children
 
-    def visit_num_power_sub_exp(self, node, visited_children) -> AbstractBasicExpression:
+    def visit_num_power_sub_exp(
+        self, node, visited_children
+    ) -> AbstractBasicExpression:
         op, _, exp, _ = visited_children
         return BasicBinaryExpFragment(op, exp)
 
     def visit_binary_exp(self, _, visited_children) -> AbstractBasicExpression:
         v1, v2, v3 = visited_children
-        if isinstance(v2, str) and (isinstance(v3, str) or (isinstance(v3, List) and len(v3) == 0)):
+        if isinstance(v2, str) and (
+            isinstance(v3, str) or (isinstance(v3, List) and len(v3) == 0)
+        ):
             return v1
-        return BasicBinaryExp.from_exp_op_and_fragments(v1, v2, v3) if isinstance(v3, List) \
+        return (
+            BasicBinaryExp.from_exp_op_and_fragments(v1, v2, v3)
+            if isinstance(v3, List)
             else BasicBinaryExp(v1, v3.operator, v3.exp)
+        )
 
     def visit_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
@@ -521,7 +574,9 @@ class BasicVisitor(NodeVisitor):
     def visit_num_sum_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
-    def visit_num_sum_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+    def visit_num_sum_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
         return visited_children
 
     def visit_num_sum_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:

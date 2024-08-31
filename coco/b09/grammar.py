@@ -228,18 +228,24 @@ grammar = Grammar(
     exp_sublist     = exp_sublist_mbr*
     exp_sublist_mbr = ("," space* exp space*)
     if_else_stmnt   = ("IF" space* if_exp space*
-                       "THEN" space* line_or_stmnts2 space*
-                       "ELSE" space* line_or_stmnts)
+                       "THEN" space* explicit_line_or_stmnts space* else_stmnt)
+    if_if_else_stmnt = ("IF" space* if_exp space*
+                        "THEN" space* explicit_line_or_stmnts space* else_if_stmnts)
+    else_if_stmnts  = else_if_stmnt+
+    else_if_stmnt   = ("ELSE" space* "IF" space* if_exp space*
+                       "THEN" space* explicit_line_or_stmnts space*)
+    else_stmnt      = ("ELSE" space* explicit_line_or_stmnts space*)
     if_stmnt        = ("IF" space* if_exp space*
                        "THEN" space* line_or_stmnts)
     line            = linenum space* statements space*
     line_or_stmnts  = linenum
                     / statements
-    line_or_stmnts2 = linenum
-                    / statements_else
+    explicit_line_or_stmnts  = linenum
+                             / statements
     str_assign      = "LET"? space* str_var space* "=" space* str_exp
     num_assign      = "LET"? space* var space* "=" space* exp
     statement       = if_else_stmnt
+                    / if_if_else_stmnt
                     / if_stmnt
                     / print_at_statement
                     / print_at_statement0

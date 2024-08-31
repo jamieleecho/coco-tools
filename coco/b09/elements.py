@@ -192,7 +192,9 @@ class BasicBinaryExp(AbstractBasicExpression):
                 ),
             )
             ii = ii - 1
-        return BasicBinaryExp(exp, current_fragment.op.basic09_text(0), current_fragment.exp2)
+        return BasicBinaryExp(
+            exp, current_fragment.op.basic09_text(0), current_fragment.exp2
+        )
 
     def __init__(
         self,
@@ -399,6 +401,47 @@ class BasicIf(AbstractBasicStatement):
         self._exp.visit(visitor)
         self._statements.visit(visitor)
 
+    @property
+    def exp(self) -> AbstractBasicExpression:
+        return self._exp
+
+    @property
+    def statements(self) -> AbstractBasicExpression:
+        return self._statements
+
+
+class BasicIfElse(BasicIf):
+    _else_if_statements: List[BasicIf]
+    _else_statements: BasicStatementsOrBasicGoto
+
+    def __init__(
+        self,
+        *,
+        if_exp: AbstractBasicExpression,
+        then_statements: BasicStatementsOrBasicGoto,
+        else_if_statements: List[BasicIf],
+        else_statements: BasicStatementsOrBasicGoto | None = None,
+    ):
+        super().__init__(if_exp, then_statements)
+        self._else_if_statements = else_if_statements
+        self._else_statements = else_statements
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
+        statement: BasicIf
+        for statement in self._else_if_statements:
+            statement.visit(visitor)
+        if self._else_statements is not None:
+            self._else_statements.visit(visitor)
+
+    def basic09_text(self, indent_level: int) -> str:
+        return (
+            f"IF {self.exp.basic09_text(indent_level)} THEN\n"
+            f"{self.statements.basic09_text(indent_level + 1)}\n"
+            "ELSE\n"
+            f"{self._else_statements.basic09_text(indent_level + 1)}\n"
+            f"ENDIF"
+        )
 
 class BasicLine(AbstractBasicConstruct):
     def __init__(self, num: Union[int, None], statements: "BasicStatement"):
