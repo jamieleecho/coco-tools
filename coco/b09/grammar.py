@@ -231,7 +231,7 @@ grammar = Grammar(
                         "THEN" space* explicit_line_or_stmnts space* else_if_stmnts
                         else_stmnts)
     if_else_stmnt    = ("IF" space* if_exp space*
-                        "THEN" space* explicit_line_or_stmnts else_stmnt)
+                        "THEN" space* explicit_line_or_stmnts space* else_stmnt)
     else_if_stmnts  = else_if_stmnt+
     else_if_stmnt   = ("ELSE" space* "IF" space* if_exp space*
                        "THEN" space* explicit_line_or_stmnts space*)
@@ -318,7 +318,7 @@ grammar = Grammar(
     bool_val_exp    = bool_paren_exp
                     / bool_str_exp
                     / bool_bin_exp
-    bool_paren_exp  = "(" space* bool_exp space* ")"
+    bool_paren_exp  = "(" space* bool_exp space* ")" space*
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
     bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
     num_exp              = num_and_exp space* num_exp_elements

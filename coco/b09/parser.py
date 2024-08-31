@@ -199,7 +199,9 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _ = visited_children
         return exp
 
-    def visit_else_stmnts(self, _, visited_children) -> Union[None, BasicStatementsOrBasicGoto]:
+    def visit_else_stmnts(
+        self, _, visited_children
+    ) -> Union[None, BasicStatementsOrBasicGoto]:
         return visited_children[0] if visited_children else None
 
     def visit_else_stmnt(self, _, visited_children) -> BasicStatementsOrBasicGoto:
@@ -209,21 +211,32 @@ class BasicVisitor(NodeVisitor):
 
     def visit_if_if_else_stmnt(self, _, visited_children) -> BasicIf:
         else_statements: None | BasicStatementsOrBasicGoto
-        _, _, if_exp, _, _, _, line_or_stmnts, _, else_if_statements, else_statements = visited_children
+        (
+            _,
+            _,
+            if_exp,
+            _,
+            _,
+            _,
+            line_or_stmnts,
+            _,
+            else_if_statements,
+            else_statements,
+        ) = visited_children
         return BasicIfElse(
             if_exp=if_exp,
             then_statements=line_or_stmnts,
             else_if_statements=else_if_statements,
-            else_statements = else_statements,
+            else_statements=else_statements,
         )
 
     def visit_if_else_stmnt(self, _, visited_children) -> BasicIfElse:
-        _, _, if_exp, _, _, _, line_or_stmnts, else_statements = visited_children
+        _, _, if_exp, _, _, _, line_or_stmnts, _, else_statements = visited_children
         return BasicIfElse(
             if_exp=if_exp,
             then_statements=line_or_stmnts,
             else_if_statements=[],
-            else_statements = else_statements,
+            else_statements=else_statements,
         )
 
     def visit_if_stmnt(self, _, visited_children):
@@ -1056,7 +1069,7 @@ class BasicVisitor(NodeVisitor):
         exp: AbstractBasicExpression
         _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, exp, _ = visited_children
         if not exp.is_str_expr:
-            exp = BasicRunCall("run ecb_str", BasicExpressionList([exp]))
+            exp = BasicFunctionalExpression("run ecb_str", BasicExpressionList([exp]))
         return BasicRunCall(
             "run ecb_hprint",
             BasicExpressionList(
