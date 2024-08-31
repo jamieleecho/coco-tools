@@ -244,8 +244,8 @@ grammar = Grammar(
                              / statements
     str_assign      = "LET"? space* str_var space* "=" space* str_exp
     num_assign      = "LET"? space* var space* "=" space* exp
-    statement       = if_else_stmnt
-                    / if_if_else_stmnt
+    statement       = if_if_else_stmnt
+                    / if_else_stmnt
                     / if_stmnt
                     / print_at_statement
                     / print_at_statement0

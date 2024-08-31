@@ -435,13 +435,15 @@ class BasicIfElse(BasicIf):
             self._else_statements.visit(visitor)
 
     def basic09_text(self, indent_level: int) -> str:
-        return (
-            f"IF {self.exp.basic09_text(indent_level)} THEN\n"
-            f"{self.statements.basic09_text(indent_level + 1)}\n"
-            "ELSE\n"
+        else_suffix = "" if self._else_statements is None else f"{self.indent_spaces(indent_level)}ELSE\n" \
             f"{self._else_statements.basic09_text(indent_level + 1)}\n"
-            f"ENDIF"
-        )
+        suffix = else_suffix + \
+            f"{self.indent_spaces(indent_level)}ENDIF"
+        return (
+            f"{self.indent_spaces(indent_level)}IF {self.exp.basic09_text(0)} THEN\n"
+            f"{self.statements.basic09_text(indent_level + 1)}\n"
+        ) + suffix
+
 
 class BasicLine(AbstractBasicConstruct):
     def __init__(self, num: Union[int, None], statements: "BasicStatement"):

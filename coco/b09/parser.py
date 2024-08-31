@@ -235,8 +235,6 @@ class BasicVisitor(NodeVisitor):
 
     def visit_else_if_stmnt(self, _, visited_children) -> BasicIf:
         _, _, _, _, if_exp, _, _, _, line_or_stmnts, _ = visited_children
-        if isinstance(line_or_stmnts, BasicGoto):
-            line_or_stmnts.implicit = False
         return BasicIf(if_exp, line_or_stmnts)
 
     def visit_if_exp(self, _, visited_children) -> AbstractBasicExpression:
