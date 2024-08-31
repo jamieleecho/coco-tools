@@ -301,7 +301,10 @@ grammar = Grammar(
                     / hpaint_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
-    statements           = statement? space* statements_elements space* comment?
+    statements           = statement? space* statements_elements space* last_statement?
+    last_statement  = comment / partial_str_arr_assign / partial_str_assign
+    partial_str_arr_assign = "LET"? space* str_array_ref_exp space* "=" space* partial_str_lit
+    partial_str_assign = "LET"? space* str_var space* "=" space* partial_str_lit
     statements_elements  = statements_element*
     statements_element   = ":" space* statement? space*
     statements_else      = statements
@@ -386,6 +389,7 @@ grammar = Grammar(
     int_hex_literal = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
+    partial_str_lit = ~r'\"[^"\n]*'
     unop            = "+" / "-"
     var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
     str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]*)\$"

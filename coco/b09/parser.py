@@ -571,6 +571,17 @@ class BasicVisitor(NodeVisitor):
         )
         return BasicStatements(statement_elements)
 
+    def visit_last_statement(self, _, visited_children) -> Union[BasicComment, BasicAssignment]:
+        return visited_children[0]
+
+    def visit_partial_str_arr_assign(self, _, visited_children):
+        let_kw, _, str_array_ref_exp, _, _, _, str_lit = visited_children
+        return BasicAssignment(str_array_ref_exp, BasicLiteral(str_lit.text[1:]), let_kw=let_kw != "")
+
+    def visit_partial_str_assign(self, node, visited_children) -> BasicAssignment:
+        let_kw, _, str_var, _, _, _, str_lit = visited_children
+        return BasicAssignment(str_var, BasicLiteral(str_lit.text[1:]), let_kw=let_kw)
+
     def visit_statements_elements(self, _, visited_children):
         return [statement for statement in visited_children if statement]
 

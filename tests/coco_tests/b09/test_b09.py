@@ -1255,3 +1255,15 @@ class TestB09(unittest.TestCase):
             "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
             "100 IF WW = 1.0 AND tmp_1 > 0.0 THEN\n  GOTO 100\nELSE\n  GOTO 100\nENDIF",
         )
+
+    def test_partial_str_assign(self) -> None:
+        self.generic_test_parse(
+            '100 A$ = "HELLO',
+            '100 A$ := "HELLO"',
+        )
+
+    def test_partial_arr_str_assign(self) -> None:
+        self.generic_test_parse(
+            '100 A$(1) = "HELLO',
+            '100 arr_A$(1.0) := "HELLO"',
+        )
