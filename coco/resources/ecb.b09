@@ -426,6 +426,21 @@ run _ecb_hex_digit(land($f, v), t)
 str := str + t
 
 
+PROCEDURE ecb_hget
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM x0, y0, x1, y1, b: REAL
+PARAM p: INTEGER
+PARAM d: display_t
+DIM xx0, yy0, xx1, yy1: INTEGER
+RUN _ecb_min(xx0, FIX(x0), FIX(x1))
+RUN _ecb_max(xx1, FIX(x0), FIX(x1))
+RUN _ecb_min(yy0, FIX(y0), FIX(y1))
+RUN _ecb_max(yy1, FIX(y0), FIX(y1))
+xx1 := xx1 - xx0 + 1
+yy1 := yy1 - yy0 + 1
+RUN GFX2(d.hpth, "GET", p, FIX(b), xx0, yy0, xx1, yy1)
+
+
 procedure ecb_hline
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param rd: string
@@ -1130,6 +1145,24 @@ SHELL("tmode eko=1")
 procedure _ecb_input_suffix
 run _ecb_cursor_color(0)
 SHELL("tmode eko=0")
+
+
+PROCEDURE _ecb_max
+PARAM x2, x0, x1: INTEGER
+IF x0 > x1 THEN
+    x2 := x0
+ELSE
+    x2 := x1
+ENDIF
+
+
+PROCEDURE _ecb_min
+PARAM x2, x0, x1: INTEGER
+IF x0 < x1 THEN
+    x2 := x0
+ELSE
+    x2 := x1
+ENDIF
 
 
 procedure _ecb_palette

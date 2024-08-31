@@ -1148,6 +1148,26 @@ class BasicVisitor(NodeVisitor):
         _, _, buffer_exp, _, _, _, size_exp, _ = visited_children
         return BasicHbuffStatement(buffer=buffer_exp, size=size_exp)
     
+    def visit_hget_statement(self, _, visited_children) -> AbstractBasicStatement:
+            start_coords: Coordinates
+            end_coords: Coordinates
+            buff: AbstractBasicExpression
+            _, _, start_coords, _, _, end_coords, _, _, buff, _ = visited_children
+            return BasicRunCall(
+                "run ecb_hget",
+                BasicExpressionList(
+                    [
+                        start_coords.x,
+                        start_coords.y,
+                        end_coords.x,
+                        end_coords.y,
+                        buff,
+                        BasicVar("pid"),
+                        BasicVar("display"),
+                    ]
+                ),
+            )
+
     def visit_hpaint_statement(self, _, visited_children) -> AbstractBasicStatement:
         coords: Coordinates
         color: AbstractBasicExpression

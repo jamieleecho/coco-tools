@@ -1159,6 +1159,12 @@ class TestB09(unittest.TestCase):
         assert "dim pid: integer\n" in program
         assert "RUN _ecb_init_hbuff(pid)" in program
 
+    def test_hget_statement(self) -> None:
+        self.generic_test_parse(
+            "10 HGET(123, 45) - (32, 25), 10",
+            "10 run ecb_hget(123.0, 45.0, 32.0, 25.0, 10.0, pid, display)",
+        )
+
     def test_hpaint_statement(self) -> None:
         self.generic_test_parse(
             "10 HPAINT(123, 45), 10, 5",
