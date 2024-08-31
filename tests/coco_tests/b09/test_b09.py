@@ -1189,8 +1189,26 @@ class TestB09(unittest.TestCase):
             "10 RUN ecb_cls(0.0, display)",
         )
 
-    def test_4x_exp(self) -> None:
+    def test_4x_sum(self) -> None:
         self.generic_test_parse(
             "10 DP = A + B + C + D",
             "10 DP := A + B + C + D",
+        )
+
+    def test_4x_mul(self) -> None:
+        self.generic_test_parse(
+            "10 DP = A * B * C * D",
+            "10 DP := A * B * C * D",
+        )
+
+    def test_4x_pow(self) -> None:
+        self.generic_test_parse(
+            "10 DP = A ^ B ^ C ^ D",
+            "10 DP := A ^ B ^ C ^ D",
+        )
+    
+    def test_else_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF RN<D1 THEN X = 2 ELSE IF RN THEN 10",
+            "10 IF RN < D1 THEN X = 2 \ ELSE IF RN THEN 10 \ ENDIF \ ENDIF"
         )

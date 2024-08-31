@@ -27,6 +27,7 @@ from coco.b09.elements import (
     BasicArrayRef,
     BasicAssignment,
     BasicBinaryExp,
+    BasicBinaryExpFragment,
     BasicBooleanBinaryExp,
     BasicBooleanOpExp,
     BasicBooleanParenExp,
@@ -258,6 +259,13 @@ class BasicVisitor(NodeVisitor):
     def visit_num_gtle_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_gtle_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_gtle_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_line(self, _, visited_children):
         return BasicLine(
             visited_children[0],
@@ -435,14 +443,29 @@ class BasicVisitor(NodeVisitor):
     def visit_num_prod_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_prod_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_prod_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_num_power_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_power_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_power_sub_exp(self, node, visited_children) -> AbstractBasicExpression:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_binary_exp(self, _, visited_children) -> AbstractBasicExpression:
         v1, v2, v3 = visited_children
-        if isinstance(v2, str) and isinstance(v3, str):
+        if isinstance(v2, str) and (isinstance(v3, str) or (isinstance(v3, List) and len(v3) == 0)):
             return v1
-        return BasicBinaryExp(v1, v3.operator, v3.exp)
+        return BasicBinaryExp.from_exp_op_and_fragments(v1, v2, v3) if isinstance(v3, List) \
+            else BasicBinaryExp(v1, v3.operator, v3.exp)
 
     def visit_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
@@ -497,6 +520,13 @@ class BasicVisitor(NodeVisitor):
 
     def visit_num_sum_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
+
+    def visit_num_sum_sub_exps(self, node, visited_children) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_sum_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
 
     def visit_val_exp(self, node, visited_children) -> AbstractBasicExpression:
         return visited_children[0] if len(visited_children) < 2 else node

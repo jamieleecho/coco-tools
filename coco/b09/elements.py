@@ -150,9 +150,7 @@ class BasicBinaryExpFragment:
         self,
         op: "BasicOperator",
         exp2: AbstractBasicExpression,
-        is_str_expr: bool = False,
     ):
-        super().__init__(is_str_expr=True)
         self._op: BasicOperator = op
         self._exp2: AbstractBasicExpression = exp2
 
@@ -186,14 +184,15 @@ class BasicBinaryExp(AbstractBasicExpression):
             prior_fragment = fragments[ii - 1]
             current_fragment = BasicBinaryExpFragment(
                 prior_fragment.op,
-                AbstractBasicExpression(
+                BasicBinaryExp(
                     prior_fragment.exp2,
-                    current_fragment.op,
+                    current_fragment.op.basic09_text(0),
                     current_fragment.exp2,
                     is_str_expr=exp.is_str_expr,
                 ),
             )
-        return BasicBinaryExp(exp, current_fragment.op, current_fragment.exp2)
+            ii = ii - 1
+        return BasicBinaryExp(exp, current_fragment.op.basic09_text(0), current_fragment.exp2)
 
     def __init__(
         self,
@@ -525,8 +524,9 @@ class BasicBooleanOpExp(BasicOpExp):
 
 
 class BasicParenExp(AbstractBasicExpression):
-    def __init__(self, exp):
+    def __init__(self, exp: AbstractBasicExpression):
         self._exp = exp
+        self._is_str_expr = exp.is_str_expr
 
     def basic09_text(self, indent_level: int) -> str:
         return f"({self._exp.basic09_text(indent_level)})"
