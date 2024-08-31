@@ -133,8 +133,7 @@ KEYWORDS = "|".join(
             "GOSUB",
             "GOTO",
             "HBUFF",
-            "HGET"
-            "HCIRCLE",
+            "HGET" "HCIRCLE",
             "HCLS",
             "HCOLOR",
             "HEX$",

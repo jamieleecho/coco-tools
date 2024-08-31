@@ -1,6 +1,5 @@
 from typing import List, Union
 from parsimonious import NodeVisitor
-from parsimonious.nodes import Node
 
 from coco import b09
 from coco.b09.grammar import (
@@ -967,9 +966,7 @@ class BasicVisitor(NodeVisitor):
 
     def visit_hprint_statement(self, _, visited_children) -> AbstractBasicStatement:
         exp: AbstractBasicExpression
-        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, exp, _ = (
-            visited_children
-        )
+        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, exp, _ = visited_children
         if not exp.is_str_expr:
             exp = BasicRunCall("run ecb_str", BasicExpressionList([exp]))
         return BasicRunCall(
@@ -1152,48 +1149,50 @@ class BasicVisitor(NodeVisitor):
         size_exp: AbstractBasicExpression
         _, _, buffer_exp, _, _, _, size_exp, _ = visited_children
         return BasicHbuffStatement(buffer=buffer_exp, size=size_exp)
-    
+
     def visit_hget_statement(self, _, visited_children) -> AbstractBasicStatement:
-            start_coords: Coordinates
-            end_coords: Coordinates
-            buff: AbstractBasicExpression
-            _, _, start_coords, _, _, end_coords, _, _, buff, _ = visited_children
-            return BasicRunCall(
-                "run ecb_hget",
-                BasicExpressionList(
-                    [
-                        start_coords.x,
-                        start_coords.y,
-                        end_coords.x,
-                        end_coords.y,
-                        buff,
-                        BasicVar("pid"),
-                        BasicVar("display"),
-                    ]
-                ),
-            )
+        start_coords: Coordinates
+        end_coords: Coordinates
+        buff: AbstractBasicExpression
+        _, _, start_coords, _, _, end_coords, _, _, buff, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hget",
+            BasicExpressionList(
+                [
+                    start_coords.x,
+                    start_coords.y,
+                    end_coords.x,
+                    end_coords.y,
+                    buff,
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ]
+            ),
+        )
 
     def visit_hput_statement(self, _, visited_children) -> AbstractBasicStatement:
-            start_coords: Coordinates
-            end_coords: Coordinates
-            buff: AbstractBasicExpression
-            action: PutDrawAction
-            _, _, start_coords, _, _, end_coords, _, _, buff, _, _, _, action, _ = visited_children
-            return BasicRunCall(
-                "run ecb_hput",
-                BasicExpressionList(
-                    [
-                        start_coords.x,
-                        start_coords.y,
-                        end_coords.x,
-                        end_coords.y,
-                        buff,
-                        BasicLiteral(action),
-                        BasicVar("pid"),
-                        BasicVar("display"),
-                    ]
-                ),
-            )
+        start_coords: Coordinates
+        end_coords: Coordinates
+        buff: AbstractBasicExpression
+        action: PutDrawAction
+        _, _, start_coords, _, _, end_coords, _, _, buff, _, _, _, action, _ = (
+            visited_children
+        )
+        return BasicRunCall(
+            "run ecb_hput",
+            BasicExpressionList(
+                [
+                    start_coords.x,
+                    start_coords.y,
+                    end_coords.x,
+                    end_coords.y,
+                    buff,
+                    BasicLiteral(action),
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ]
+            ),
+        )
 
     def visit_draw_mode(self, node, visited_children) -> PutDrawAction:
         return node.text

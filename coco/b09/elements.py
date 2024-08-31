@@ -145,7 +145,56 @@ class BasicAssignment(AbstractBasicStatement):
         self._exp.visit(visitor)
 
 
+class BasicBinaryExpFragment:
+    def __init__(
+        self,
+        op: "BasicOperator",
+        exp2: AbstractBasicExpression,
+        is_str_expr: bool = False,
+    ):
+        super().__init__(is_str_expr=True)
+        self._op: BasicOperator = op
+        self._exp2: AbstractBasicExpression = exp2
+
+    @property
+    def op(self) -> "BasicOperator":
+        return self._op
+
+    @property
+    def exp2(self) -> AbstractBasicExpression:
+        return self._exp2
+
+
+class BinaryExpressionException(Exception):
+    pass
+
+
 class BasicBinaryExp(AbstractBasicExpression):
+    @classmethod
+    def from_exp_op_and_fragments(
+        cls,
+        exp: "BasicBinaryExp",
+        op: "BasicOperator",
+        fragments: List[BasicBinaryExpFragment],
+    ):
+        ii = len(fragments) - 1
+        if ii < 0:
+            raise BinaryExpressionException()
+
+        current_fragment = fragments[ii]
+        while ii >= 1:
+            prior_fragment = fragments[ii - 1]
+            current_fragment = BasicBinaryExpFragment(
+                prior_fragment.op,
+                AbstractBasicExpression(
+                    prior_fragment.exp2,
+                    current_fragment.op,
+                    current_fragment.exp2,
+                    is_str_expr=exp.is_str_expr,
+                ),
+            )
+        return BasicBinaryExp(exp, current_fragment.op, current_fragment.exp2)
+
     def __init__(
         self,
         exp1: AbstractBasicExpression,
@@ -1300,5 +1349,6 @@ class BasicHbuffStatement(BasicRunCall):
                 ]
             ),
         )
+
 
 PutDrawAction = Literal["AND", "NOT", "OR", "PRESET", "PSET", "XOR"]

@@ -998,8 +998,8 @@ class TestB09(unittest.TestCase):
 
     def test_hprint_num(self) -> None:
         self.generic_test_parse(
-            '10 HPRINT(10, 20), 3.0',
-            '10 run ecb_hprint(10.0, 20.0, run ecb_str(3.0), display)',
+            "10 HPRINT(10, 20), 3.0",
+            "10 run ecb_hprint(10.0, 20.0, run ecb_str(3.0), display)",
         )
 
     def test_on_brk(self) -> None:
@@ -1188,10 +1188,9 @@ class TestB09(unittest.TestCase):
             "10 CLS 0\0",
             "10 RUN ecb_cls(0.0, display)",
         )
-    
+
     def test_4x_exp(self) -> None:
         self.generic_test_parse(
             "10 DP = A + B + C + D",
             "10 DP := A + B + C + D",
         )
-        
