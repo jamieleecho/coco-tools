@@ -427,7 +427,7 @@ class BasicIfElse(BasicIf):
         self._else_statements = else_statements
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
-        visitor.visit_statement(self)
+        super().visit(visitor)
         statement: BasicIf
         for statement in self._else_if_statements:
             statement.visit(visitor)

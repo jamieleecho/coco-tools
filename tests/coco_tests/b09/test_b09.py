@@ -1249,3 +1249,9 @@ class TestB09(unittest.TestCase):
             "  CC := SC / CT\n"
             "ENDIF",
         )
+
+    def test_int_lvalue(self) -> None:
+        self.generic_test_parse(
+            "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
+            "100 IF WW = 1.0 AND tmp_1 > 0.0 THEN\n  GOTO 100\nELSE\n  GOTO 100\nENDIF",
+        )
