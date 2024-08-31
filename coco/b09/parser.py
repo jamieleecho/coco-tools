@@ -1,5 +1,6 @@
 from typing import List, Union
 from parsimonious import NodeVisitor
+from parsimonious.nodes import Node
 
 from coco import b09
 from coco.b09.grammar import (
@@ -965,16 +966,19 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_hprint_statement(self, _, visited_children) -> AbstractBasicStatement:
-        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, str_exp, _ = (
+        exp: AbstractBasicExpression
+        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, exp, _ = (
             visited_children
         )
+        if not exp.is_str_expr:
+            exp = BasicRunCall("run ecb_str", BasicExpressionList([exp]))
         return BasicRunCall(
             "run ecb_hprint",
             BasicExpressionList(
                 [
                     expr_x,
                     expr_y,
-                    str_exp,
+                    exp,
                     BasicVar("display"),
                 ]
             ),

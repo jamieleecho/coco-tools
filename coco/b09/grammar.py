@@ -215,7 +215,7 @@ KEYWORDS = "|".join(
 
 grammar = Grammar(
     rf"""
-    aaa_prog            = multi_line eol* eof
+    aaa_prog            = multi_line eol* ~r"\x00?" eof
     multi_line          = line space* multi_line_elements
     multi_line_elements = multi_line_element*
     multi_line_element  = eol+ line space*
@@ -321,8 +321,8 @@ grammar = Grammar(
     num_and_exp_elements = num_and_exp_element*
     num_and_exp_element  = "AND" space* num_gtle_exp space*
     num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
-    num_sum_exp     = num_prod_exp space* (("+" / "-") space*
-                                           num_prod_exp space*)*
+    num_sum_exp     = num_prod_exp space* num_sum_exp2*
+    num_sum_exp2    = (("+" / "-") space* num_prod_exp space*)
     num_prod_exp    = num_power_exp space* (("*" / "/") space* num_power_exp space*)*
     num_power_exp   = val_exp space* ("^" space* val_exp space*)*
     func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
@@ -455,7 +455,7 @@ grammar = Grammar(
     hcircle_optional         = "," space* exp? space*
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
     harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
-    hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* str_exp space*
+    hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* print_arg space*
     hcolor_statement         = "HCOLOR" space* exp space* "," space* exp space*
     hcolor1_statement        = "HCOLOR" space* exp space*
     hline_relative_statement = "HLINE" space* line_suffix
