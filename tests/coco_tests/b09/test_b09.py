@@ -1210,13 +1210,28 @@ class TestB09(unittest.TestCase):
     def test_if_else_if(self) -> None:
         self.generic_test_parse(
             "10 IF RN<D1 THEN X = 2 ELSE IF RN=2 THEN 10",
-            "10 IF RN < D1 THEN X = 2 \ ELSE IF RN THEN 10 \ ENDIF \ ENDIF",
+            "10 LOOP\n" \
+            "  EXITIF RN < D1 THEN\n" \
+            "    X := 2.0\n" \
+            "  ENDEXIT\n" \
+            "  EXITIF RN = 2.0 THEN\n" \
+            "    GOTO 10\n" \
+            "  ENDEXIT\n" \
+            "ENDLOOP"
         )
 
     def test_if_else_if_else(self) -> None:
         self.generic_test_parse(
             "10 IF RN<D1 THEN X = 2 ELSE IF RN=2 THEN 10 ELSE X=3",
-            "10 IF RN < D1 THEN X = 2 \ ELSE IF RN THEN 10 \ ENDIF \ ENDIF",
+            "10 LOOP\n" \
+            "  EXITIF RN < D1 THEN\n" \
+            "    X := 2.0\n" \
+            "  ENDEXIT\n" \
+            "  EXITIF RN = 2.0 THEN\n" \
+            "    GOTO 10\n" \
+            "  ENDEXIT\n" \
+            "    X := 3.0\n" \
+            "ENDLOOP"
         )
 
     def test_else(self) -> None:

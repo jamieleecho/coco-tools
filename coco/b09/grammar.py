@@ -227,13 +227,15 @@ grammar = Grammar(
     exp_list        = "(" space* exp space* exp_sublist ")"
     exp_sublist     = exp_sublist_mbr*
     exp_sublist_mbr = ("," space* exp space*)
-    if_else_stmnt   = ("IF" space* if_exp space*
-                       "THEN" space* explicit_line_or_stmnts space* else_stmnt)
     if_if_else_stmnt = ("IF" space* if_exp space*
-                        "THEN" space* explicit_line_or_stmnts space* else_if_stmnts)
+                        "THEN" space* explicit_line_or_stmnts space* else_if_stmnts
+                        else_stmnts)
+    if_else_stmnt    = ("IF" space* if_exp space*
+                        "THEN" space* explicit_line_or_stmnts else_stmnt)
     else_if_stmnts  = else_if_stmnt+
     else_if_stmnt   = ("ELSE" space* "IF" space* if_exp space*
                        "THEN" space* explicit_line_or_stmnts space*)
+    else_stmnts     = else_stmnt?
     else_stmnt      = ("ELSE" space* explicit_line_or_stmnts space*)
     if_stmnt        = ("IF" space* if_exp space*
                        "THEN" space* line_or_stmnts)

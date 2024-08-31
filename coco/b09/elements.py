@@ -420,7 +420,7 @@ class BasicIfElse(BasicIf):
         if_exp: AbstractBasicExpression,
         then_statements: BasicStatementsOrBasicGoto,
         else_if_statements: List[BasicIf],
-        else_statements: BasicStatementsOrBasicGoto | None = None,
+        else_statements: Union[BasicStatementsOrBasicGoto, None] = None,
     ):
         super().__init__(if_exp, then_statements)
         self._else_if_statements = else_if_statements
@@ -435,6 +435,22 @@ class BasicIfElse(BasicIf):
             self._else_statements.visit(visitor)
 
     def basic09_text(self, indent_level: int) -> str:
+        if self._else_if_statements:
+            all_if_statements = [self] + self._else_if_statements
+
+            exit_statements: str = "\n".join((
+                f"{self.indent_spaces(indent_level + 1)}EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
+                f"{ifstmnt.statements.basic09_text(indent_level + 2)}\n"
+                f"{self.indent_spaces(indent_level + 1)}ENDEXIT"
+                for ifstmnt in all_if_statements
+            ))
+            else_suffix = "" if self._else_statements is None else f"{self._else_statements.basic09_text(indent_level + 2)}\n"
+            return \
+                f"{self.indent_spaces(indent_level)}LOOP\n" \
+                f"{exit_statements}\n" \
+                f"{else_suffix}" \
+                f"{self.indent_spaces(indent_level)}ENDLOOP"
+        
         else_suffix = "" if self._else_statements is None else f"{self.indent_spaces(indent_level)}ELSE\n" \
             f"{self._else_statements.basic09_text(indent_level + 1)}\n"
         suffix = else_suffix + \
