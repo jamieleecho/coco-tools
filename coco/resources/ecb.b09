@@ -479,6 +479,14 @@ display.hpx = xx1
 display.hpy = yy1
 
 
+PROCEDURE ecb_hpaint
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+param x, y, c, c0: real
+param d: display_t
+RUN GFX2(d.hpth, "COLOR", FIX(c))
+RUN GFX2(d.hpth, "FILL", FIX(x), FIX(y))
+
+
 procedure ecb_hprint
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y: real
@@ -513,14 +521,6 @@ endif
 t = left$(txt, mx - xi + 1)
 run gfx2(display.hpth, "curxy", xi, yi)
 print #display.hpth, t;
-
-
-PROCEDURE ecb_hpaint
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
-param x, y, c, c0: real
-param d: display_t
-RUN GFX2(d.hpth, "COLOR", FIX(c))
-RUN GFX2(d.hpth, "FILL", FIX(x), FIX(y))
 
 
 procedure ecb_hscreen
@@ -607,6 +607,42 @@ else
     run _ecb_dup(fix(display.hpth), path0)
 
 endif
+
+
+PROCEDURE ecb_hput
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM x0, y0, x1, y1, b: REAL
+PARAM a: STRING
+PARAM p: INTEGER
+PARAM d: display_t
+DIM xx0, yy0, xx1, yy1: INTEGER
+RUN _ecb_min(xx0, FIX(x0), FIX(x1))
+RUN _ecb_min(yy0, FIX(y0), FIX(y1))
+RUN _ecb_max(xx1, FIX(x0), FIX(x1))
+RUN _ecb_max(yy1, FIX(y0), FIX(y1))
+IF a = "NOT" THEN
+    RUN GFX2(d.hpth, "LOGIC", "XOR")
+    RUN GFX2(d.hpth, "COLOR", 15)
+    RUN GFX2(d.hpth, "BAR", xx0, yy0, xx1, yy1)
+    RUN GFX2(d.hpth, "LOGIC", "OFF")
+    RUN GFX2(d.hpth, "COLOR", FIX(d.hfore))
+ELSE
+    IF a = "AND" OR a = "OR" OR a = "XOR" THEN
+        RUN GFX2(d.hpth, "LOGIC", a)
+        RUN GFX2(d.hpth, "PUT", p, FIX(b), xx0, yy0)
+        RUN GFX2(d.hpth, "LOGIC", "OFF")
+    ELSE
+        RUN GFX2(d.hpth, "PUT", p, FIX(b), xx0, yy0)
+        IF A = "PRESET" THEN
+            RUN GFX2(d.hpth, "LOGIC", "XOR")
+            RUN GFX2(d.hpth, "COLOR", 15)
+            RUN GFX2(d.hpth, "BAR", xx0, yy0, xx1, yy1)
+            RUN GFX2(d.hpth, "LOGIC", "OFF")
+            RUN GFX2(d.hpth, "COLOR", FIX(d.hfore))
+        ENDIF
+    ENDIF
+ENDIF
+        
 
 
 procedure ecb_hreset

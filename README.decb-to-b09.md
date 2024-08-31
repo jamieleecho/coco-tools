@@ -112,8 +112,7 @@ NEXT BB
   20 bytes more than the equivalent DECB program. It is therefore possible that
   DECB programs that use close to 8KB of space may not run properly.
 * `HPUT` ignores the end pixels and instead always draws the same shape
-  specified by `HGET`. The only supported DECB drawing modes are `PSET`, `AND`
-  and `OR`. An `XOR` mode is added for convenience.
+  specified by `HGET`. XOR is added as a drawing action.
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:

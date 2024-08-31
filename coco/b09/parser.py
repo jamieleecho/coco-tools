@@ -73,6 +73,7 @@ from coco.b09.elements import (
     LineSuffix,
     LineType,
     PsetOrPreset,
+    PutDrawAction,
 )
 from coco.b09 import error_handler
 from coco.b09.grammar import PROCNAME_REGEX
@@ -1167,6 +1168,31 @@ class BasicVisitor(NodeVisitor):
                     ]
                 ),
             )
+
+    def visit_hput_statement(self, _, visited_children) -> AbstractBasicStatement:
+            start_coords: Coordinates
+            end_coords: Coordinates
+            buff: AbstractBasicExpression
+            action: PutDrawAction
+            _, _, start_coords, _, _, end_coords, _, _, buff, _, _, _, action, _ = visited_children
+            return BasicRunCall(
+                "run ecb_hput",
+                BasicExpressionList(
+                    [
+                        start_coords.x,
+                        start_coords.y,
+                        end_coords.x,
+                        end_coords.y,
+                        buff,
+                        BasicLiteral(action),
+                        BasicVar("pid"),
+                        BasicVar("display"),
+                    ]
+                ),
+            )
+
+    def visit_draw_mode(self, node, visited_children) -> PutDrawAction:
+        return node.text
 
     def visit_hpaint_statement(self, _, visited_children) -> AbstractBasicStatement:
         coords: Coordinates

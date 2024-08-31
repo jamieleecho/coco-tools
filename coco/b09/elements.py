@@ -1300,3 +1300,5 @@ class BasicHbuffStatement(BasicRunCall):
                 ]
             ),
         )
+
+PutDrawAction = Literal["AND", "NOT", "OR", "PRESET", "PSET", "XOR"]
