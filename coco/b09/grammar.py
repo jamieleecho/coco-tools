@@ -494,6 +494,10 @@ grammar = Grammar(
     hget_statement           = "HGET" space* coords "-" space* coords "," space* exp space*
     hput_statement           = "HPUT" space* coords "-" space* coords "," space* exp space* "," space* draw_mode space*
     draw_mode                = "AND" / "NOT" / "OR" / "PRESET" / "PSET" / "XOR"
-    hpaint_statement         = "HPAINT" space* coords "," space* exp space* "," space* exp space*
+    hpaint_statement         = "HPAINT" space* coords space* hpaint_args
+    hpaint_args              = hpaint_2arg / hpaint_1arg / space*
+    hpaint_2arg              = hpaint_arg hpaint_arg
+    hpaint_1arg              = hpaint_arg space*
+    hpaint_arg               = "," space* exp space*
     """  # noqa
 )

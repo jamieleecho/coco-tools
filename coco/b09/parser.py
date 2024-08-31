@@ -571,12 +571,16 @@ class BasicVisitor(NodeVisitor):
         )
         return BasicStatements(statement_elements)
 
-    def visit_last_statement(self, _, visited_children) -> Union[BasicComment, BasicAssignment]:
+    def visit_last_statement(
+        self, _, visited_children
+    ) -> Union[BasicComment, BasicAssignment]:
         return visited_children[0]
 
     def visit_partial_str_arr_assign(self, _, visited_children):
         let_kw, _, str_array_ref_exp, _, _, _, str_lit = visited_children
-        return BasicAssignment(str_array_ref_exp, BasicLiteral(str_lit.text[1:]), let_kw=let_kw != "")
+        return BasicAssignment(
+            str_array_ref_exp, BasicLiteral(str_lit.text[1:]), let_kw=let_kw != ""
+        )
 
     def visit_partial_str_assign(self, node, visited_children) -> BasicAssignment:
         let_kw, _, str_var, _, _, _, str_lit = visited_children
@@ -1311,9 +1315,22 @@ class BasicVisitor(NodeVisitor):
 
     def visit_hpaint_statement(self, _, visited_children) -> AbstractBasicStatement:
         coords: Coordinates
-        color: AbstractBasicExpression
-        stop_color: AbstractBasicExpression
-        _, _, coords, _, _, color, _, _, _, stop_color, _ = visited_children
+        hpaint_args: List[AbstractBasicExpression]
+        _, _, coords, _, hpaint_args = visited_children
+        color: AbstractBasicExpression = (
+            hpaint_args[0]
+            if len(hpaint_args) >= 1
+            else BasicFunctionCall(
+                "FLOAT", BasicExpressionList([BasicVar("display.hfore")])
+            )
+        )
+        stop_color: AbstractBasicExpression = (
+            hpaint_args[1]
+            if len(hpaint_args) >= 2
+            else BasicFunctionCall(
+                "FLOAT", BasicExpressionList([BasicVar("display.hfore")])
+            )
+        )
         return BasicRunCall(
             "run ecb_hpaint",
             BasicExpressionList(
@@ -1326,6 +1343,19 @@ class BasicVisitor(NodeVisitor):
                 ]
             ),
         )
+
+    def visit_hpaint_args(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children[0]
+
+    def visit_hpaint_1arg(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children[:1]
+
+    def visit_hpaint_2arg(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children
+
+    def visit_hpaint_arg(self, _, visited_children) -> AbstractBasicExpression:
+        _, _, exp, _ = visited_children
+        return exp
 
 
 class ParseError(Exception):

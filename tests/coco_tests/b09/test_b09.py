@@ -1183,6 +1183,18 @@ class TestB09(unittest.TestCase):
             "10 run ecb_hpaint(123.0, 45.0, 10.0, 5.0, display)",
         )
 
+    def test_hpaint_statement_no_color(self) -> None:
+        self.generic_test_parse(
+            "10 HPAINT(123, 45)",
+            "10 run ecb_hpaint(123.0, 45.0, FLOAT(display.hfore), FLOAT(display.hfore), display)",
+        )
+
+    def test_hpaint_statement_only_fill_color(self) -> None:
+        self.generic_test_parse(
+            "10 HPAINT(123, 45), 2",
+            "10 run ecb_hpaint(123.0, 45.0, 2.0, FLOAT(display.hfore), display)",
+        )
+
     def test_tolerates_null_char_at_end(self) -> None:
         self.generic_test_parse(
             "10 CLS 0\0",
