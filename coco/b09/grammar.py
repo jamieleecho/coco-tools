@@ -323,7 +323,7 @@ grammar = Grammar(
                     / bool_bin_exp
     bool_paren_exp  = "(" space* bool_exp space* ")" space*
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
-    bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
+    bool_str_exp    = str_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* str_exp space*
     num_exp              = num_and_exp space* num_exp_elements
     num_exp_elements     = num_exp_element*
     num_exp_element      = "OR" space* num_and_exp space*

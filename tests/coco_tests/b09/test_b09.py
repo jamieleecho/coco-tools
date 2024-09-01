@@ -1279,3 +1279,33 @@ class TestB09(unittest.TestCase):
             '100 A$(1) = "HELLO',
             '100 arr_A$(1.0) := "HELLO"',
         )
+
+    def test_str_less_than(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" < "B" THEN 100',
+            '100 IF "A" < "B" THEN 100',
+        )
+
+    def test_str_greater_than(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" > "B" THEN 100',
+            '100 IF "A" > "B" THEN 100',
+        )
+
+    def test_str_less_than_or_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" <= "B" THEN 100',
+            '100 IF "A" <= "B" THEN 100',
+        )
+
+    def test_str_greater_than_or_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" >= "B" THEN 100',
+            '100 IF "A" >= "B" THEN 100',
+        )
+
+    def test_str_not_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" <> "B" THEN 100',
+            '100 IF "A" <> "B" THEN 100',
+        )
