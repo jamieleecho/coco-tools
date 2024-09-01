@@ -81,7 +81,7 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 
 
 class BasicArrayRef(AbstractBasicExpression):
-    def __init__(self, var, indices, is_str_expr=False):
+    def __init__(self, var: "BasicVar", indices, is_str_expr: bool = False):
         super().__init__(is_str_expr=is_str_expr)
         self._var = BasicVar(f"arr_{var.name()}", is_str_expr=is_str_expr)
         self._indices = indices
@@ -145,7 +145,57 @@ class BasicAssignment(AbstractBasicStatement):
         self._exp.visit(visitor)
 
 
+class BasicBinaryExpFragment:
+    def __init__(
+        self,
+        op: "BasicOperator",
+        exp2: AbstractBasicExpression,
+    ):
+        self._op: BasicOperator = op
+        self._exp2: AbstractBasicExpression = exp2
+
+    @property
+    def op(self) -> "BasicOperator":
+        return self._op
+
+    @property
+    def exp2(self) -> AbstractBasicExpression:
+        return self._exp2
+
+
+class BinaryExpressionException(Exception):
+    pass
+
+
 class BasicBinaryExp(AbstractBasicExpression):
+    @classmethod
+    def from_exp_op_and_fragments(
+        cls,
+        exp: "BasicBinaryExp",
+        op: "BasicOperator",
+        fragments: List[BasicBinaryExpFragment],
+    ):
+        ii = len(fragments) - 1
+        if ii < 0:
+            raise BinaryExpressionException()
+
+        current_fragment = fragments[ii]
+        while ii >= 1:
+            prior_fragment = fragments[ii - 1]
+            current_fragment = BasicBinaryExpFragment(
+                prior_fragment.op,
+                BasicBinaryExp(
+                    prior_fragment.exp2,
+                    current_fragment.op.basic09_text(0),
+                    current_fragment.exp2,
+                    is_str_expr=exp.is_str_expr,
+                ),
+            )
+            ii = ii - 1
+        return BasicBinaryExp(
+            exp, current_fragment.op.basic09_text(0), current_fragment.exp2
+        )
+
     def __init__(
         self,
         exp1: AbstractBasicExpression,
@@ -351,11 +401,80 @@ class BasicIf(AbstractBasicStatement):
         self._exp.visit(visitor)
         self._statements.visit(visitor)
 
+    @property
+    def exp(self) -> AbstractBasicExpression:
+        return self._exp
+
+    @property
+    def statements(self) -> AbstractBasicExpression:
+        return self._statements
+
+
+class BasicIfElse(BasicIf):
+    _else_if_statements: List[BasicIf]
+    _else_statements: BasicStatementsOrBasicGoto
+
+    def __init__(
+        self,
+        *,
+        if_exp: AbstractBasicExpression,
+        then_statements: BasicStatementsOrBasicGoto,
+        else_if_statements: List[BasicIf],
+        else_statements: Union[BasicStatementsOrBasicGoto, None] = None,
+    ):
+        super().__init__(if_exp, then_statements)
+        self._else_if_statements = else_if_statements
+        self._else_statements = else_statements
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        super().visit(visitor)
+        statement: BasicIf
+        for statement in self._else_if_statements:
+            statement.visit(visitor)
+        if self._else_statements is not None:
+            self._else_statements.visit(visitor)
+
+    def basic09_text(self, indent_level: int) -> str:
+        if self._else_if_statements:
+            all_if_statements = [self] + self._else_if_statements
+
+            exit_statements: str = "\n".join(
+                (
+                    f"{self.indent_spaces(indent_level + 1)}EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
+                    f"{ifstmnt.statements.basic09_text(indent_level + 2)}\n"
+                    f"{self.indent_spaces(indent_level + 1)}ENDEXIT"
+                    for ifstmnt in all_if_statements
+                )
+            )
+            else_suffix = (
+                ""
+                if self._else_statements is None
+                else f"{self._else_statements.basic09_text(indent_level + 2)}\n"
+            )
+            return (
+                f"{self.indent_spaces(indent_level)}LOOP\n"
+                f"{exit_statements}\n"
+                f"{else_suffix}"
+                f"{self.indent_spaces(indent_level)}ENDLOOP"
+            )
+
+        else_suffix = (
+            ""
+            if self._else_statements is None
+            else f"{self.indent_spaces(indent_level)}ELSE\n"
+            f"{self._else_statements.basic09_text(indent_level + 1)}\n"
+        )
+        suffix = else_suffix + f"{self.indent_spaces(indent_level)}ENDIF"
+        return (
+            f"{self.indent_spaces(indent_level)}IF {self.exp.basic09_text(0)} THEN\n"
+            f"{self.statements.basic09_text(indent_level + 1)}\n"
+        ) + suffix
+
 
 class BasicLine(AbstractBasicConstruct):
-    def __init__(self, num: Union[int, None], statements: "BasicStatements"):
+    def __init__(self, num: Union[int, None], statements: "BasicStatement"):
         self._num: Union[int, None] = num
-        self._statements: BasicStatements = statements
+        self._statements: BasicStatement = statements
         self._is_referenced: bool = True
 
     @property
@@ -476,8 +595,9 @@ class BasicBooleanOpExp(BasicOpExp):
 
 
 class BasicParenExp(AbstractBasicExpression):
-    def __init__(self, exp):
+    def __init__(self, exp: AbstractBasicExpression):
         self._exp = exp
+        self._is_str_expr = exp.is_str_expr
 
     def basic09_text(self, indent_level: int) -> str:
         return f"({self._exp.basic09_text(indent_level)})"
@@ -848,7 +968,7 @@ class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
 
-    def __init__(self, dim_vars):
+    def __init__(self, dim_vars: List["BasicArrayRef | BasicVar"]):
         super().__init__()
         self._default_str_storage = DEFAULT_STR_STORAGE
         self._dim_vars = [
@@ -1283,3 +1403,23 @@ class LineSuffix:
     @property
     def line_type(self) -> LineType:
         return self._line_type
+
+
+class BasicHbuffStatement(BasicRunCall):
+    def __init__(
+        self, *, buffer: AbstractBasicExpression, size: AbstractBasicExpression
+    ):
+        super().__init__(
+            "run _ecb_hbuff",
+            BasicExpressionList(
+                [
+                    buffer,
+                    size,
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+
+PutDrawAction = Literal["AND", "NOT", "OR", "PRESET", "PSET", "XOR"]

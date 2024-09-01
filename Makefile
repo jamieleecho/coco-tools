@@ -6,6 +6,8 @@ MAME=$(MAME_DIR)/mame
 TARGET=os9boot.dsk
 TARGET_DECB=basic.dsk
 
+STR_BUFFER_BYTES=200
+
 TMPTARGET=$(TARGET:.dsk=.tmp)
 TMPTARGET_DECB=$(TARGET_DECB:.dsk=.tmp)
 PLAYGROUND=playground
@@ -37,25 +39,24 @@ build: lint
 test:
 	coverage run -m pytest && coverage report --show-missing
 
-$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS) $(RESOURCES) build
+$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS)
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
-	zsh -c 'for each in $(RESOURCE_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
 	zsh -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
-	mv $(TMPTARGET) $(@)
+	cp $(TMPTARGET) $(@)
 
 $(TARGET_DECB) : $(EXAMPLES_INPUTS)
 	$(DECB) dskini $(TMPTARGET_DECB)
 	zsh -c 'for each in $(EXAMPLES_INPUTS); do $(DECB) copy -t $${each} $(TMPTARGET_DECB),`basename $${(U)each}`; done'
 	mv $(TMPTARGET_DECB) $(@)
 
-$(TMPTARGET) :
+$(TMPTARGET) : $(OS9BOOTSOURCE)
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
 
 $(EXAMPLE_OUTPUT_DIR):
 	mkdir -p $(EXAMPLE_OUTPUT_DIR)
 
-$(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR)
-	decb-to-b09 -s50 -w $< $@
+$(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR) $(RESOURCES)
+	decb-to-b09 -s$(STR_BUFFER_BYTES) -w $< $@
 
 clean :
 	rm -rf $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~

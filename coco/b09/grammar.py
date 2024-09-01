@@ -109,38 +109,92 @@ QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES = [
 KEYWORDS = "|".join(
     chain(
         (
+            "ABS",
             "AND",
+            "ASC",
+            "ATN",
+            "ATTR",
             "BRK",
+            "BUTTON",
+            "CHR$",
             "CLS",
             "CLEAR",
             "CMP",
+            "COS",
             "DATA",
             "DIM",
-            "ERNO" "ERR" "ELSE",
+            "ELSE",
+            "END",
+            "ERNO",
+            "ERR",
+            "EXP",
+            "FIX",
             "FOR",
             "GOSUB",
             "GOTO",
-            "HCIRCLE",
+            "HBUFF",
+            "HGET" "HCIRCLE",
             "HCLS",
             "HCOLOR",
+            "HEX$",
+            "HLINE",
+            "HPAINT",
             "HPRINT",
+            "HPUT",
+            "HRESET",
+            "HSET",
             "HSCREEN",
             "IF",
+            "INKEY$",
             "INPUT",
-            "INPUT",
+            "INSTR",
+            "INT",
             "JOYSTK",
+            "LEFT",
+            "LEN",
+            "LET",
             "LINE",
             "LOCATE",
+            "LOG",
             "NOT",
             "OR",
+            "MID$",
+            "NEXT",
+            "NOT",
+            "OPEN",
+            "OR",
             "PALETTE",
+            "PEEK",
+            "PLAY",
+            "POKE",
+            "PRESET",
             "PRINT",
+            "PSET",
             "READ",
             "REM",
+            "RESET",
+            "RESTORE",
+            "RETURN",
             "RGB",
+            "RIGHT$",
+            "RND",
+            "SET",
+            "SGN",
+            "SIN",
             "SOUND",
+            "SQRT",
             "STEP",
+            "STOP",
+            "STR$",
+            "STRING$",
+            "TAB",
+            "TAN",
             "THEN",
+            "TO",
+            "TROFF",
+            "TRON",
+            "WIDTH",
+            "VAL",
             "VARPTR",
         ),
         SINGLE_KEYWORD_STATEMENTS.keys(),
@@ -160,7 +214,7 @@ KEYWORDS = "|".join(
 
 grammar = Grammar(
     rf"""
-    aaa_prog            = multi_line eol* eof
+    aaa_prog            = multi_line eol* ~r"\x00?" eof
     multi_line          = line space* multi_line_elements
     multi_line_elements = multi_line_element*
     multi_line_element  = eol+ line space*
@@ -173,19 +227,27 @@ grammar = Grammar(
     exp_list        = "(" space* exp space* exp_sublist ")"
     exp_sublist     = exp_sublist_mbr*
     exp_sublist_mbr = ("," space* exp space*)
-    if_else_stmnt   = ("IF" space* if_exp space*
-                       "THEN" space* line_or_stmnts2 space*
-                       "ELSE" space* line_or_stmnts)
+    if_if_else_stmnt = ("IF" space* if_exp space*
+                        "THEN" space* explicit_line_or_stmnts space* else_if_stmnts
+                        else_stmnts)
+    if_else_stmnt    = ("IF" space* if_exp space*
+                        "THEN" space* explicit_line_or_stmnts space* else_stmnt)
+    else_if_stmnts  = else_if_stmnt+
+    else_if_stmnt   = ("ELSE" space* "IF" space* if_exp space*
+                       "THEN" space* explicit_line_or_stmnts space*)
+    else_stmnts     = else_stmnt?
+    else_stmnt      = ("ELSE" space* explicit_line_or_stmnts space*)
     if_stmnt        = ("IF" space* if_exp space*
                        "THEN" space* line_or_stmnts)
     line            = linenum space* statements space*
     line_or_stmnts  = linenum
                     / statements
-    line_or_stmnts2 = linenum
-                    / statements_else
+    explicit_line_or_stmnts  = linenum
+                             / statements
     str_assign      = "LET"? space* str_var space* "=" space* str_exp
     num_assign      = "LET"? space* var space* "=" space* exp
-    statement       = if_else_stmnt
+    statement       = if_if_else_stmnt
+                    / if_else_stmnt
                     / if_stmnt
                     / print_at_statement
                     / print_at_statement0
@@ -232,9 +294,17 @@ grammar = Grammar(
                     / hset3_statement
                     / hset_statement
                     / play_statement
+                    / hdraw_statement
+                    / hbuff_statement
+                    / hget_statement
+                    / hput_statement
+                    / hpaint_statement
     statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
     statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
-    statements           = statement? space* statements_elements space* comment?
+    statements           = statement? space* statements_elements space* last_statement?
+    last_statement  = comment / partial_str_arr_assign / partial_str_assign
+    partial_str_arr_assign = "LET"? space* str_array_ref_exp space* "=" space* partial_str_lit
+    partial_str_assign = "LET"? space* str_var space* "=" space* partial_str_lit
     statements_elements  = statements_element*
     statements_element   = ":" space* statement? space*
     statements_else      = statements
@@ -251,20 +321,27 @@ grammar = Grammar(
     bool_val_exp    = bool_paren_exp
                     / bool_str_exp
                     / bool_bin_exp
-    bool_paren_exp  = "(" space* bool_exp space* ")"
+    bool_paren_exp  = "(" space* bool_exp space* ")" space*
     bool_bin_exp    = num_sum_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*
-    bool_str_exp    = str_exp space* ("<>" / "=") space* str_exp space*
+    bool_str_exp    = str_exp space* ("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* str_exp space*
     num_exp              = num_and_exp space* num_exp_elements
     num_exp_elements     = num_exp_element*
     num_exp_element      = "OR" space* num_and_exp space*
     num_and_exp          = num_gtle_exp space* num_and_exp_elements
     num_and_exp_elements = num_and_exp_element*
     num_and_exp_element  = "AND" space* num_gtle_exp space*
-    num_gtle_exp    = num_sum_exp space* (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)*
-    num_sum_exp     = num_prod_exp space* (("+" / "-") space*
-                                           num_prod_exp space*)*
-    num_prod_exp    = num_power_exp space* (("*" / "/") space* num_power_exp space*)*
-    num_power_exp   = val_exp space* ("^" space* val_exp space*)*
+    num_gtle_exp         = num_sum_exp space* num_glte_sub_exps
+    num_glte_sub_exps    = num_glte_sub_exp?
+    num_glte_sub_exp     = (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)
+    num_sum_exp          = num_prod_exp space* num_sum_sub_exps
+    num_sum_sub_exps     = num_sum_sub_exp*
+    num_sum_sub_exp      = (("+" / "-") space* num_prod_exp space*)
+    num_prod_exp         = num_power_exp space* num_prod_sub_exps
+    num_prod_sub_exps    = num_prod_sub_exp*
+    num_prod_sub_exp     = (("*" / "/") space* num_power_exp space*)
+    num_power_exp        = val_exp space* num_power_sub_exps
+    num_power_sub_exps   = num_power_sub_exp*
+    num_power_sub_exp    = ("^" space* val_exp space*)
     func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
     func_str_exp    = ({ ' / '.join(QUOTED_STR_NUM_FUNCTIONS_NAMES)}) space* "(" space* str_exp space* ")" space*
     val_exp         = num_literal
@@ -300,7 +377,7 @@ grammar = Grammar(
                      / str_func_exp_statements
                      / str_array_ref_exp
                      / str_var
-    comment_text    = ~r"[^\r\n$]*"
+    comment_text    = ~r".*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
     eol             = ~r"[\n\r]+"
@@ -312,6 +389,7 @@ grammar = Grammar(
     int_hex_literal = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"
     space           = ~r" "
     str_literal     = ~r'\"[^"\n]*\"'
+    partial_str_lit = ~r'\"[^"\n]*'
     unop            = "+" / "-"
     var             = ~r"(?!{KEYWORDS}|([A-Z][A-Z0-9]*\$))([A-Z][A-Z0-9]*)"
     str_var         = ~r"(?!{KEYWORDS})([A-Z][A-Z0-9]*)\$"
@@ -329,8 +407,8 @@ grammar = Grammar(
     poke_statement  = "POKE" space* exp space* "," space* exp space*
     cls             = "CLS" space* exp? space*
     go_statement    = ("GOTO" / "GOSUB") space* linenum space*
-    on_brk_go_statement = "ON" space* "ERR" space* "GOTO" space* linenum space*
-    on_err_go_statement = "ON" space* "BRK" space* "GOTO" space* linenum space*
+    on_err_go_statement = "ON" space* "ERR" space* "GOTO" space* linenum space*
+    on_brk_go_statement = "ON" space* "BRK" space* "GOTO" space* linenum space*
     on_n_go_statement   = "ON" space* exp space* ("GOTO" / "GOSUB") space* linenum_list space*
     linenum_list        = linenum space* linenum_list0
     linenum_list0       = linenum_list_elem*
@@ -395,7 +473,7 @@ grammar = Grammar(
     hcircle_optional         = "," space* exp? space*
     hellipse_statement       = hcircle_prefix hcircle_optional "," space* exp space*
     harc_statement           = hellipse_statement "," space* exp space* "," space* exp space*
-    hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* str_exp space*
+    hprint_statement         = "HPRINT" space* "(" space* exp space* "," space* exp space* ")" space* "," space* print_arg space*
     hcolor_statement         = "HCOLOR" space* exp space* "," space* exp space*
     hcolor1_statement        = "HCOLOR" space* exp space*
     hline_relative_statement = "HLINE" space* line_suffix
@@ -411,5 +489,15 @@ grammar = Grammar(
     coords3                  = "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     erno_expr                = "ERNO" space*
     play_statement           = "PLAY" space* str_exp space*
+    hdraw_statement          = "HDRAW" space* str_exp space*
+    hbuff_statement          = "HBUFF" space* exp space* "," space* exp space*
+    hget_statement           = "HGET" space* coords "-" space* coords "," space* exp space*
+    hput_statement           = "HPUT" space* coords "-" space* coords "," space* exp space* "," space* draw_mode space*
+    draw_mode                = "AND" / "NOT" / "OR" / "PRESET" / "PSET" / "XOR"
+    hpaint_statement         = "HPAINT" space* coords space* hpaint_args
+    hpaint_args              = hpaint_2arg / hpaint_1arg / space*
+    hpaint_2arg              = hpaint_arg hpaint_arg
+    hpaint_1arg              = hpaint_arg space*
+    hpaint_arg               = "," space* exp space*
     """  # noqa
 )

@@ -11,6 +11,7 @@ from coco.b09.elements import (
     BasicForStatement,
     BasicFunctionalExpression,
     BasicGoStatements,
+    BasicHbuffStatement,
     BasicJoystkExpression,
     BasicInputStatement,
     BasicLine,
@@ -294,7 +295,7 @@ class SetDimStringStorageVisitor(BasicConstructVisitor):
     def visit_statement(self, statement: BasicStatement) -> None:
         if isinstance(statement, BasicDimStatement):
             statement.default_str_storage = self._default_str_storage
-            self._dimmed_var_names.union(
+            self._dimmed_var_names.update(
                 [
                     var.name() if isinstance(var, BasicVar) else var.var.name()
                     for var in statement.dim_vars
@@ -304,6 +305,58 @@ class SetDimStringStorageVisitor(BasicConstructVisitor):
     @property
     def dimmed_var_names(self) -> Set[str]:
         return self._dimmed_var_names
+
+
+class GetDimmedArraysVisitor(BasicConstructVisitor):
+    _dimmed_var_names: Set[str]
+
+    def __init__(self):
+        self._dimmed_var_names = set()
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicDimStatement):
+            self._dimmed_var_names.update(
+                [
+                    var.var.name()
+                    for var in statement.dim_vars
+                    if isinstance(var, BasicArrayRef)
+                ]
+            )
+
+    @property
+    def dimmed_var_names(self) -> Set[str]:
+        return self._dimmed_var_names
+
+
+class DeclareImplicitArraysVisitor(BasicConstructVisitor):
+    _dimmed_var_names: Set[str]
+    _referenced_var_names: Set[str]
+
+    def __init__(self, *, dimmed_var_names: Set[str]):
+        self._dimmed_var_names = dimmed_var_names
+        self._referenced_var_names = set()
+
+    def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
+        self._referenced_var_names.add(array_ref.var.name())
+
+    @property
+    def implicitly_declared_arrays(self) -> Set[str]:
+        return self._referenced_var_names - self._dimmed_var_names
+
+    @property
+    def dim_statements(self) -> List[BasicStatement]:
+        return [
+            BasicDimStatement(
+                [
+                    BasicArrayRef(
+                        BasicVar(var[4:], is_str_expr=var.endswith("$")),
+                        BasicExpressionList([BasicLiteral(10)]),
+                        is_str_expr=var.endswith("$"),
+                    )
+                ]
+            )
+            for var in self.implicitly_declared_arrays
+        ]
 
 
 class JoystickVisitor(BasicConstructVisitor):
@@ -439,3 +492,18 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
         if not isinstance(exp, BasicFunctionalExpression) or exp.var:
             return
         self._statement.transform_function_to_call(exp)
+
+
+class BasicHbuffPresenceVisitor(BasicConstructVisitor):
+    _hasHbuff: bool
+
+    def __init__(self):
+        self._hasHbuff = False
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicHbuffStatement):
+            self._hasHbuff = True
+
+    @property
+    def has_hbuff(self) -> bool:
+        return self._hasHbuff

@@ -1,7 +1,6 @@
 from typing import List, Union
 from parsimonious import NodeVisitor
 
-from coco import b09
 from coco.b09.grammar import (
     FUNCTIONS,
     FUNCTIONS_TO_STATEMENTS,
@@ -15,18 +14,17 @@ from coco.b09.grammar import (
     STR3_FUNCTIONS,
     STR_FUNCTIONS_TO_STATEMENTS,
     STR_NUM_FUNCTIONS,
-    grammar,
 )
 
 from coco.b09.elements import (
     AbstractBasicConstruct,
     AbstractBasicStatement,
     AbstractBasicExpression,
-    Basic09CodeStatement,
     BasicArcStatement,
     BasicArrayRef,
     BasicAssignment,
     BasicBinaryExp,
+    BasicBinaryExpFragment,
     BasicBooleanBinaryExp,
     BasicBooleanOpExp,
     BasicBooleanParenExp,
@@ -41,7 +39,9 @@ from coco.b09.elements import (
     BasicFunctionCall,
     BasicFunctionalExpression,
     BasicGoto,
+    BasicHbuffStatement,
     BasicIf,
+    BasicIfElse,
     BasicInputStatement,
     BasicJoystkExpression,
     BasicKeywordStatement,
@@ -59,6 +59,7 @@ from coco.b09.elements import (
     BasicPrintControl,
     BasicPrintStatement,
     BasicReadStatement,
+    BasicStatementsOrBasicGoto,
     BasicRunCall,
     BasicSound,
     BasicStatements,
@@ -72,28 +73,9 @@ from coco.b09.elements import (
     LineSuffix,
     LineType,
     PsetOrPreset,
+    PutDrawAction,
 )
-from coco.b09 import error_handler
-from coco.b09.grammar import PROCNAME_REGEX
 from coco.b09.prog import BasicProg
-from coco.b09.visitors import (
-    BasicEmptyDataElementVisitor,
-    BasicFunctionalExpressionPatcherVisitor,
-    BasicInputStatementPatcherVisitor,
-    BasicNextPatcherVisitor,
-    BasicPrintStatementPatcherVisitor,
-    BasicReadStatementPatcherVisitor,
-    JoystickVisitor,
-    LineNumberFilterVisitor,
-    LineNumberCheckerVisitor,
-    LineReferenceVisitor,
-    LineZeroFilterVisitor,
-    SetDimStringStorageVisitor,
-    StatementCollectorVisitor,
-    StrVarAllocatorVisitor,
-    VarInitializerVisitor,
-)
-from coco.b09.procbank import ProcedureBank
 
 
 class BasicVisitor(NodeVisitor):
@@ -193,6 +175,46 @@ class BasicVisitor(NodeVisitor):
         _, _, exp, _ = visited_children
         return exp
 
+    def visit_else_stmnts(
+        self, _, visited_children
+    ) -> Union[None, BasicStatementsOrBasicGoto]:
+        return visited_children[0] if visited_children else None
+
+    def visit_else_stmnt(self, _, visited_children) -> BasicStatementsOrBasicGoto:
+        statements: BasicStatementsOrBasicGoto
+        _, _, statements, _ = visited_children
+        return statements
+
+    def visit_if_if_else_stmnt(self, _, visited_children) -> BasicIf:
+        else_statements: None | BasicStatementsOrBasicGoto
+        (
+            _,
+            _,
+            if_exp,
+            _,
+            _,
+            _,
+            line_or_stmnts,
+            _,
+            else_if_statements,
+            else_statements,
+        ) = visited_children
+        return BasicIfElse(
+            if_exp=if_exp,
+            then_statements=line_or_stmnts,
+            else_if_statements=else_if_statements,
+            else_statements=else_statements,
+        )
+
+    def visit_if_else_stmnt(self, _, visited_children) -> BasicIfElse:
+        _, _, if_exp, _, _, _, line_or_stmnts, _, else_statements = visited_children
+        return BasicIfElse(
+            if_exp=if_exp,
+            then_statements=line_or_stmnts,
+            else_if_statements=[],
+            else_statements=else_statements,
+        )
+
     def visit_if_stmnt(self, _, visited_children):
         _, _, exp, _, _, _, statements = visited_children
         is_bool = isinstance(
@@ -201,6 +223,13 @@ class BasicVisitor(NodeVisitor):
         )
         exp = exp if is_bool else BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
         return BasicIf(exp, statements)
+
+    def visit_else_if_stmnts(self, _, visited_children: List[BasicIf]) -> List[BasicIf]:
+        return visited_children
+
+    def visit_else_if_stmnt(self, _, visited_children) -> BasicIf:
+        _, _, _, _, if_exp, _, _, _, line_or_stmnts, _ = visited_children
+        return BasicIf(if_exp, line_or_stmnts)
 
     def visit_if_exp(self, _, visited_children) -> AbstractBasicExpression:
         return visited_children[0]
@@ -255,6 +284,15 @@ class BasicVisitor(NodeVisitor):
     def visit_num_gtle_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_gtle_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_gtle_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_line(self, _, visited_children):
         return BasicLine(
             visited_children[0],
@@ -273,6 +311,13 @@ class BasicVisitor(NodeVisitor):
     ) -> Union[BasicStatements, BasicGoto]:
         if isinstance(visited_children[0], int):
             return BasicGoto(visited_children[0], True)
+        return visited_children[0]
+
+    def visit_explicit_line_or_stmnts(
+        self, _, visited_children
+    ) -> Union[BasicStatements, BasicGoto]:
+        if isinstance(visited_children[0], int):
+            return BasicGoto(visited_children[0], False)
         return visited_children[0]
 
     def visit_literal(self, _, visited_children):
@@ -432,14 +477,40 @@ class BasicVisitor(NodeVisitor):
     def visit_num_prod_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_prod_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_prod_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_num_power_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
 
+    def visit_num_power_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_power_sub_exp(
+        self, node, visited_children
+    ) -> AbstractBasicExpression:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
+
     def visit_binary_exp(self, _, visited_children) -> AbstractBasicExpression:
         v1, v2, v3 = visited_children
-        if isinstance(v2, str) and isinstance(v3, str):
+        if isinstance(v2, str) and (
+            isinstance(v3, str) or (isinstance(v3, List) and len(v3) == 0)
+        ):
             return v1
-        return BasicBinaryExp(v1, v3.operator, v3.exp)
+        return (
+            BasicBinaryExp.from_exp_op_and_fragments(v1, v2, v3)
+            if isinstance(v3, List)
+            else BasicBinaryExp(v1, v3.operator, v3.exp)
+        )
 
     def visit_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
@@ -476,6 +547,21 @@ class BasicVisitor(NodeVisitor):
         )
         return BasicStatements(statement_elements)
 
+    def visit_last_statement(
+        self, _, visited_children
+    ) -> Union[BasicComment, BasicAssignment]:
+        return visited_children[0]
+
+    def visit_partial_str_arr_assign(self, _, visited_children):
+        let_kw, _, str_array_ref_exp, _, _, _, str_lit = visited_children
+        return BasicAssignment(
+            str_array_ref_exp, BasicLiteral(str_lit.text[1:]), let_kw=let_kw != ""
+        )
+
+    def visit_partial_str_assign(self, node, visited_children) -> BasicAssignment:
+        let_kw, _, str_var, _, _, _, str_lit = visited_children
+        return BasicAssignment(str_var, BasicLiteral(str_lit.text[1:]), let_kw=let_kw)
+
     def visit_statements_elements(self, _, visited_children):
         return [statement for statement in visited_children if statement]
 
@@ -494,6 +580,15 @@ class BasicVisitor(NodeVisitor):
 
     def visit_num_sum_exp(self, node, visited_children) -> AbstractBasicExpression:
         return self.visit_binary_exp(node, visited_children)
+
+    def visit_num_sum_sub_exps(
+        self, node, visited_children
+    ) -> List[BasicBinaryExpFragment]:
+        return visited_children
+
+    def visit_num_sum_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
+        op, _, exp, _ = visited_children
+        return BasicBinaryExpFragment(op, exp)
 
     def visit_val_exp(self, node, visited_children) -> AbstractBasicExpression:
         return visited_children[0] if len(visited_children) < 2 else node
@@ -962,16 +1057,17 @@ class BasicVisitor(NodeVisitor):
         )
 
     def visit_hprint_statement(self, _, visited_children) -> AbstractBasicStatement:
-        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, str_exp, _ = (
-            visited_children
-        )
+        exp: AbstractBasicExpression
+        _, _, _, _, expr_x, _, _, _, expr_y, _, _, _, _, _, exp, _ = visited_children
+        if not exp.is_str_expr:
+            exp = BasicFunctionalExpression("run ecb_str", BasicExpressionList([exp]))
         return BasicRunCall(
             "run ecb_hprint",
             BasicExpressionList(
                 [
                     expr_x,
                     expr_y,
-                    str_exp,
+                    exp,
                     BasicVar("display"),
                 ]
             ),
@@ -1127,197 +1223,112 @@ class BasicVisitor(NodeVisitor):
             ),
         )
 
-
-class ParseError(Exception):
-    pass
-
-
-def convert(
-    progin: str,
-    *,
-    add_standard_prefix: bool = True,
-    add_suffix: bool = True,
-    default_str_storage: int = b09.DEFAULT_STR_STORAGE,
-    default_width32: bool = True,
-    filter_unused_linenum: bool = False,
-    initialize_vars: bool = False,
-    output_dependencies: bool = False,
-    procname: str = "",
-    skip_procedure_headers: bool = False,
-) -> str:
-    tree = grammar.parse(progin)
-    bv = BasicVisitor()
-    basic_prog: BasicProg = bv.visit(tree)
-
-    if add_standard_prefix:
-        prefix_lines = [
-            BasicLine(None, Basic09CodeStatement("base 0")),
-            BasicLine(
-                None,
-                Basic09CodeStatement(
-                    "type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, "
-                    "undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer"
-                ),
+    def visit_hdraw_statement(self, _, visited_children) -> AbstractBasicStatement:
+        str_exp: AbstractBasicExpression
+        _, _, str_exp, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hdraw",
+            BasicExpressionList(
+                [
+                    str_exp,
+                    BasicVar("display"),
+                ]
             ),
-            BasicLine(None, Basic09CodeStatement("dim display: display_t")),
-            BasicLine(None, Basic09CodeStatement("dim erno: real")),
-            BasicLine(None, Basic09CodeStatement("erno := -1")),
-            BasicLine(
-                None,
-                BasicRunCall(
-                    "RUN _ecb_start",
-                    BasicExpressionList(
-                        [
-                            BasicVar("display"),
-                            BasicLiteral(1 if default_width32 else 0),
-                        ]
-                    ),
-                ),
-            ),
-            BasicLine(
-                None, Basic09CodeStatement("TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE")
-            ),
-            BasicLine(None, Basic09CodeStatement("DIM play: play_t")),
-            BasicLine(None, Basic09CodeStatement("play.oct := 3")),
-            BasicLine(None, Basic09CodeStatement("play.octo := 0")),
-            BasicLine(None, Basic09CodeStatement("play.lnt := 4")),
-            BasicLine(None, Basic09CodeStatement("play.tne := 2")),
-            BasicLine(None, Basic09CodeStatement("play.vol := 15")),
-            BasicLine(None, Basic09CodeStatement("play.dot := 0")),
-        ]
-        basic_prog.insert_lines_at_beginning(prefix_lines)
-
-    if skip_procedure_headers := skip_procedure_headers or not output_dependencies:
-        procname = ""
-    else:
-        procname = procname if PROCNAME_REGEX.match(procname) else "program"
-    basic_prog.set_procname(procname)
-
-    # Patch INPUT statements
-    basic_prog.visit(BasicInputStatementPatcherVisitor())
-
-    # Patch up READ statements to handle empty DATA elements
-    empty_data_elements_visitor = BasicEmptyDataElementVisitor()
-    basic_prog.visit(empty_data_elements_visitor)
-    if empty_data_elements_visitor.has_empty_data_elements:
-        basic_prog.visit(BasicReadStatementPatcherVisitor())
-
-    # Update joystk stuff
-    joystk_initializer = JoystickVisitor()
-    basic_prog.visit(joystk_initializer)
-    basic_prog.extend_prefix_lines(joystk_initializer.joystk_var_statements)
-
-    # Patch PRINT statements
-    basic_prog.visit(BasicPrintStatementPatcherVisitor())
-
-    # transform functions to proc calls
-    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
-
-    set_string_storage_vistor: SetDimStringStorageVisitor = SetDimStringStorageVisitor(
-        default_str_storage=default_str_storage
-    )
-    basic_prog.visit(set_string_storage_vistor)
-
-    # allocate sufficient string storage
-    str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
-        default_str_storage=default_str_storage,
-        dimmed_var_names=set_string_storage_vistor.dimmed_var_names,
-    )
-    basic_prog.visit(str_var_allocator)
-    basic_prog.extend_prefix_lines(str_var_allocator.allocation_lines)
-
-    # initialize variables
-    if initialize_vars:
-        var_initializer = VarInitializerVisitor()
-        basic_prog.visit(var_initializer)
-        basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
-
-    # remove unused line numbers
-    line_ref_visitor = LineReferenceVisitor()
-    basic_prog.visit(line_ref_visitor)
-    line_num_filter = (
-        LineNumberFilterVisitor(line_ref_visitor.references)
-        if filter_unused_linenum
-        else LineZeroFilterVisitor(line_ref_visitor.references)
-    )
-    basic_prog.visit(line_num_filter)
-
-    # make sure line numbers exist and are not too big
-    line_checker: LineNumberCheckerVisitor = LineNumberCheckerVisitor(
-        line_ref_visitor.references
-    )
-    basic_prog.visit(line_checker)
-    if len(line_checker.undefined_lines) > 0:
-        raise ParseError(
-            f"The following lines are undefined: {', '.join(str(linenum) for linenum in line_checker.undefined_lines)}"
         )
 
-    # make sure there are no more than 1 ON ERR statement
-    on_err_collector: StatementCollectorVisitor = StatementCollectorVisitor(
-        BasicOnErrGoStatement
-    )
-    basic_prog.visit(on_err_collector)
-    if len(on_err_collector.statements) > 1:
-        raise ParseError("At most 1 ON ERR GOTO statement is allowed.")
-    err_line: BasicOnErrGoStatement = (
-        on_err_collector.statements[0].linenum if on_err_collector.statements else None
-    )
+    def visit_hbuff_statement(self, _, visited_children) -> AbstractBasicStatement:
+        buffer_exp: AbstractBasicExpression
+        size_exp: AbstractBasicExpression
+        _, _, buffer_exp, _, _, _, size_exp, _ = visited_children
+        return BasicHbuffStatement(buffer=buffer_exp, size=size_exp)
 
-    # make sure there are no more than 1 ON BRK statement
-    on_brk_collector: StatementCollectorVisitor = StatementCollectorVisitor(
-        BasicOnBrkGoStatement
-    )
-    basic_prog.visit(on_brk_collector)
-    if len(on_brk_collector.statements) > 1:
-        raise ParseError("At most 1 ON BRK GOTO statement is allowed.")
-    brk_line: BasicOnBrkGoStatement = (
-        on_brk_collector.statements[0].linenum if on_brk_collector.statements else None
-    )
-
-    # try to patch up empty next statements
-    basic_prog.visit(BasicNextPatcherVisitor())
-    suffix_lines: List[BasicLine] = error_handler.generate(
-        brk_line=brk_line,
-        err_line=err_line,
-    )
-    if add_suffix:
-        basic_prog.append_lines(suffix_lines)
-
-    # output the program
-    program = basic_prog.basic09_text(0)
-    if output_dependencies and procname:
-        procedure_bank = ProcedureBank(
-            default_str_storage=default_str_storage,
+    def visit_hget_statement(self, _, visited_children) -> AbstractBasicStatement:
+        start_coords: Coordinates
+        end_coords: Coordinates
+        buff: AbstractBasicExpression
+        _, _, start_coords, _, _, end_coords, _, _, buff, _ = visited_children
+        return BasicRunCall(
+            "run ecb_hget",
+            BasicExpressionList(
+                [
+                    start_coords.x,
+                    start_coords.y,
+                    end_coords.x,
+                    end_coords.y,
+                    buff,
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ]
+            ),
         )
-        procedure_bank.add_from_resource("ecb.b09")
-        procedure_bank.add_from_str(program)
-        program = procedure_bank.get_procedure_and_dependencies(procname)
 
-    return program + "\n"
+    def visit_hput_statement(self, _, visited_children) -> AbstractBasicStatement:
+        start_coords: Coordinates
+        end_coords: Coordinates
+        buff: AbstractBasicExpression
+        action: PutDrawAction
+        _, _, start_coords, _, _, end_coords, _, _, buff, _, _, _, action, _ = (
+            visited_children
+        )
+        return BasicRunCall(
+            "run ecb_hput",
+            BasicExpressionList(
+                [
+                    start_coords.x,
+                    start_coords.y,
+                    end_coords.x,
+                    end_coords.y,
+                    buff,
+                    BasicLiteral(action),
+                    BasicVar("pid"),
+                    BasicVar("display"),
+                ]
+            ),
+        )
 
+    def visit_draw_mode(self, node, visited_children) -> PutDrawAction:
+        return node.text
 
-def convert_file(
-    input_program_file: str,
-    output_program_file: str,
-    *,
-    add_standard_prefix: bool = True,
-    default_width32: bool = True,
-    default_str_storage: int = b09.DEFAULT_STR_STORAGE,
-    filter_unused_linenum: bool = False,
-    initialize_vars: bool = False,
-    output_dependencies: bool = False,
-    procname: str = "",
-) -> None:
-    progin = input_program_file.read()
-    progout = convert(
-        progin,
-        add_standard_prefix=add_standard_prefix,
-        default_str_storage=default_str_storage,
-        default_width32=default_width32,
-        filter_unused_linenum=filter_unused_linenum,
-        initialize_vars=initialize_vars,
-        output_dependencies=output_dependencies,
-        procname=procname,
-    )
-    progout = progout.replace("\n", "\r")
-    output_program_file.write(progout)
+    def visit_hpaint_statement(self, _, visited_children) -> AbstractBasicStatement:
+        coords: Coordinates
+        hpaint_args: List[AbstractBasicExpression]
+        _, _, coords, _, hpaint_args = visited_children
+        color: AbstractBasicExpression = (
+            hpaint_args[0]
+            if len(hpaint_args) >= 1
+            else BasicFunctionCall(
+                "FLOAT", BasicExpressionList([BasicVar("display.hfore")])
+            )
+        )
+        stop_color: AbstractBasicExpression = (
+            hpaint_args[1]
+            if len(hpaint_args) >= 2
+            else BasicFunctionCall(
+                "FLOAT", BasicExpressionList([BasicVar("display.hfore")])
+            )
+        )
+        return BasicRunCall(
+            "run ecb_hpaint",
+            BasicExpressionList(
+                [
+                    coords.x,
+                    coords.y,
+                    color,
+                    stop_color,
+                    BasicVar("display"),
+                ]
+            ),
+        )
+
+    def visit_hpaint_args(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children[0]
+
+    def visit_hpaint_1arg(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children[:1]
+
+    def visit_hpaint_2arg(self, _, visited_children) -> List[AbstractBasicExpression]:
+        return visited_children
+
+    def visit_hpaint_arg(self, _, visited_children) -> AbstractBasicExpression:
+        _, _, exp, _ = visited_children
+        return exp

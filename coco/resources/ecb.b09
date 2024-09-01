@@ -4,7 +4,7 @@ run ecb_locate(float(land(location, 31)), location / 32.0)
 
 
 procedure ecb_attr
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param f, b, bk, undr: real
 param display: display_t
 dim fi, bi: integer
@@ -41,7 +41,7 @@ if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 
 
 procedure ecb_cls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param color: real
 param display: display_t
 dim a, b, ii: integer
@@ -84,7 +84,7 @@ endif
 
 
 procedure ecb_harc
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y, r, c, rt, sp, ep: real
 param display: display_t
 dim rx, ry, pi2: real
@@ -105,7 +105,7 @@ run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
 
 
 procedure ecb_hcircle
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y, r, c, rt: real
 dim rx, ry: real
 param display: display_t
@@ -123,7 +123,7 @@ run gfx2(display.hpth, "setdptr", display.hpx, display.hpy)
 
 
 procedure ecb_hcls
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param n: real
 param display: display_t
 
@@ -143,7 +143,7 @@ endif
 
 
 procedure ecb_hcolor
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param f, b: real
 param display: display_t
 dim fi, bi: integer
@@ -160,6 +160,250 @@ endif
 run gfx2(display.hpth, "color", fi, bi)
 display.hfore = fi
 display.hbck = bi
+
+
+PROCEDURE ecb_hdraw
+TYPE display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM s: STRING<<>>
+PARAM d: display_t
+DIM b, n, a, hc, dd: BOOLEAN
+DIM c, cc: BYTE
+DIM ii, scl, v, xx, yy, zz, x0, y0: INTEGER
+
+n := FALSE
+scl := 4
+
+ii := 1
+WHILE ii < LEN(s) DO
+    a := FALSE
+    b := FALSE
+    xx := 0
+    yy := 0
+    dd := FALSE
+    
+    LOOP
+        EXITIF ii > LEN(s) THEN
+        ENDEXIT
+
+        c := ASC(MID$(s, ii, 1))
+        ii := ii + 1
+        hc := FALSE
+
+        IF c = 65 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 3)
+            ii := ii + 1
+            d.hagl = v
+            hc := TRUE
+        ENDIF
+        IF c = 66 THEN
+            b := TRUE
+            hc := TRUE
+        ENDIF
+        IF c = 67 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 15)
+            ii := ii + 1
+            RUN gfx2(d.hpth, "COLOR", v)
+            d.hfore = v
+            hc := TRUE
+        ENDIF
+        IF c = 78 THEN
+            n := TRUE
+            hc := TRUE
+        ENDIF
+        IF c = 83 THEN
+            RUN _ecb_get_num(v, s, ii, 0, 62)
+            ii := ii + 1
+            d.hdsc := v
+            hc := TRUE
+        ENDIF
+
+        EXITIF c = 77 THEN
+            c = ASC(MID$(s, ii, 1))
+
+            IF c = 43 OR c = 45 THEN
+                ii := ii + 1
+            ELSE
+                a = TRUE
+            ENDIF
+            RUN _ecb_get_num(xx, s, ii, 0, 639)
+            if c = 45 THEN
+                xx := -xx
+            ENDIF
+            ii := ii + 1
+
+            c = ASC(MID$(s, ii, 1))
+            IF c <> 44 THEN
+                ERROR 52
+            ENDIF
+            ii := ii + 1
+            c = ASC(MID$(s, ii, 1))
+            IF c = 43 OR c = 45 THEN
+                IF a AND c = 43 THEN
+                    ERROR 52
+                ENDIF
+                ii := ii + 1
+                yy = 639
+            ENDIF
+            RUN _ecb_get_num(yy, s, ii, 0, 639)
+            if c = 45 THEN
+                yy := -yy
+            ENDIF
+            ii := ii + 1
+            dd := TRUE
+        ENDEXIT
+
+        EXITIF c = 59 THEN
+        ENDEXIT
+        
+        IF ii <= LEN(s) THEN
+            cc := ASC(MID$(s, ii, 1))
+            IF cc < 48 OR cc > 57 THEN
+                v := 1
+            ELSE
+                v := 0
+            ENDIF
+        ELSE
+            v := 1
+        ENDIF
+
+        EXITIF c = 85 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
+            ENDIF
+            yy := -v
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 68 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
+            ENDIF
+            yy := v
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 76 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
+            ENDIF
+            xx := -v
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 82 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                ii := ii + 1
+            ENDIF
+            xx := v
+            dd := TRUE
+        ENDEXIT
+
+        EXITIF c = 69 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+            ENDIF
+            xx := v
+            yy := -v
+            ii := ii + 1
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 70 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+            ENDIF
+            xx := v
+            yy := v
+            ii := ii + 1
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 71 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := -v
+                yy := v
+            ENDIF
+            ii := ii + 1
+            dd := TRUE
+        ENDEXIT
+        EXITIF c = 72 THEN
+            IF v = 0 THEN
+                RUN _ecb_get_num(v, s, ii, 0, 639)
+                xx := -v
+                yy := -v
+            ENDIF
+            ii := ii + 1
+            dd := TRUE
+        ENDEXIT
+
+        IF NOT hc THEN
+            ERROR 52
+        ENDIF
+    ENDLOOP
+
+    x0 := d.hpx
+    y0 := d.hpy
+
+    IF NOT a THEN
+        xx := xx * d.hdsc / 4
+        yy := yy * d.hdsc / 4
+
+        IF d.hagl = 0 THEN
+            xx := d.hpx + xx
+            yy := d.hpy + yy
+        ELSE
+            IF d.hagl = 1 THEN
+                zz := d.hpx - yy
+                yy := d.hpy + xx
+                xx := zz
+            ELSE
+                IF d.hagl = 2 THEN
+                    xx := d.hpx - xx
+                    yy := d.hpy - yy
+                ELSE
+                    zz := d.hpx + yy
+                    yy := d.hpy - xx
+                    xx := zz
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDIF
+
+    IF dd THEN
+        IF xx < 0 THEN
+            xx := 0
+        ENDIF
+        IF d.hscl = 1 AND xx > 319 THEN
+            xx := 319
+        ENDIF
+        IF d.hscl = 2 AND xx > 639 THEN
+            xx := 639
+        ENDIF
+
+        IF yy < 0 THEN
+            yy := 0
+        ENDIF
+        IF yy > 191 THEN
+            yy := 191
+        ENDIF
+
+        IF b THEN
+            d.hpx := xx
+            d.hpy := yy
+            b := FALSE
+        ELSE
+            RUN ecb_hline("d", FLOAT(d.hpx), FLOAT(d.hpy), FLOAT(xx), FLOAT(yy), "PSET", "L", d)
+        ENDIF
+
+        IF n THEN
+            d.hpx := x0
+            d.hpy := y0
+            n := FALSE
+        ENDIF
+
+    ENDIF
+
+ENDWHILE
 
 
 procedure ecb_hex
@@ -182,8 +426,23 @@ run _ecb_hex_digit(land($f, v), t)
 str := str + t
 
 
+PROCEDURE ecb_hget
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM x0, y0, x1, y1, b: REAL
+PARAM p: INTEGER
+PARAM d: display_t
+DIM xx0, yy0, xx1, yy1: INTEGER
+RUN _ecb_min(xx0, FIX(x0), FIX(x1))
+RUN _ecb_max(xx1, FIX(x0), FIX(x1))
+RUN _ecb_min(yy0, FIX(y0), FIX(y1))
+RUN _ecb_max(yy1, FIX(y0), FIX(y1))
+xx1 := xx1 - xx0 + 1
+yy1 := yy1 - yy0 + 1
+RUN GFX2(d.hpth, "GET", p, FIX(b), xx0, yy0, xx1, yy1)
+
+
 procedure ecb_hline
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param rd: string
 param x0, y0, x1, y1: real
 param m, t: string
@@ -212,7 +471,6 @@ yy1 = fix(y1)
 if m = "PRESET" then
     run gfx2(display.hpth, "color", display.hbck)
 endif
-print m, f, xx0, yy0, xx1, yy1
 run gfx2(display.hpth, f, xx0, yy0, xx1, yy1)
 if m = "PRESET" then
     run gfx2(display.hpth, "color", display.hfore)
@@ -221,8 +479,16 @@ display.hpx = xx1
 display.hpy = yy1
 
 
+PROCEDURE ecb_hpaint
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+param x, y, c, c0: real
+param d: display_t
+RUN GFX2(d.hpth, "COLOR", FIX(c))
+RUN GFX2(d.hpth, "FILL", FIX(x), FIX(y))
+
+
 procedure ecb_hprint
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y: real
 param txt: string[80]
 param display: display_t
@@ -258,7 +524,7 @@ print #display.hpth, t;
 
 
 procedure ecb_hscreen
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param n: real
 param display: display_t
 base 0
@@ -289,22 +555,24 @@ if ni = 0 then
     endif
 else
     width = 40
-    display.hscl = 1
-    display.hpx = 159
-    display.hpy = 95
+    display.hbck := 0
+    display.hfore := 1
+    display.hscl := 1
+    display.hpx := 159
+    display.hpy := 95
     if ni = 1 then
         mode = 6
     else 
         if ni = 2 then
-            mode = 8
+            mode := 8
         else
-            width = 80
-            display.hpx = 319
-            display.hscl = 2
+            width := 80
+            display.hpx := 319
+            display.hscl := 2
             if ni = 3 then
-                mode = 5
+                mode := 5
             else
-                mode = 7
+                mode := 7
             endif
         endif
     endif
@@ -341,8 +609,44 @@ else
 endif
 
 
+PROCEDURE ecb_hput
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM x0, y0, x1, y1, b: REAL
+PARAM a: STRING
+PARAM p: INTEGER
+PARAM d: display_t
+DIM xx0, yy0, xx1, yy1: INTEGER
+RUN _ecb_min(xx0, FIX(x0), FIX(x1))
+RUN _ecb_min(yy0, FIX(y0), FIX(y1))
+RUN _ecb_max(xx1, FIX(x0), FIX(x1))
+RUN _ecb_max(yy1, FIX(y0), FIX(y1))
+IF a = "NOT" THEN
+    RUN GFX2(d.hpth, "LOGIC", "XOR")
+    RUN GFX2(d.hpth, "COLOR", 15)
+    RUN GFX2(d.hpth, "BAR", xx0, yy0, xx1, yy1)
+    RUN GFX2(d.hpth, "LOGIC", "OFF")
+    RUN GFX2(d.hpth, "COLOR", FIX(d.hfore))
+ELSE
+    IF a = "AND" OR a = "OR" OR a = "XOR" THEN
+        RUN GFX2(d.hpth, "LOGIC", a)
+        RUN GFX2(d.hpth, "PUT", p, FIX(b), xx0, yy0)
+        RUN GFX2(d.hpth, "LOGIC", "OFF")
+    ELSE
+        RUN GFX2(d.hpth, "PUT", p, FIX(b), xx0, yy0)
+        IF A = "PRESET" THEN
+            RUN GFX2(d.hpth, "LOGIC", "XOR")
+            RUN GFX2(d.hpth, "COLOR", 15)
+            RUN GFX2(d.hpth, "BAR", xx0, yy0, xx1, yy1)
+            RUN GFX2(d.hpth, "LOGIC", "OFF")
+            RUN GFX2(d.hpth, "COLOR", FIX(d.hfore))
+        ENDIF
+    ENDIF
+ENDIF
+        
+
+
 procedure ecb_hreset
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y: real
 param display: display_t
 run gfx2(display.hpth, "color", display.hbck)
@@ -351,14 +655,14 @@ run gfx2(display.hpth, "color", display.hfore)
 
 
 procedure ecb_hset
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y: real
 param display: display_t
 run gfx2(display.hpth, "point", fix(x), fix(y))
 
 
 procedure ecb_hset3
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param x, y, c: real
 param display: display_t
 run gfx2(display.hpth, "color", fix(c))
@@ -538,7 +842,7 @@ NEXT ii
 
 
 procedure ecb_set_palette
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param pr, cc: real
 param display: display_t
 
@@ -559,7 +863,7 @@ display.pal(pri + 1) = cci
 
 
 procedure ecb_set_palette_cmp
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -570,7 +874,7 @@ data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
 
 procedure ecb_set_palette_rgb
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -753,6 +1057,15 @@ else
 endif
 
 
+PROCEDURE _ecb_free_all_buffers
+PARAM path, pid: INTEGER
+DIM ii: INTEGER
+ON ERROR GOTO 10
+FOR ii=1 TO 255
+    RUN gfx2(path, "KILLBUFF", pid, ii)
+10 NEXT ii
+
+
 PROCEDURE _ecb_get_num
 PARAM v: INTEGER
 PARAM s: STRING<<>>
@@ -778,7 +1091,6 @@ LOOP
         ii := ii - 1
     ENDEXIT
     ii := ii + 1
-    c := ASC(MID$(s, ii, 1))
 ENDLOOP
 
 
@@ -831,6 +1143,14 @@ mask = 2 ** ((2 * (1 - land(y, 1))) + (1 - land(x, 1)))
 c0 = peek(fix(address))
 
 
+PROCEDURE _ecb_hbuff
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+PARAM b, s: REAL
+PARAM pid: INTEGER
+PARAM d: display_t
+RUN GFX2(d.hpth, "DEFBUFF", pid, FIX(b), FIX(s) + 20)
+
+
 procedure _ecb_hex_digit
 param v: real
 param s: string
@@ -839,6 +1159,18 @@ if v < 10 then
 else
     s = chr$(v + asc("A"))
 endif
+
+
+PROCEDURE _ecb_init_hbuff
+PARAM pid: INTEGER
+DIM ii, path: INTEGER
+RUN _ecb_pid(pid)
+OPEN #path, "/w":update
+ON ERROR GOTO 10
+FOR ii=1 TO 255
+    RUN GFX2(path, "KILLBUFF", pid, ii)
+10 NEXT ii
+CLOSE #path
 
 
 procedure _ecb_input_prefix
@@ -851,6 +1183,24 @@ run _ecb_cursor_color(0)
 SHELL("tmode eko=0")
 
 
+PROCEDURE _ecb_max
+PARAM x2, x0, x1: INTEGER
+IF x0 > x1 THEN
+    x2 := x0
+ELSE
+    x2 := x1
+ENDIF
+
+
+PROCEDURE _ecb_min
+PARAM x2, x0, x1: INTEGER
+IF x0 < x1 THEN
+    x2 := x0
+ELSE
+    x2 := x1
+ENDIF
+
+
 procedure _ecb_palette
 param address: integer
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
@@ -858,9 +1208,9 @@ dim rregs: rregisters
 dim reqid: byte
 
 (* getstat ss.alfas *)
+reqid = $8d
 rregs.a = 1
 rregs.b = $91
-reqid = $8d
 run syscall(reqid, rregs)
 if land(rregs.cc, 1) <> 0 then
     address = -1
@@ -869,22 +1219,33 @@ else
 endif
 
 
+PROCEDURE _ecb_pid
+TYPE rregisters = cc, a, b, dp:BYTE; x, y, u:INTEGER
+PARAM pid: INTEGER
+DIM rregs: rregisters
+DIM reqid: BYTE
+(* F$ID *)
+reqid = $0c
+run syscall(reqid, rregs)
+pid = rregs.a
+
+
 procedure _ecb_start
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param display: display_t
 param w: integer
-display.tpth = $ff
-display.vpth = $ff
-display.wpth = $ff
-display.hpth = $ff
-display.blnk = 0
-display.undrln = 0
-display.bck = 0
-display.fore = 0
-display.brdr = 0
-display.hbck = 0
-display.hfore = 1
+display.tpth := $ff
+display.vpth := $ff
+display.wpth := $ff
+display.hpth := $ff
+display.blnk := 0
+display.undrln := 0
+display.bck := 0
+display.fore := 0
+display.brdr := 0
+display.hagl := 0
+display.hdsc := 4
 
 dim ii, c: integer
 
@@ -924,7 +1285,7 @@ endif
 
 procedure _ecb_width
 base 0
-type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy: byte; hpx: integer
+type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param width: real
 param display: display_t
 dim path, path0, ii, c, o: integer
@@ -1054,4 +1415,3 @@ if land(rregs.cc, 1) <> 0 then
 else
     wintype = rregs.b
 endif
-

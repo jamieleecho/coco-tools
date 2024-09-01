@@ -24,10 +24,10 @@ The utility provides a best effort for conversion which means:
 ## Supported constructs
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
-include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FOR, GOTO, GOSUB, >, HCIRCLE, HCLS, HCOLOR, HEX$, HLINE, HPRINT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
+include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FOR, GOSUB, GOTO, >, HBUFF, HCIRCLE, HCLS, HCOLOR, HDRAW, HEX$, HGET, HLINE, HPAINT, HPRINT, HPUT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RGB, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
 
 ## Unsupported statements
-AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HBUFF, HDRAW, HGET, HPAINT, HPUT, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
+AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
 
 ## Unsupported functions
 EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
@@ -95,14 +95,24 @@ NEXT BB
   responsibility.
 * `POKE 65497, 0` tells `PLAY` and `SOUND` to play an octave higher.
 * `POKE 65496, 0` tells `PLAY` and `SOUND` to play at default octave.
-* `PLAY` does not support the "X" command. Concatenate strings or repeat the
-  `PLAY` command instead.
+* `PLAY` and `HDRAW` do not support the "X" command. Concatenate strings or
+  repeat the command instead.
 * Some constructs require introducing an intermediary variable including
   `BUTTON`, `INKEY`, `JOYSTK` and `POINT`.
 10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
 ```
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
 ```
+* Drawing commands use the OS-9 Windowing System drawing commands and will
+  produce slighly different shapes.
+* `HPAINT` ignores the stop color. Instead, the flood fill continues until
+  it hits boundaries with colors that are different from the color under the
+  initial pixel.
+* `HBUFF` can reserve upto 8KB of space in total, but each buffer allocates
+  20 bytes more than the equivalent DECB program. It is therefore possible that
+  DECB programs that use close to 8KB of space may not run properly.
+* `HPUT` ignores the end pixels and instead always draws the same shape
+  specified by `HGET`. XOR is added as a drawing action.
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:

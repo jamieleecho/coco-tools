@@ -9,7 +9,7 @@ import os
 import sys
 
 from coco import __version__
-from coco.b09.parser import convert_file
+from coco.b09.compiler import convert_file
 
 
 DESCRIPTION = """Convert a Color BASIC program to a BASIC09 program

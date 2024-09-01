@@ -1,14 +1,14 @@
 import unittest
 
 from coco import b09
-from coco.b09 import parser
-from coco.b09.parser import ParseError
+from coco.b09 import compiler
+from coco.b09.compiler import ParseError
 from coco.b09.visitors import LineNumberTooLargeException
 
 
 class TestB09(unittest.TestCase):
     def test_convert_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             procname="do_cls",
             initialize_vars=True,
@@ -21,7 +21,7 @@ class TestB09(unittest.TestCase):
         assert "procedure _ecb_text_address\n" in program
 
     def test_convert_no_header_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             procname="do_cls",
             initialize_vars=True,
@@ -35,7 +35,7 @@ class TestB09(unittest.TestCase):
         assert "RUN ecb_cls(B, display)" in program
 
     def test_convert_header_no_name_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             initialize_vars=True,
             filter_unused_linenum=True,
@@ -49,7 +49,7 @@ class TestB09(unittest.TestCase):
         assert "procedure _ecb_cursor_color\n" in program
 
     def test_convert_no_default_width32(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 A=0",
             procname="do_cls",
             initialize_vars=False,
@@ -61,7 +61,7 @@ class TestB09(unittest.TestCase):
         assert "RUN _ecb_start(display, 0)\n" in program
 
     def test_convert_default_width32(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 A=0",
             procname="do_cls",
             initialize_vars=False,
@@ -166,7 +166,7 @@ class TestB09(unittest.TestCase):
         output_dependencies=False,
         skip_procedure_headers=True,
     ):
-        b09_prog = parser.convert(
+        b09_prog = compiler.convert(
             progin,
             add_standard_prefix=add_standard_prefix,
             add_suffix=add_suffix,
@@ -181,34 +181,47 @@ class TestB09(unittest.TestCase):
     def test_parse_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A = B(123 - 1 - (2/2),1,2)\n",
+            "DIM arr_B(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_B(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
     def test_parse_array_assignment(self) -> None:
         self.generic_test_parse(
             "10 A (123 - 1 - (2/2),1,2)=123+64",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := 123.0 + 64.0",
         )
 
         self.generic_test_parse(
             "10 LETA (123 - 1 - (2/2),1,2)=123+64",
-            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := " "123.0 + 64.0",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "
+            "123.0 + 64.0",
         )
 
     def test_parse_str_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A$ = B$(123 - 1 - (2/2),1,2)",
+            "DIM arr_B$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
             "10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
         self.generic_test_parse(
             "10 LETA$ = B$(123 - 1 - (2/2),1,2)",
+            "DIM arr_B$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
             "10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
     def test_parse_str_array_assignment(self) -> None:
         self.generic_test_parse(
             '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
+            "DIM arr_A$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_A$(tmp_1) := "" \ NEXT tmp_1\n'
             '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "123" + "64"',
         )
 
@@ -754,6 +767,8 @@ class TestB09(unittest.TestCase):
             "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11"
             "ORL(30)<>11ORGR=0THEN500\n"
             "500 '\n",
+            "DIM arr_L(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_L(tmp_1) := 0 \ NEXT tmp_1\n"
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
@@ -803,7 +818,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_adds_standard_prefix(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 REM",
             procname="do_cls",
             initialize_vars=True,
@@ -996,6 +1011,12 @@ class TestB09(unittest.TestCase):
             '10 run ecb_hprint(10.0, 20.0, "HELLO WORLD", display)',
         )
 
+    def test_hprint_num(self) -> None:
+        self.generic_test_parse(
+            "10 HPRINT(10, 20), 3.0",
+            "10 run ecb_str(3.0, tmp_1) \ run ecb_hprint(10.0, 20.0, tmp_1, display)",
+        )
+
     def test_on_brk(self) -> None:
         self.generic_test_parse(
             "10 ON BRK GOTO 10",
@@ -1023,7 +1044,7 @@ class TestB09(unittest.TestCase):
             )
 
     def test_outputs_suffix(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 ON ERR GOTO 100\n100 END",
             procname="do_cls",
             initialize_vars=True,
@@ -1113,24 +1134,201 @@ class TestB09(unittest.TestCase):
         )
 
     def test_allocates_extra_str_space(self) -> None:
-        program: str = parser.convert(
+        program: str = compiler.convert(
             "10 PRINT A$",
             default_str_storage=128,
         )
         assert "DIM A$:STRING[128]\n" in program
 
     def test_subs_str_storage_tags(self) -> None:
-        program: str = parser.convert(
+        program: str = compiler.convert(
             '10 A$=STRING$(10, "*")', default_str_storage=128, output_dependencies=True
         )
         assert "param str: STRING[128]\n" in program
 
     def test_initializes_for(self) -> None:
-        program: str = parser.convert("10 FOR X=A TO 10", initialize_vars=True)
+        program: str = compiler.convert("10 FOR X=A TO 10", initialize_vars=True)
         assert "A := 0.0" in program
 
     def test_comment_wth_colon(self) -> None:
         self.generic_test_parse(
             "10 REM PRINT:PRINT",
             "10 (* PRINT:PRINT *)",
+        )
+
+    def test_hdraw(self) -> None:
+        self.generic_test_parse(
+            '10 HDRAW "UDLR"',
+            '10 run ecb_hdraw("UDLR", display)',
+        )
+
+    def test_hbuff(self) -> None:
+        self.generic_test_parse(
+            "10 HBUFF 10, 123",
+            "10 run _ecb_hbuff(10.0, 123.0, pid, display)",
+        )
+
+    def test_adds_hbuff_prefix(self) -> None:
+        program = compiler.convert(
+            "10 HBUFF 10, 123",
+            procname="do_cls",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "dim pid: integer\n" in program
+        assert "RUN _ecb_init_hbuff(pid)" in program
+
+    def test_hget_statement(self) -> None:
+        self.generic_test_parse(
+            "10 HGET(123, 45) - (32, 25), 10",
+            "10 run ecb_hget(123.0, 45.0, 32.0, 25.0, 10.0, pid, display)",
+        )
+
+    def test_hput_statement(self) -> None:
+        self.generic_test_parse(
+            "10 HPUT(123, 45) - (32, 25), 10, AND",
+            '10 run ecb_hput(123.0, 45.0, 32.0, 25.0, 10.0, "AND", pid, display)',
+        )
+
+    def test_hpaint_statement(self) -> None:
+        self.generic_test_parse(
+            "10 HPAINT(123, 45), 10, 5",
+            "10 run ecb_hpaint(123.0, 45.0, 10.0, 5.0, display)",
+        )
+
+    def test_hpaint_statement_no_color(self) -> None:
+        self.generic_test_parse(
+            "10 HPAINT(123, 45)",
+            "10 run ecb_hpaint(123.0, 45.0, FLOAT(display.hfore), FLOAT(display.hfore), display)",
+        )
+
+    def test_hpaint_statement_only_fill_color(self) -> None:
+        self.generic_test_parse(
+            "10 HPAINT(123, 45), 2",
+            "10 run ecb_hpaint(123.0, 45.0, 2.0, FLOAT(display.hfore), display)",
+        )
+
+    def test_tolerates_null_char_at_end(self) -> None:
+        self.generic_test_parse(
+            "10 CLS 0\0",
+            "10 RUN ecb_cls(0.0, display)",
+        )
+
+    def test_4x_sum(self) -> None:
+        self.generic_test_parse(
+            "10 DP = A + B + C + D",
+            "10 DP := A + B + C + D",
+        )
+
+    def test_4x_mul(self) -> None:
+        self.generic_test_parse(
+            "10 DP = A * B * C * D",
+            "10 DP := A * B * C * D",
+        )
+
+    def test_4x_pow(self) -> None:
+        self.generic_test_parse(
+            "10 DP = A ^ B ^ C ^ D",
+            "10 DP := A ^ B ^ C ^ D",
+        )
+
+    def test_if_else_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF RN<D1 THEN X = 2 ELSE IF RN=2 THEN 10",
+            "10 LOOP\n"
+            "  EXITIF RN < D1 THEN\n"
+            "    X := 2.0\n"
+            "  ENDEXIT\n"
+            "  EXITIF RN = 2.0 THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "ENDLOOP",
+        )
+
+    def test_if_else_if_else(self) -> None:
+        self.generic_test_parse(
+            "10 IF RN<D1 THEN X = 2 ELSE IF RN=2 THEN 10 ELSE X=3",
+            "10 LOOP\n"
+            "  EXITIF RN < D1 THEN\n"
+            "    X := 2.0\n"
+            "  ENDEXIT\n"
+            "  EXITIF RN = 2.0 THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "    X := 3.0\n"
+            "ENDLOOP",
+        )
+
+    def test_else(self) -> None:
+        self.generic_test_parse(
+            "10 IF RN<D1 THEN X = 2 ELSE 10",
+            "10 IF RN < D1 THEN\n" "  X := 2.0\n" "ELSE\n" "  GOTO 10\n" "ENDIF",
+        )
+
+    def test_if_then_else(self) -> None:
+        self.generic_test_parse(
+            "100 IF WW>0 THEN 100 ELSE CC=SC/CT",
+            "100 IF WW > 0.0 THEN\n"
+            "  GOTO 100\n"
+            "ELSE\n"
+            "  CC := SC / CT\n"
+            "ENDIF",
+        )
+
+    def test_int_lvalue(self) -> None:
+        self.generic_test_parse(
+            "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
+            "100 IF WW = 1.0 AND tmp_1 > 0.0 THEN\n  GOTO 100\nELSE\n  GOTO 100\nENDIF",
+        )
+
+    def test_partial_str_assign(self) -> None:
+        self.generic_test_parse(
+            '100 A$ = "HELLO',
+            '100 A$ := "HELLO"',
+        )
+
+    def test_partial_arr_str_assign(self) -> None:
+        self.generic_test_parse(
+            '100 A$ = "HELLO',
+            '100 A$ := "HELLO"',
+        )
+
+    def test_str_less_than(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" < "B" THEN 100',
+            '100 IF "A" < "B" THEN 100',
+        )
+
+    def test_str_greater_than(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" > "B" THEN 100',
+            '100 IF "A" > "B" THEN 100',
+        )
+
+    def test_str_less_than_or_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" <= "B" THEN 100',
+            '100 IF "A" <= "B" THEN 100',
+        )
+
+    def test_str_greater_than_or_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" >= "B" THEN 100',
+            '100 IF "A" >= "B" THEN 100',
+        )
+
+    def test_str_not_equal(self) -> None:
+        self.generic_test_parse(
+            '100 IF "A" <> "B" THEN 100',
+            '100 IF "A" <> "B" THEN 100',
+        )
+
+    def test_implicit_array_ref(self) -> None:
+        self.generic_test_parse(
+            "10 A(10) = 3",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "10 arr_A(10.0) := 3.0",
         )
