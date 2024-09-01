@@ -449,7 +449,9 @@ class BasicIfElse(BasicIf):
             else_suffix = (
                 ""
                 if self._else_statements is None
-                else f"{self._else_statements.basic09_text(indent_level + 2)}\n"
+                else f"{self.indent_spaces(indent_level + 1)}EXITIF TRUE THEN\n"
+                f"{self._else_statements.basic09_text(indent_level + 2)}\n"
+                f"{self.indent_spaces(indent_level + 1)}ENDEXIT\n"
             )
             return (
                 f"{self.indent_spaces(indent_level)}LOOP\n"

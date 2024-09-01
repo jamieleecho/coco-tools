@@ -1257,7 +1257,9 @@ class TestB09(unittest.TestCase):
             "  EXITIF RN = 2.0 THEN\n"
             "    GOTO 10\n"
             "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
             "    X := 3.0\n"
+            "  ENDEXIT\n"
             "ENDLOOP",
         )
 
