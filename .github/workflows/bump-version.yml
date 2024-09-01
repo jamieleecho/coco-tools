@@ -25,5 +25,4 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh repo set-default "jamieleecho/coco-tools"
           gh workflow run make-release.yml ref=${github.ref}
