@@ -6,9 +6,6 @@
       "path": "./setup.py",
       "line": 6
   }, {
-      "path": "Dockerfile",
-      "line": 2
-  }, {
       "path": "./coco/__init__.py",
       "line": 2
   }],
