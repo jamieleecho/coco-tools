@@ -7,7 +7,8 @@ from coco.b09.elements import (
     BasicHbuffStatement,
     BasicLiteral,
 )
-from coco.b09.parser import BasicProg, BasicVisitor, grammar
+from coco.b09.grammar import grammar
+from coco.b09.parser import BasicProg, BasicVisitor
 from coco.b09.visitors import (
     BasicExpressionList,
     BasicFunctionalExpressionPatcherVisitor,

@@ -1,14 +1,14 @@
 import unittest
 
 from coco import b09
-from coco.b09 import parser
-from coco.b09.parser import ParseError
+from coco.b09 import compiler
+from coco.b09.compiler import ParseError
 from coco.b09.visitors import LineNumberTooLargeException
 
 
 class TestB09(unittest.TestCase):
     def test_convert_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             procname="do_cls",
             initialize_vars=True,
@@ -21,7 +21,7 @@ class TestB09(unittest.TestCase):
         assert "procedure _ecb_text_address\n" in program
 
     def test_convert_no_header_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             procname="do_cls",
             initialize_vars=True,
@@ -35,7 +35,7 @@ class TestB09(unittest.TestCase):
         assert "RUN ecb_cls(B, display)" in program
 
     def test_convert_header_no_name_with_dependencies(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 CLS B",
             initialize_vars=True,
             filter_unused_linenum=True,
@@ -49,7 +49,7 @@ class TestB09(unittest.TestCase):
         assert "procedure _ecb_cursor_color\n" in program
 
     def test_convert_no_default_width32(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 A=0",
             procname="do_cls",
             initialize_vars=False,
@@ -61,7 +61,7 @@ class TestB09(unittest.TestCase):
         assert "RUN _ecb_start(display, 0)\n" in program
 
     def test_convert_default_width32(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 A=0",
             procname="do_cls",
             initialize_vars=False,
@@ -166,7 +166,7 @@ class TestB09(unittest.TestCase):
         output_dependencies=False,
         skip_procedure_headers=True,
     ):
-        b09_prog = parser.convert(
+        b09_prog = compiler.convert(
             progin,
             add_standard_prefix=add_standard_prefix,
             add_suffix=add_suffix,
@@ -803,7 +803,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_adds_standard_prefix(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 REM",
             procname="do_cls",
             initialize_vars=True,
@@ -1029,7 +1029,7 @@ class TestB09(unittest.TestCase):
             )
 
     def test_outputs_suffix(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 ON ERR GOTO 100\n100 END",
             procname="do_cls",
             initialize_vars=True,
@@ -1119,20 +1119,20 @@ class TestB09(unittest.TestCase):
         )
 
     def test_allocates_extra_str_space(self) -> None:
-        program: str = parser.convert(
+        program: str = compiler.convert(
             "10 PRINT A$",
             default_str_storage=128,
         )
         assert "DIM A$:STRING[128]\n" in program
 
     def test_subs_str_storage_tags(self) -> None:
-        program: str = parser.convert(
+        program: str = compiler.convert(
             '10 A$=STRING$(10, "*")', default_str_storage=128, output_dependencies=True
         )
         assert "param str: STRING[128]\n" in program
 
     def test_initializes_for(self) -> None:
-        program: str = parser.convert("10 FOR X=A TO 10", initialize_vars=True)
+        program: str = compiler.convert("10 FOR X=A TO 10", initialize_vars=True)
         assert "A := 0.0" in program
 
     def test_comment_wth_colon(self) -> None:
@@ -1154,7 +1154,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_adds_hbuff_prefix(self) -> None:
-        program = parser.convert(
+        program = compiler.convert(
             "10 HBUFF 10, 123",
             procname="do_cls",
             initialize_vars=True,

@@ -307,6 +307,44 @@ class SetDimStringStorageVisitor(BasicConstructVisitor):
         return self._dimmed_var_names
 
 
+class GetDimmedArraysVisitor(BasicConstructVisitor):
+    _dimmed_var_names: Set[str]
+
+    def __init__(self):
+        self._dimmed_var_names = set()
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicDimStatement):
+            statement.default_str_storage = self._default_str_storage
+            self._dimmed_var_names.union(
+                [
+                    var.var.name
+                    for var in statement.dim_vars
+                    if isinstance(var, BasicArrayRef)
+                ]
+            )
+
+    @property
+    def dimmed_var_names(self) -> Set[str]:
+        return self._dimmed_var_names
+
+
+class DeclareImplicitArraysVisitor(BasicConstructVisitor):
+    _dimmed_var_names: Set[str]
+    _referenced_var_names: Set[str]
+
+    def __init__(self, *, dimmed_var_names: Set[str]):
+        self._dimmed_var_names = set()
+        self._referenced_var_names = set()
+
+    def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
+        self._referenced_var_names.add(array_ref.var.name)
+
+    @property
+    def implicitly_declares_arrays(self) -> Set[str]:
+        return self._referenced_var_names - self._dimmed_var_names
+
+
 class JoystickVisitor(BasicConstructVisitor):
     def __init__(self):
         self._uses_joystk = False
