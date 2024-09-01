@@ -181,34 +181,47 @@ class TestB09(unittest.TestCase):
     def test_parse_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A = B(123 - 1 - (2/2),1,2)\n",
+            "DIM arr_B(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_B(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
     def test_parse_array_assignment(self) -> None:
         self.generic_test_parse(
             "10 A (123 - 1 - (2/2),1,2)=123+64",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := 123.0 + 64.0",
         )
 
         self.generic_test_parse(
             "10 LETA (123 - 1 - (2/2),1,2)=123+64",
-            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := " "123.0 + 64.0",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "
+            "123.0 + 64.0",
         )
 
     def test_parse_str_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A$ = B$(123 - 1 - (2/2),1,2)",
+            "DIM arr_B$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
             "10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
         self.generic_test_parse(
             "10 LETA$ = B$(123 - 1 - (2/2),1,2)",
+            "DIM arr_B$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
             "10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
         )
 
     def test_parse_str_array_assignment(self) -> None:
         self.generic_test_parse(
             '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
+            "DIM arr_A$(11)\n"
+            'FOR tmp_1 = 0 TO 10 \ arr_A$(tmp_1) := "" \ NEXT tmp_1\n'
             '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "123" + "64"',
         )
 
@@ -754,6 +767,8 @@ class TestB09(unittest.TestCase):
             "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11"
             "ORL(30)<>11ORGR=0THEN500\n"
             "500 '\n",
+            "DIM arr_L(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_L(tmp_1) := 0 \ NEXT tmp_1\n"
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
@@ -1276,8 +1291,8 @@ class TestB09(unittest.TestCase):
 
     def test_partial_arr_str_assign(self) -> None:
         self.generic_test_parse(
-            '100 A$(1) = "HELLO',
-            '100 arr_A$(1.0) := "HELLO"',
+            '100 A$ = "HELLO',
+            '100 A$ := "HELLO"',
         )
 
     def test_str_less_than(self) -> None:
@@ -1308,4 +1323,12 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '100 IF "A" <> "B" THEN 100',
             '100 IF "A" <> "B" THEN 100',
+        )
+
+    def test_implicit_array_ref(self) -> None:
+        self.generic_test_parse(
+            "10 A(10) = 3",
+            "DIM arr_A(11)\n"
+            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "10 arr_A(10.0) := 3.0",
         )

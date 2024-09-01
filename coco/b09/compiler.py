@@ -24,6 +24,8 @@ from coco.b09.visitors import (
     BasicNextPatcherVisitor,
     BasicPrintStatementPatcherVisitor,
     BasicReadStatementPatcherVisitor,
+    DeclareImplicitArraysVisitor,
+    GetDimmedArraysVisitor,
     JoystickVisitor,
     LineNumberFilterVisitor,
     LineNumberCheckerVisitor,
@@ -125,6 +127,15 @@ def convert(
         default_str_storage=default_str_storage
     )
     basic_prog.visit(set_string_storage_vistor)
+
+    # Declare implicitly declared arrays
+    dimmed_array_visitor = GetDimmedArraysVisitor()
+    basic_prog.visit(dimmed_array_visitor)
+    declare_array_visitor = DeclareImplicitArraysVisitor(
+        dimmed_var_names=dimmed_array_visitor.dimmed_var_names,
+    )
+    basic_prog.visit(declare_array_visitor)
+    basic_prog.extend_prefix_lines(declare_array_visitor.dim_statements)
 
     # allocate sufficient string storage
     str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(

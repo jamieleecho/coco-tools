@@ -81,7 +81,7 @@ class AbstractBasicStatement(AbstractBasicConstruct):
 
 
 class BasicArrayRef(AbstractBasicExpression):
-    def __init__(self, var, indices, is_str_expr=False):
+    def __init__(self, var: "BasicVar", indices, is_str_expr: bool = False):
         super().__init__(is_str_expr=is_str_expr)
         self._var = BasicVar(f"arr_{var.name()}", is_str_expr=is_str_expr)
         self._indices = indices
@@ -968,7 +968,7 @@ class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
 
-    def __init__(self, dim_vars):
+    def __init__(self, dim_vars: List["BasicArrayRef | BasicVar"]):
         super().__init__()
         self._default_str_storage = DEFAULT_STR_STORAGE
         self._dim_vars = [
