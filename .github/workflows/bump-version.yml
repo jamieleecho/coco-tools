@@ -16,13 +16,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Bump Versions
-        uses: michmich112/version-bumper@master
-        with:
-          options-file: './bump-info.json'
-          github-token: ${{ secrets.UPDATE_TOKEN }}
+      #- name: Bump Versions
+      #  uses: michmich112/version-bumper@master
+      #  with:
+      #    options-file: './bump-info.json'
+      #    github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Trigger release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          echo $GITHUB_REF
           gh workflow run make-release.yml --ref $GITHUB_REF
