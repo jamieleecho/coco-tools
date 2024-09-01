@@ -21,3 +21,9 @@ jobs:
         with:
           options-file: './bump-info.json'
           github-token: ${{ secrets.UPDATE_TOKEN }}
+      - name: Trigger release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh repo set-default "jamieleecho/coco-tools"
+          gh workflow run make-release.yml ref=${github.ref}
