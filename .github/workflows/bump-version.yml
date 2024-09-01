@@ -13,9 +13,9 @@ jobs:
       - uses: actions/checkout@master
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
-          node-version: '12'
+          node-version: '20'
       - name: Bump Versions
         uses: michmich112/version-bumper@master
         with:

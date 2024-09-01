@@ -1,9 +1,7 @@
 name: Make a New Release
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_dispatch:
 
 jobs:
   create-release:
