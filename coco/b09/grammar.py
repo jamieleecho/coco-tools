@@ -214,7 +214,7 @@ KEYWORDS = "|".join(
 
 grammar = Grammar(
     rf"""
-    aaa_prog            = multi_line eol* ~r"\x00?" eof
+    aaa_prog            = (space* eol+)* multi_line eol* ~r"\x00?" eof
     multi_line          = line space* multi_line_elements
     multi_line_elements = multi_line_element*
     multi_line_element  = eol+ line space*
@@ -380,7 +380,7 @@ grammar = Grammar(
     comment_text    = ~r".*"
     comment_token   = ~r"(REM|')"
     eof             = ~r"$"
-    eol             = ~r"[\n\r]+"
+    eol             = ~r"[\n\r]"
     linenum         = ~r"[0-9]+"
     literal         = num_literal
     hex_literal     = ~r"& *H *[0-9A-F][0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?[0-9A-F]?"

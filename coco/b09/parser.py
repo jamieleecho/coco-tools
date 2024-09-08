@@ -134,7 +134,7 @@ class BasicVisitor(NodeVisitor):
         return node
 
     def visit_aaa_prog(self, _, visited_children):
-        return BasicProg(visited_children[0])
+        return BasicProg(visited_children[1])
 
     def visit_arr_assign(self, _, visited_children):
         let_kw, _, array_ref_exp, _, _, _, val_exp = visited_children

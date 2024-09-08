@@ -1334,3 +1334,12 @@ class TestB09(unittest.TestCase):
             "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 arr_A(10.0) := 3.0",
         )
+
+    def test_tolerates_blank_lines(self) -> None:
+        self.generic_test_parse(
+            "\n5 CLEAR1000\n"
+            "10 DIM A(100)\n",
+            "5 (* CLEAR1000 *)\n"
+            "10 DIM arr_A(101)\n"
+            "FOR tmp_1 = 0 TO 100 \ arr_A(tmp_1) := 0 \ NEXT tmp_1",
+        )
