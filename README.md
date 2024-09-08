@@ -245,6 +245,7 @@ The programs in the examples/decb and examples/other-decb-examples-to-try direct
 * banner.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/banner.c10
 * cadnza.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cadnza.c10
 * cflip.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cflip.c10
+* flip.bas -- https://github.com/daftspaniel/RetroCornerRedux/blob/main/Dragon/Originals/FlipBits/flip.bas
 * loops.bas -- https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf
 * f15eagle.bas -- https://colorcomputerarchive.com/repo/Disks/Magazines/Rainbow%20On%20Disk.zip
 * mars.bas -- https://github.com/jggames/trs80mc10/tree/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Text%20Adventures/WorkInProgress/Mars
