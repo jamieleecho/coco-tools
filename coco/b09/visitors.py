@@ -220,11 +220,16 @@ class StatementCollectorVisitor(BasicConstructVisitor):
 
 
 class VarInitializerVisitor(BasicConstructVisitor):
+    _vars: Set[str]
+    _dimmed_var_names: Set[str]
+
     def __init__(self):
         self._vars = set()
+        self._dimmed_var_names = set()
 
     @property
     def assignment_lines(self) -> List[BasicLine]:
+        vars_to_assign = self._vars - self._dimmed_var_names
         return [
             BasicLine(
                 None,
@@ -237,7 +242,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
                                 is_str_expr=var.endswith("$"),
                             ),
                         )
-                        for var in sorted(self._vars)
+                        for var in sorted(vars_to_assign)
                         if ((var.endswith("$") and len(var) <= 3) or len(var) <= 2)
                     ]
                 ),
@@ -246,6 +251,15 @@ class VarInitializerVisitor(BasicConstructVisitor):
 
     def visit_var(self, var) -> None:
         self._vars.add(var.name())
+
+    def visit_statement(self, statement: BasicForStatement) -> None:
+        if isinstance(statement, BasicDimStatement):
+            self._dimmed_var_names.update(
+                [
+                    var.var.name() if isinstance(var, BasicArrayRef) else var.name()
+                    for var in statement.dim_vars
+                ]
+            )
 
 
 class StrVarAllocatorVisitor(BasicConstructVisitor):

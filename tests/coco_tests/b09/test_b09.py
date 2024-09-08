@@ -606,6 +606,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "11 DIM A, B(12)",
             "11 DIM A, arr_B(13)\n"
+            "A := 0\n"
             "FOR tmp_1 = 0 TO 12 \\ "
             "arr_B(tmp_1) := 0 \\ "
             "NEXT tmp_1",
@@ -615,20 +616,24 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "11 DIM A$, B, C$(12)",
             "11 DIM A$, arr_C$(13)\n"
+            'A$ := ""\n'
             "FOR tmp_1 = 0 TO 12 \\ "
             'arr_C$(tmp_1) := "" \\ '
             "NEXT tmp_1\n"
-            "DIM B",
+            "DIM B\n"
+            "B := 0",
         )
 
     def test_dim6(self) -> None:
         self.generic_test_parse(
             "11 DIM A$, B, C$(12)",
             "11 DIM A$, arr_C$(13): STRING[80]\n"
+            'A$ := ""\n'
             "FOR tmp_1 = 0 TO 12 \\ "
             'arr_C$(tmp_1) := "" \\ '
             "NEXT tmp_1\n"
-            "DIM B",
+            "DIM B\n"
+            "B := 0",
             default_str_storage=80,
         )
 
@@ -637,6 +642,7 @@ class TestB09(unittest.TestCase):
             "11 DIM A$, C$(12):PRINT B$\n",
             "DIM B$:STRING[80]\n"
             "11 DIM A$, arr_C$(13): STRING[80]\n"
+            'A$ := ""\n'
             "FOR tmp_1 = 0 TO 12 \\ "
             'arr_C$(tmp_1) := "" \\ '
             "NEXT tmp_1\n"
@@ -678,7 +684,13 @@ class TestB09(unittest.TestCase):
         )
 
     def test_dim_misc(self) -> None:
-        self.generic_test_parse("11 DIMA$,B", "11 DIM A$\n" "DIM B")
+        self.generic_test_parse(
+            "11 DIMA$,B",
+            "11 DIM A$\n"
+            'A$ := ""\n'
+            "DIM B\n"
+            'B := 0',
+        )
 
     def test_line_filter(self) -> None:
         self.generic_test_parse(
@@ -1343,3 +1355,14 @@ class TestB09(unittest.TestCase):
             "10 DIM arr_A(101)\n"
             "FOR tmp_1 = 0 TO 100 \ arr_A(tmp_1) := 0 \ NEXT tmp_1",
         )
+    
+    def test_wont_initialize_dimmed_vars(self) -> None:
+        program = compiler.convert(
+            "10 DIM A",
+            procname="test",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "A = 0" not in '\n'.join(program.split("\n")[:-1])

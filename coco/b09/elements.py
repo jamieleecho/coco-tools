@@ -1003,7 +1003,15 @@ class BasicDimStatement(AbstractBasicStatement):
     def default_str_storage(self, val):
         self._default_str_storage = val
 
-    def init_text_for_var(self, dim_var):
+    def init_text_for_var(self, dim_var: "BasicArrayRef | BasicVar") -> str:
+        if isinstance(dim_var, BasicVar):
+            return BasicStatements(
+                [
+                    BasicAssignment(dim_var, BasicLiteral("" if dim_var.is_str_expr else 0)),
+                ],
+                multi_line=False,
+            ).basic09_text(0)
+
         for_statements = (
             BasicForStatement(
                 BasicVar(f"tmp_{ii + 1}"),
@@ -1085,7 +1093,6 @@ class BasicDimStatement(AbstractBasicStatement):
             (
                 self.init_text_for_var(dim_var)
                 for dim_var in dim_vars
-                if isinstance(dim_var, BasicArrayRef)
             )
         )
         init_text = "\n" + init_text if init_text else ""
