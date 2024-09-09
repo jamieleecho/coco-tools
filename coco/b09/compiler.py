@@ -32,6 +32,7 @@ from coco.b09.visitors import (
     LineReferenceVisitor,
     LineZeroFilterVisitor,
     SetDimStringStorageVisitor,
+    SetInitializeVisitor,
     StatementCollectorVisitor,
     StrVarAllocatorVisitor,
     VarInitializerVisitor,
@@ -133,6 +134,7 @@ def convert(
     basic_prog.visit(dimmed_array_visitor)
     declare_array_visitor = DeclareImplicitArraysVisitor(
         dimmed_var_names=dimmed_array_visitor.dimmed_var_names,
+        initialize_vars=initialize_vars,
     )
     basic_prog.visit(declare_array_visitor)
     basic_prog.extend_prefix_lines(declare_array_visitor.dim_statements)
@@ -150,6 +152,8 @@ def convert(
         var_initializer = VarInitializerVisitor()
         basic_prog.visit(var_initializer)
         basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
+    set_init_visitor = SetInitializeVisitor(initialize_vars)
+    basic_prog.visit(set_init_visitor)
 
     # remove unused line numbers
     line_ref_visitor = LineReferenceVisitor()

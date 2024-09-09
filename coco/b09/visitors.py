@@ -230,7 +230,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
     @property
     def assignment_lines(self) -> List[BasicLine]:
         vars_to_assign = self._vars - self._dimmed_var_names
-        return [
+        return [            
             BasicLine(
                 None,
                 BasicStatements(
@@ -247,7 +247,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
                     ]
                 ),
             )
-        ]
+        ] if vars_to_assign else []
 
     def visit_var(self, var) -> None:
         self._vars.add(var.name())
@@ -344,10 +344,12 @@ class GetDimmedArraysVisitor(BasicConstructVisitor):
 
 class DeclareImplicitArraysVisitor(BasicConstructVisitor):
     _dimmed_var_names: Set[str]
+    _initialize_vars: bool
     _referenced_var_names: Set[str]
 
-    def __init__(self, *, dimmed_var_names: Set[str]):
+    def __init__(self, *, dimmed_var_names: Set[str], initialize_vars: bool = False):
         self._dimmed_var_names = dimmed_var_names
+        self._initialize_vars = initialize_vars
         self._referenced_var_names = set()
 
     def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
@@ -366,8 +368,9 @@ class DeclareImplicitArraysVisitor(BasicConstructVisitor):
                         BasicVar(var[4:], is_str_expr=var.endswith("$")),
                         BasicExpressionList([BasicLiteral(10)]),
                         is_str_expr=var.endswith("$"),
-                    )
-                ]
+                    ),
+                ],
+                initialize_vars=self._initialize_vars,
             )
             for var in self.implicitly_declared_arrays
         ]
@@ -521,3 +524,12 @@ class BasicHbuffPresenceVisitor(BasicConstructVisitor):
     @property
     def has_hbuff(self) -> bool:
         return self._hasHbuff
+
+
+class SetInitializeVisitor(BasicConstructVisitor):
+    def __init__(self, initialize_vars: bool):
+        self._initialize_vars = initialize_vars
+
+    def visit_statement(self, statement: BasicStatement) -> None:
+        if isinstance(statement, BasicDimStatement):
+            statement.initialize_vars = self._initialize_vars

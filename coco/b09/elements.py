@@ -969,8 +969,14 @@ class BasicJoystkExpression(BasicFunctionalExpression):
 class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
+    _initialize_vars: bool
 
-    def __init__(self, dim_vars: List["BasicArrayRef | BasicVar"]):
+    def __init__(
+            self,
+            dim_vars: List["BasicArrayRef | BasicVar"],
+            *,
+            initialize_vars: bool = False,
+        ):
         super().__init__()
         self._default_str_storage = DEFAULT_STR_STORAGE
         self._dim_vars = [
@@ -990,6 +996,7 @@ class BasicDimStatement(AbstractBasicStatement):
             )
             for var in dim_vars
         ]
+        self._initialize_vars = initialize_vars
 
     @property
     def default_str_storage(self):
@@ -998,6 +1005,14 @@ class BasicDimStatement(AbstractBasicStatement):
     @property
     def dim_vars(self) -> List["BasicArrayRef | BasicVar"]:
         return self._dim_vars
+
+    @property
+    def initialize_vars(self) -> bool:
+        return self._initialize_vars
+    
+    @initialize_vars.setter
+    def initialize_vars(self, val: bool) -> None:
+        self._initialize_vars = val
 
     @default_str_storage.setter
     def default_str_storage(self, val):
@@ -1089,13 +1104,16 @@ class BasicDimStatement(AbstractBasicStatement):
         dim_var_text: str = ", ".join(
             (dim_var.basic09_text(indent_level) for dim_var in dim_vars)
         )
-        init_text = "\n".join(
-            (
-                self.init_text_for_var(dim_var)
-                for dim_var in dim_vars
+        if self.initialize_vars:
+            init_text = "\n".join(
+                (
+                    self.init_text_for_var(dim_var)
+                    for dim_var in dim_vars
+                )
             )
-        )
-        init_text = "\n" + init_text if init_text else ""
+            init_text = "\n" + init_text if init_text else ""
+        else:
+            init_text = ""
 
         return (
             f"{super().basic09_text(indent_level)}"

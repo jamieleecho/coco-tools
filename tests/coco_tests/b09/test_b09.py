@@ -183,7 +183,9 @@ class TestB09(unittest.TestCase):
             "10 A = B(123 - 1 - (2/2),1,2)\n",
             "DIM arr_B(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_B(tmp_1) := 0 \ NEXT tmp_1\n"
+            "A := 0.0\n"
             "10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
+            initialize_vars=True,
         )
 
     def test_parse_array_assignment(self) -> None:
@@ -192,6 +194,7 @@ class TestB09(unittest.TestCase):
             "DIM arr_A(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := 123.0 + 64.0",
+            initialize_vars=True,
         )
 
         self.generic_test_parse(
@@ -200,6 +203,7 @@ class TestB09(unittest.TestCase):
             "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "
             "123.0 + 64.0",
+            initialize_vars=True,
         )
 
     def test_parse_str_array_ref(self) -> None:
@@ -207,14 +211,18 @@ class TestB09(unittest.TestCase):
             "10 A$ = B$(123 - 1 - (2/2),1,2)",
             "DIM arr_B$(11)\n"
             'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
+            'A$ := ""\n'
             "10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
+            initialize_vars=True,
         )
 
         self.generic_test_parse(
             "10 LETA$ = B$(123 - 1 - (2/2),1,2)",
             "DIM arr_B$(11)\n"
             'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
+            'A$ := ""\n'
             "10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
+            initialize_vars=True,
         )
 
     def test_parse_str_array_assignment(self) -> None:
@@ -223,6 +231,7 @@ class TestB09(unittest.TestCase):
             "DIM arr_A$(11)\n"
             'FOR tmp_1 = 0 TO 10 \ arr_A$(tmp_1) := "" \ NEXT tmp_1\n'
             '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "123" + "64"',
+            initialize_vars=True,
         )
 
     def test_parse_comment_program(self) -> None:
@@ -576,6 +585,7 @@ class TestB09(unittest.TestCase):
             "FOR tmp_1 = 0 TO 20 \\ "
             "arr_CC(tmp_1) := 0 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_dim2(self) -> None:
@@ -587,6 +597,7 @@ class TestB09(unittest.TestCase):
             "arr_A(tmp_1, tmp_2) := 0 \\ "
             "NEXT tmp_2 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_dim3(self) -> None:
@@ -600,6 +611,7 @@ class TestB09(unittest.TestCase):
             "NEXT tmp_3 \\ "
             "NEXT tmp_2 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_dim4(self) -> None:
@@ -610,6 +622,7 @@ class TestB09(unittest.TestCase):
             "FOR tmp_1 = 0 TO 12 \\ "
             "arr_B(tmp_1) := 0 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_dim5(self) -> None:
@@ -622,6 +635,7 @@ class TestB09(unittest.TestCase):
             "NEXT tmp_1\n"
             "DIM B\n"
             "B := 0",
+            initialize_vars=True,
         )
 
     def test_dim6(self) -> None:
@@ -635,12 +649,14 @@ class TestB09(unittest.TestCase):
             "DIM B\n"
             "B := 0",
             default_str_storage=80,
+            initialize_vars=True,
         )
 
     def test_dim7(self) -> None:
         self.generic_test_parse(
             "11 DIM A$, C$(12):PRINT B$\n",
             "DIM B$:STRING[80]\n"
+            'B$ := ""\n'
             "11 DIM A$, arr_C$(13): STRING[80]\n"
             'A$ := ""\n'
             "FOR tmp_1 = 0 TO 12 \\ "
@@ -648,6 +664,7 @@ class TestB09(unittest.TestCase):
             "NEXT tmp_1\n"
             "PRINT B$",
             default_str_storage=80,
+            initialize_vars=True,
         )
 
     def test_str_dim1(self) -> None:
@@ -657,6 +674,7 @@ class TestB09(unittest.TestCase):
             "FOR tmp_1 = 0 TO 12 \\ "
             'arr_A$(tmp_1) := "" \\ '
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_str_dim2(self) -> None:
@@ -668,6 +686,7 @@ class TestB09(unittest.TestCase):
             'arr_A$(tmp_1, tmp_2) := "" \\ '
             "NEXT tmp_2 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_str_dim3(self) -> None:
@@ -681,6 +700,7 @@ class TestB09(unittest.TestCase):
             "NEXT tmp_3 \\ "
             "NEXT tmp_2 \\ "
             "NEXT tmp_1",
+            initialize_vars=True,
         )
 
     def test_dim_misc(self) -> None:
@@ -690,6 +710,7 @@ class TestB09(unittest.TestCase):
             'A$ := ""\n'
             "DIM B\n"
             'B := 0',
+            initialize_vars=True,
         )
 
     def test_line_filter(self) -> None:
@@ -781,11 +802,13 @@ class TestB09(unittest.TestCase):
             "500 '\n",
             "DIM arr_L(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_L(tmp_1) := 0 \ NEXT tmp_1\n"
+            "GR := 0.0\n"
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
             "OR arr_L(30.0) <> 11.0 OR GR = 0.0 THEN 500\n"
             "500 (* *)",
+            initialize_vars=True,
         )
 
     def test_multi_and_or(self) -> None:
@@ -1345,6 +1368,7 @@ class TestB09(unittest.TestCase):
             "DIM arr_A(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
             "10 arr_A(10.0) := 3.0",
+            initialize_vars=True,
         )
 
     def test_tolerates_blank_lines(self) -> None:
@@ -1354,6 +1378,7 @@ class TestB09(unittest.TestCase):
             "5 (* CLEAR1000 *)\n"
             "10 DIM arr_A(101)\n"
             "FOR tmp_1 = 0 TO 100 \ arr_A(tmp_1) := 0 \ NEXT tmp_1",
+            initialize_vars=True,
         )
     
     def test_wont_initialize_dimmed_vars(self) -> None:
