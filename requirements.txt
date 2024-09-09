@@ -4,6 +4,7 @@ pypng==0.20220715.0
 
 # Development only
 pre-commit>=3.7.1 
+pydantic>=2.0.0
 pytest>=8.2.2
 pytest-cov>=2.11.1
 ruff>=0.5.0
