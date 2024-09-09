@@ -1,6 +1,9 @@
 import re
+from pathlib import Path
 from pydantic import BaseModel, field_validator
+from pydantic_yaml import parse_yaml_raw_as
 from typing import Dict
+
 
 class StringConfigs(BaseModel):
     strname_to_size: Dict[str, int]
@@ -21,4 +24,10 @@ class StringConfigs(BaseModel):
 
 
 class CompilerConfigs(BaseModel):
+    @classmethod
+    def load(cls, path: Path) -> "CompilerConfigs":
+        with open(path) as handle:
+            yaml = handle.read()
+            return parse_yaml_raw_as(cls, yaml)
+
     string_configs: StringConfigs
