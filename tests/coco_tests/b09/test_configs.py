@@ -11,13 +11,13 @@ def simple_config_path() -> Path:
 
 
 @pytest.mark.parametrize(
-    'var, sz',
+    "var, sz",
     [
-        ['A$', 1],
-        ['B1$', 100],
-        ['B$()', 22],
-        ['B1$()', 33],
-        ['B_$', 133],
+        ["A$", 1],
+        ["B1$", 100],
+        ["B$()", 22],
+        ["B1$()", 33],
+        ["B_$", 133],
     ],
 )
 def test_validates_valid_string_configs(var: str, sz: int) -> None:
@@ -27,16 +27,16 @@ def test_validates_valid_string_configs(var: str, sz: int) -> None:
 
 
 @pytest.mark.parametrize(
-    'var, sz',
+    "var, sz",
     [
-        ['_A$', 1],
-        ['AAA$', 1],
-        ['9A$', 1],
-        ['A()$', 1],
-        ['()A$', 1],
-        ['A$', 0],
-        ['A$', 32767],
-        ['A', 3],
+        ["_A$", 1],
+        ["AAA$", 1],
+        ["9A$", 1],
+        ["A()$", 1],
+        ["()A$", 1],
+        ["A$", 0],
+        ["A$", 32767],
+        ["A", 3],
     ],
 )
 def test_fails_invalid_string_configs(var: str, sz: int) -> None:
