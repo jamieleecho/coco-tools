@@ -230,24 +230,28 @@ class VarInitializerVisitor(BasicConstructVisitor):
     @property
     def assignment_lines(self) -> List[BasicLine]:
         vars_to_assign = self._vars - self._dimmed_var_names
-        return [            
-            BasicLine(
-                None,
-                BasicStatements(
-                    [
-                        BasicAssignment(
-                            BasicVar(var, is_str_expr=var.endswith("$")),
-                            BasicLiteral(
-                                "" if var.endswith("$") else 0.0,
-                                is_str_expr=var.endswith("$"),
-                            ),
-                        )
-                        for var in sorted(vars_to_assign)
-                        if ((var.endswith("$") and len(var) <= 3) or len(var) <= 2)
-                    ]
-                ),
-            )
-        ] if vars_to_assign else []
+        return (
+            [
+                BasicLine(
+                    None,
+                    BasicStatements(
+                        [
+                            BasicAssignment(
+                                BasicVar(var, is_str_expr=var.endswith("$")),
+                                BasicLiteral(
+                                    "" if var.endswith("$") else 0.0,
+                                    is_str_expr=var.endswith("$"),
+                                ),
+                            )
+                            for var in sorted(vars_to_assign)
+                            if ((var.endswith("$") and len(var) <= 3) or len(var) <= 2)
+                        ]
+                    ),
+                )
+            ]
+            if vars_to_assign
+            else []
+        )
 
     def visit_var(self, var) -> None:
         self._vars.add(var.name())

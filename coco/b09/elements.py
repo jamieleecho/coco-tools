@@ -972,11 +972,11 @@ class BasicDimStatement(AbstractBasicStatement):
     _initialize_vars: bool
 
     def __init__(
-            self,
-            dim_vars: List["BasicArrayRef | BasicVar"],
-            *,
-            initialize_vars: bool = False,
-        ):
+        self,
+        dim_vars: List["BasicArrayRef | BasicVar"],
+        *,
+        initialize_vars: bool = False,
+    ):
         super().__init__()
         self._default_str_storage = DEFAULT_STR_STORAGE
         self._dim_vars = [
@@ -1009,7 +1009,7 @@ class BasicDimStatement(AbstractBasicStatement):
     @property
     def initialize_vars(self) -> bool:
         return self._initialize_vars
-    
+
     @initialize_vars.setter
     def initialize_vars(self, val: bool) -> None:
         self._initialize_vars = val
@@ -1022,7 +1022,9 @@ class BasicDimStatement(AbstractBasicStatement):
         if isinstance(dim_var, BasicVar):
             return BasicStatements(
                 [
-                    BasicAssignment(dim_var, BasicLiteral("" if dim_var.is_str_expr else 0)),
+                    BasicAssignment(
+                        dim_var, BasicLiteral("" if dim_var.is_str_expr else 0)
+                    ),
                 ],
                 multi_line=False,
             ).basic09_text(0)
@@ -1106,10 +1108,7 @@ class BasicDimStatement(AbstractBasicStatement):
         )
         if self.initialize_vars:
             init_text = "\n".join(
-                (
-                    self.init_text_for_var(dim_var)
-                    for dim_var in dim_vars
-                )
+                (self.init_text_for_var(dim_var) for dim_var in dim_vars)
             )
             init_text = "\n" + init_text if init_text else ""
         else:

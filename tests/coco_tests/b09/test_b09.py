@@ -706,10 +706,7 @@ class TestB09(unittest.TestCase):
     def test_dim_misc(self) -> None:
         self.generic_test_parse(
             "11 DIMA$,B",
-            "11 DIM A$\n"
-            'A$ := ""\n'
-            "DIM B\n"
-            'B := 0',
+            "11 DIM A$\n" 'A$ := ""\n' "DIM B\n" "B := 0",
             initialize_vars=True,
         )
 
@@ -1373,14 +1370,13 @@ class TestB09(unittest.TestCase):
 
     def test_tolerates_blank_lines(self) -> None:
         self.generic_test_parse(
-            "\n5 CLEAR1000\n"
-            "10 DIM A(100)\n",
+            "\n5 CLEAR1000\n" "10 DIM A(100)\n",
             "5 (* CLEAR1000 *)\n"
             "10 DIM arr_A(101)\n"
             "FOR tmp_1 = 0 TO 100 \ arr_A(tmp_1) := 0 \ NEXT tmp_1",
             initialize_vars=True,
         )
-    
+
     def test_wont_initialize_dimmed_vars(self) -> None:
         program = compiler.convert(
             "10 DIM A",
@@ -1390,4 +1386,4 @@ class TestB09(unittest.TestCase):
             skip_procedure_headers=False,
             output_dependencies=True,
         )
-        assert "A = 0" not in '\n'.join(program.split("\n")[:-1])
+        assert "A = 0" not in "\n".join(program.split("\n")[:-1])
