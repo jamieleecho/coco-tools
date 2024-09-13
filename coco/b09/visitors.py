@@ -1,4 +1,7 @@
+from typing import List, Set, TYPE_CHECKING
+
 from coco import b09
+from coco.b09.configs import StringConfigs
 from coco.b09.elements import (
     AbstractBasicExpression,
     AbstractBasicStatement,
@@ -26,8 +29,6 @@ from coco.b09.elements import (
     BasicStatements,
     BasicVar,
 )
-
-from typing import List, Set, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from coco.b09.prog import BasicProg
@@ -305,14 +306,21 @@ class StrVarAllocatorVisitor(BasicConstructVisitor):
 class SetDimStringStorageVisitor(BasicConstructVisitor):
     _default_str_storage: int
     _dimmed_var_names: Set[str]
+    _strname_to_size: StringConfigs
 
-    def __init__(self, *, default_str_storage: int):
+    def __init__(self, *, default_str_storage: int, string_configs: StringConfigs):
         self._default_str_storage = default_str_storage
         self._dimmed_var_names = set()
+        self._strname_to_size = set()
+        self._string_configs = {
+            (var if var.endswith("$") else f"arr_{var[:-3]}$", size)
+            for var, size in string_configs.strname_to_size.items()
+        }
 
     def visit_statement(self, statement: BasicStatement) -> None:
         if isinstance(statement, BasicDimStatement):
             statement.default_str_storage = self._default_str_storage
+            statement.strname_to_size = self._strname_to_size
             self._dimmed_var_names.update(
                 [
                     var.name() if isinstance(var, BasicVar) else var.var.name()

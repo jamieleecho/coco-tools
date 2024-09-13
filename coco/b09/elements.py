@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from itertools import chain
-from typing import List, Literal, TYPE_CHECKING, Union
+from typing import Dict, List, Literal, TYPE_CHECKING, Union
 
 from coco.b09 import DEFAULT_STR_STORAGE
 
@@ -970,6 +970,7 @@ class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
     _initialize_vars: bool
+    _strname_to_size: Dict[str, int]
 
     def __init__(
         self,
@@ -997,10 +998,15 @@ class BasicDimStatement(AbstractBasicStatement):
             for var in dim_vars
         ]
         self._initialize_vars = initialize_vars
+        self._strname_to_size = []
 
     @property
     def default_str_storage(self):
         return self._default_str_storage
+
+    @default_str_storage.setter
+    def default_str_storage(self, val):
+        self._default_str_storage = val
 
     @property
     def dim_vars(self) -> List["BasicArrayRef | BasicVar"]:
@@ -1014,9 +1020,13 @@ class BasicDimStatement(AbstractBasicStatement):
     def initialize_vars(self, val: bool) -> None:
         self._initialize_vars = val
 
-    @default_str_storage.setter
-    def default_str_storage(self, val):
-        self._default_str_storage = val
+    @property
+    def strname_to_size(self):
+        return self._strname_to_size
+
+    @strname_to_size.setter
+    def strname_to_size(self, val):
+        self._strname_to_size = val
 
     def init_text_for_var(self, dim_var: "BasicArrayRef | BasicVar") -> str:
         if isinstance(dim_var, BasicVar):

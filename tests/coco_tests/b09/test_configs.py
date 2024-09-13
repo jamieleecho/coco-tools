@@ -52,3 +52,15 @@ def test_loads_from_yaml(simple_config_path: Path) -> None:
         "A$()": 200,
         "BC$": 300,
     }
+
+
+def test_compiler_config_defaults() -> None:
+    assert (
+        configs.CompilerConfigs().string_configs.model_dump()
+        == configs.StringConfigs().model_dump()
+    )
+
+
+def test_string_config_defaults() -> None:
+    str_config = configs.StringConfigs()
+    assert len(str_config.strname_to_size) == 0

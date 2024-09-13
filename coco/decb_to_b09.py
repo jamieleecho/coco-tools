@@ -73,6 +73,13 @@ def start(argv):
         action="store_true",
         help="if set don't run the default width 32",
     )
+    parser.add_argument(
+        "-z",
+        "--config-file",
+        type=str,
+        help="Optional compiler configuration file",
+        required=False,
+    )
 
     args = parser.parse_args(argv)
     procname = os.path.splitext(
@@ -82,6 +89,7 @@ def start(argv):
     convert_file(
         args.input_decb_text_program_file,
         args.output_b09_text_program_file,
+        config_file=args.config_file,
         default_width32=not args.dont_run_width_32,
         default_str_storage=args.default_string_storage,
         filter_unused_linenum=args.filter_unused_linenum,
