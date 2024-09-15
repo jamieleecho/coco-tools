@@ -1,0 +1,5 @@
+string_configs:
+  strname_to_size:
+    A$: 100
+    A$(): 200
+    BC$: 300

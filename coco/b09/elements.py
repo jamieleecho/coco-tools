@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import chain
-from typing import List, Literal, TYPE_CHECKING, Union
+from typing import Dict, List, Literal, TYPE_CHECKING, Union
 
 from coco.b09 import DEFAULT_STR_STORAGE
 
@@ -970,6 +971,7 @@ class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
     _initialize_vars: bool
+    _strname_to_size: Dict[str, int]
 
     def __init__(
         self,
@@ -997,10 +999,15 @@ class BasicDimStatement(AbstractBasicStatement):
             for var in dim_vars
         ]
         self._initialize_vars = initialize_vars
+        self._strname_to_size = {}
 
     @property
     def default_str_storage(self):
         return self._default_str_storage
+
+    @default_str_storage.setter
+    def default_str_storage(self, val):
+        self._default_str_storage = val
 
     @property
     def dim_vars(self) -> List["BasicArrayRef | BasicVar"]:
@@ -1014,9 +1021,13 @@ class BasicDimStatement(AbstractBasicStatement):
     def initialize_vars(self, val: bool) -> None:
         self._initialize_vars = val
 
-    @default_str_storage.setter
-    def default_str_storage(self, val):
-        self._default_str_storage = val
+    @property
+    def strname_to_size(self):
+        return self._strname_to_size
+
+    @strname_to_size.setter
+    def strname_to_size(self, val):
+        self._strname_to_size = val
 
     def init_text_for_var(self, dim_var: "BasicArrayRef | BasicVar") -> str:
         if isinstance(dim_var, BasicVar):
@@ -1082,19 +1093,39 @@ class BasicDimStatement(AbstractBasicStatement):
             )
         ]
 
-        str_vars_text: str = (
+        str_var_names_to_exp = {
+            str_var.name()
+            if isinstance(str_var, BasicVar)
+            else str_var.var.name(): str_var
+            for str_var in str_vars
+        }
+
+        str_var_to_size = {
+            str_var: self.strname_to_size[str_name]
+            if str_name in self.strname_to_size
+            else self.default_str_storage
+            for str_name, str_var in str_var_names_to_exp.items()
+        }
+
+        str_size_to_strs: Dict[int, List[BasicVar | BasicArrayRef]] = defaultdict(list)
+        for var, size in str_var_to_size.items():
+            str_size_to_strs[size].append(var)
+
+        str_vars_text_list: List[str] = [
             self._basic09_text(
-                str_vars,
-                ""
-                if self.default_str_storage == DEFAULT_STR_STORAGE
-                else f": STRING[{self._default_str_storage}]",
+                list_vars,
+                "" if size == DEFAULT_STR_STORAGE else f": STRING[{size}]",
                 indent_level,
             )
-            + ("\n" if non_str_vars else "")
-            if str_vars
+            for size, list_vars in str_size_to_strs.items()
+        ]
+
+        str_vars_text = (
+            ("\n".join(str_vars_text_list) + ("\n" if non_str_vars else ""))
+            if str_vars_text_list
             else ""
         )
-        non_str_vars_text: str = (
+        non_str_vars_text = (
             self._basic09_text(non_str_vars, "", indent_level) if non_str_vars else ""
         )
 

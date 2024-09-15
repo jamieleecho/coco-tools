@@ -3,6 +3,7 @@ import unittest
 from coco import b09
 from coco.b09 import compiler
 from coco.b09.compiler import ParseError
+from coco.b09.configs import CompilerConfigs, StringConfigs
 from coco.b09.visitors import LineNumberTooLargeException
 
 
@@ -181,9 +182,9 @@ class TestB09(unittest.TestCase):
     def test_parse_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A = B(123 - 1 - (2/2),1,2)\n",
+            "A := 0.0\n"
             "DIM arr_B(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_B(tmp_1) := 0 \ NEXT tmp_1\n"
-            "A := 0.0\n"
             "10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
@@ -209,18 +210,18 @@ class TestB09(unittest.TestCase):
     def test_parse_str_array_ref(self) -> None:
         self.generic_test_parse(
             "10 A$ = B$(123 - 1 - (2/2),1,2)",
+            'A$ := ""\n'
             "DIM arr_B$(11)\n"
             'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
-            'A$ := ""\n'
             "10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
 
         self.generic_test_parse(
             "10 LETA$ = B$(123 - 1 - (2/2),1,2)",
+            'A$ := ""\n'
             "DIM arr_B$(11)\n"
             'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
-            'A$ := ""\n'
             "10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
@@ -425,7 +426,10 @@ class TestB09(unittest.TestCase):
         )
 
     def test_val(self) -> None:
-        self.generic_test_parse('11 AA = VAL("2334")', '11 AA := VAL("2334")')
+        self.generic_test_parse(
+            '11 AA = VAL("2334")',
+            '11 RUN ecb_val("2334", AA)'
+        )
 
     def test_num_str_funcs(self) -> None:
         for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS.items():
@@ -797,9 +801,9 @@ class TestB09(unittest.TestCase):
             "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11"
             "ORL(30)<>11ORGR=0THEN500\n"
             "500 '\n",
+            "GR := 0.0\n"
             "DIM arr_L(11)\n"
             "FOR tmp_1 = 0 TO 10 \ arr_L(tmp_1) := 0 \ NEXT tmp_1\n"
-            "GR := 0.0\n"
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
@@ -1387,3 +1391,95 @@ class TestB09(unittest.TestCase):
             output_dependencies=True,
         )
         assert "A = 0" not in "\n".join(program.split("\n")[:-1])
+
+    def test_initializes_string_with_default(self) -> None:
+        program = compiler.convert(
+            "10 DIM A$",
+            procname="test",
+            initialize_vars=True,
+            default_str_storage=123,
+        )
+        assert "STRING[123]" in program
+
+    def test_initializes_strings_with_str_options(self) -> None:
+        string_configs = StringConfigs()
+        compiler_configs = CompilerConfigs(string_configs=string_configs)
+        string_configs.strname_to_size["A$"] = 321
+        program = compiler.convert(
+            "10 DIM A$",
+            add_standard_prefix=False,
+            compiler_configs=compiler_configs,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert (
+            program == "10 DIM A$: STRING[321]\n"
+            'A$ := ""\n'
+        )
+
+    def test_only_initializes_strings_with_str_options(self) -> None:
+        string_configs = StringConfigs()
+        compiler_configs = CompilerConfigs(string_configs=string_configs)
+        string_configs.strname_to_size["A$"] = 321
+        program = compiler.convert(
+            "10 DIM A$, B$",
+            add_standard_prefix=False,
+            compiler_configs=compiler_configs,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert (
+            program == "10 DIM A$: STRING[321]\n"
+            'A$ := ""\n'
+            "DIM B$: STRING[123]\n"
+            'B$ := ""\n'
+        )
+
+    def test_initializes_multi_string_with_str_options(self) -> None:
+        string_configs = StringConfigs()
+        compiler_configs = CompilerConfigs(string_configs=string_configs)
+        string_configs.strname_to_size["A$"] = 321
+        string_configs.strname_to_size["BB$"] = 456
+        program = compiler.convert(
+            "10 DIM A$, BB$",
+            add_standard_prefix=False,
+            compiler_configs=compiler_configs,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert (
+            program == "10 DIM A$: STRING[321]\n"
+            'A$ := ""\n'
+            "DIM BB$: STRING[456]\n"
+            'BB$ := ""\n'
+        )
+
+    def test_only_initializes_string_arrays_with_str_options(self) -> None:
+        string_configs = StringConfigs()
+        compiler_configs = CompilerConfigs(string_configs=string_configs)
+        string_configs.strname_to_size["A$()"] = 321
+        program = compiler.convert(
+            "10 DIM A$(10), B$",
+            add_standard_prefix=False,
+            compiler_configs=compiler_configs,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert (
+            program == "10 DIM arr_A$(11): STRING[321]\n"
+            'FOR tmp_1 = 0 TO 10 \\ arr_A$(tmp_1) := "" \\ NEXT tmp_1\n'
+            "DIM B$: STRING[123]\n"
+            'B$ := ""\n'
+        )

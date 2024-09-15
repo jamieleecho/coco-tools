@@ -518,9 +518,15 @@ class BasicVisitor(NodeVisitor):
 
     def visit_func_str_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
-        return BasicFunctionCall(
-            STR_NUM_FUNCTIONS[func.text], BasicExpressionList([exp])
-        )
+        func_name = STR_NUM_FUNCTIONS[func.text]
+        if func_name.startswith("RUN "):
+            return BasicFunctionalExpression(
+                STR_NUM_FUNCTIONS[func.text], BasicExpressionList([exp])
+            )
+        else:
+            return BasicFunctionCall(
+                STR_NUM_FUNCTIONS[func.text], BasicExpressionList([exp])
+            )
 
     def visit_num_assign(self, _, visited_children):
         let_kw, _, var, _, _, _, val = visited_children

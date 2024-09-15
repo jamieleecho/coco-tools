@@ -20,27 +20,33 @@ python3 setup.py
 ### [decb-to-b09](./README.decb-to-b09.md)
 
 ```
-usage: decb-to-b09 [-h] [--version] [-l] [-z] [-D] [-w] program.bas program.b09
+usage: decb-to-b09 [-h] [--version] [-l] [-z] [-s DEFAULT_STRING_STORAGE] [-D] [-w]
+                   [-c CONFIG_FILE]
+                   program.bas program.b09
 
 Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
-Version: 0.8
+Version: 0.18
 
 positional arguments:
   program.bas           input DECB text program file
   program.b09           output BASIC09 text program file
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -l, --filter-unused-linenum
                         Filter out line numbers not referenced by the program
   -z, --dont-initialize-vars
                         Don't pre-initialize all variables
+  -s DEFAULT_STRING_STORAGE, --default-string-storage DEFAULT_STRING_STORAGE
+                        Bytes to allocate for each string
   -D, --dont-output-dependencies
                         Don't output required dependencies
   -w, --dont-run-width-32
                         if set don't run the default width 32
+  -c CONFIG_FILE, --config-file CONFIG_FILE
+                        Optional compiler configuration file
 ```
 
 ### cm3toppm

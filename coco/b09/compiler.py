@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import List
 
 from coco import b09
@@ -12,6 +13,7 @@ from coco.b09.elements import (
     BasicRunCall,
     BasicVar,
 )
+from coco.b09.configs import CompilerConfigs
 from coco.b09.grammar import grammar, PROCNAME_REGEX
 from coco.b09.parser import BasicVisitor
 from coco.b09.procbank import ProcedureBank
@@ -48,6 +50,7 @@ def convert(
     *,
     add_standard_prefix: bool = True,
     add_suffix: bool = True,
+    compiler_configs: CompilerConfigs = None,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     default_width32: bool = True,
     filter_unused_linenum: bool = False,
@@ -56,6 +59,7 @@ def convert(
     procname: str = "",
     skip_procedure_headers: bool = False,
 ) -> str:
+    compiler_configs = compiler_configs or CompilerConfigs()
     tree = grammar.parse(progin)
     bv = BasicVisitor()
     basic_prog: BasicProg = bv.visit(tree)
@@ -125,7 +129,8 @@ def convert(
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
     set_string_storage_vistor: SetDimStringStorageVisitor = SetDimStringStorageVisitor(
-        default_str_storage=default_str_storage
+        default_str_storage=default_str_storage,
+        string_configs=compiler_configs.string_configs,
     )
     basic_prog.visit(set_string_storage_vistor)
 
@@ -137,7 +142,7 @@ def convert(
         initialize_vars=initialize_vars,
     )
     basic_prog.visit(declare_array_visitor)
-    basic_prog.extend_prefix_lines(declare_array_visitor.dim_statements)
+    basic_prog.insert_lines_at_beginning(declare_array_visitor.dim_statements)
 
     # allocate sufficient string storage
     str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
@@ -242,6 +247,7 @@ def convert_file(
     output_program_file: str,
     *,
     add_standard_prefix: bool = True,
+    config_file: str = None,
     default_width32: bool = True,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     filter_unused_linenum: bool = False,
@@ -250,9 +256,13 @@ def convert_file(
     procname: str = "",
 ) -> None:
     progin = input_program_file.read()
+    compiler_configs = (
+        CompilerConfigs.load(Path(config_file)) if config_file else CompilerConfigs()
+    )
     progout = convert(
         progin,
         add_standard_prefix=add_standard_prefix,
+        compiler_configs=compiler_configs,
         default_str_storage=default_str_storage,
         default_width32=default_width32,
         filter_unused_linenum=filter_unused_linenum,

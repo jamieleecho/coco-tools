@@ -49,7 +49,7 @@ QUOTED_STR3_FUNCTION_NAMES = [f'"{name}"' for name in STR3_FUNCTIONS]
 
 STR_NUM_FUNCTIONS = {
     "ASC": "ASC",
-    "VAL": "VAL",
+    "VAL": "RUN ecb_val",
     "LEN": "LEN",
 }
 

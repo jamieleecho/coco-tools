@@ -37,6 +37,8 @@ setuptools.setup(
         "parsimonious>=0.10.0",
         "Pillow>=7.0.0",
         "pypng>=0.0.18",
+        "pydantic>=2.0.0",
+        "pydantic-yaml>=1.3.0",
     ],
     python_requires=">=3.9.19",
     # What does your project relate to?

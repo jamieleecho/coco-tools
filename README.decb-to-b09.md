@@ -36,7 +36,7 @@ EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
 BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FREE, GET, INPUT #, KILL, LINE INPUT, LOAD, LOADM, LOC, LOF, LSET, MERGE, MKN, OPEN, PRINT #, PRINT # USING, PUT #, RENAME, RSET, RUN, SAVE, SAVEM, UNLOAD, VERIFY ON, VERIFY OFF, WRITE #
 
 ## Supported constructs that need some explanation
-* String literals must be closed.
+* BASIC09 does not allow strings to contain CHR$(255)
 * BASIC09 does not allow programs with line number zero. To handle this, the
   zero line number is stripped as long as there are no `GOTO` or `GOSUB`
   statements to line zero.
@@ -57,9 +57,8 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
   equivalent value.
-* VAL is a direct port that uses BASIC09's implementation of VAL. This means
-  that when parsing HEX numbers they should look like "$1234" instead of
-  "&H1234".
+* VAL uses BASIC09's implementation of VAL. This means that when parsing
+  HEX numbers they should look like "$1234" instead of "&H1234".
 * `CLEAR N` is mapped to `(* CLEAR N *)` but `CLEAR  N, M` is disallowed.
 * `CLS` requires that we map the VDG screen for any value that is <> `1`.
   The same is true for `POINT`, `RESET` and `SET`. Note that this can easily
@@ -159,4 +158,15 @@ resolving these problems typically involves finding the variable with the issue
 and DIMing it to be large enough. For example:
 ```
 DIM XX$: STRING[256]
+```
+
+Finer grain configuration of string sizes is possible via the `--config-file`
+followed by a path to a YAML file that maps string variable names to sizes in
+bytes. A file might look like:
+```
+string_configs:
+  strname_to_size:
+    A$: 100
+    A$(): 200
+    BC$: 300
 ```
