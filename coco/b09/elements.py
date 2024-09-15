@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import chain
 from typing import Dict, List, Literal, TYPE_CHECKING, Union
 
@@ -998,7 +999,7 @@ class BasicDimStatement(AbstractBasicStatement):
             for var in dim_vars
         ]
         self._initialize_vars = initialize_vars
-        self._strname_to_size = []
+        self._strname_to_size = {}
 
     @property
     def default_str_storage(self):
@@ -1092,19 +1093,39 @@ class BasicDimStatement(AbstractBasicStatement):
             )
         ]
 
-        str_vars_text: str = (
+        str_var_names_to_exp = {
+            str_var.name()
+            if isinstance(str_var, BasicVar)
+            else str_var.var.name(): str_var
+            for str_var in str_vars
+        }
+
+        str_var_to_size = {
+            str_var: self.strname_to_size[str_name]
+            if str_name in self.strname_to_size
+            else self.default_str_storage
+            for str_name, str_var in str_var_names_to_exp.items()
+        }
+
+        str_size_to_strs: Dict[int, List[BasicVar | BasicArrayRef]] = defaultdict(list)
+        for var, size in str_var_to_size.items():
+            str_size_to_strs[size].append(var)
+
+        str_vars_text_list: List[str] = [
             self._basic09_text(
-                str_vars,
-                ""
-                if self.default_str_storage == DEFAULT_STR_STORAGE
-                else f": STRING[{self._default_str_storage}]",
+                list_vars,
+                "" if size == DEFAULT_STR_STORAGE else f": STRING[{size}]",
                 indent_level,
             )
-            + ("\n" if non_str_vars else "")
-            if str_vars
+            for size, list_vars in str_size_to_strs.items()
+        ]
+
+        str_vars_text = (
+            ("\n".join(str_vars_text_list) + ("\n" if non_str_vars else ""))
+            if str_vars_text_list
             else ""
         )
-        non_str_vars_text: str = (
+        non_str_vars_text = (
             self._basic09_text(non_str_vars, "", indent_level) if non_str_vars else ""
         )
 

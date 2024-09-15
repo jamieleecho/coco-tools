@@ -74,7 +74,7 @@ def start(argv):
         help="if set don't run the default width 32",
     )
     parser.add_argument(
-        "-z",
+        "-c",
         "--config-file",
         type=str,
         help="Optional compiler configuration file",

@@ -1,4 +1,4 @@
-from typing import List, Set, TYPE_CHECKING
+from typing import Dict, List, Set, TYPE_CHECKING
 
 from coco import b09
 from coco.b09.configs import StringConfigs
@@ -306,14 +306,15 @@ class StrVarAllocatorVisitor(BasicConstructVisitor):
 class SetDimStringStorageVisitor(BasicConstructVisitor):
     _default_str_storage: int
     _dimmed_var_names: Set[str]
-    _strname_to_size: StringConfigs
+    _string_configs: StringConfigs
+    _strname_to_size: Dict[str, int]
 
     def __init__(self, *, default_str_storage: int, string_configs: StringConfigs):
         self._default_str_storage = default_str_storage
         self._dimmed_var_names = set()
-        self._strname_to_size = set()
-        self._string_configs = {
-            (var if var.endswith("$") else f"arr_{var[:-3]}$", size)
+        self.string_configs = string_configs
+        self._strname_to_size = {
+            var if var.endswith("$") else f"arr_{var[:-3]}$": size
             for var, size in string_configs.strname_to_size.items()
         }
 

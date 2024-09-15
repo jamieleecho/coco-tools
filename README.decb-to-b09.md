@@ -36,7 +36,7 @@ EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
 BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FREE, GET, INPUT #, KILL, LINE INPUT, LOAD, LOADM, LOC, LOF, LSET, MERGE, MKN, OPEN, PRINT #, PRINT # USING, PUT #, RENAME, RSET, RUN, SAVE, SAVEM, UNLOAD, VERIFY ON, VERIFY OFF, WRITE #
 
 ## Supported constructs that need some explanation
-* String literals must be closed.
+* BASIC09 does not allow strings to contain CHR$(255)
 * BASIC09 does not allow programs with line number zero. To handle this, the
   zero line number is stripped as long as there are no `GOTO` or `GOSUB`
   statements to line zero.
@@ -113,6 +113,8 @@ NEXT BB
   DECB programs that use close to 8KB of space may not run properly.
 * `HPUT` ignores the end pixels and instead always draws the same shape
   specified by `HGET`. XOR is added as a drawing action.
+* `VAL` will raise an error when a non-numeric value is given instead of returning
+  0.
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:
@@ -159,4 +161,15 @@ resolving these problems typically involves finding the variable with the issue
 and DIMing it to be large enough. For example:
 ```
 DIM XX$: STRING[256]
+```
+
+Finer grain configuration of program values is possible via `-c` followed by a
+path to a YAML file that maps string variable names to sizes in bytes. For
+example:
+```
+string_configs:
+  strname_to_size:
+    A$: 100
+    A$(): 200
+    BC$: 300
 ```

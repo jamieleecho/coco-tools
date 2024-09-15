@@ -56,7 +56,13 @@ $(EXAMPLE_OUTPUT_DIR):
 	mkdir -p $(EXAMPLE_OUTPUT_DIR)
 
 $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR) $(RESOURCES)
-	decb-to-b09 -s$(STR_BUFFER_BYTES) -w $< $@
+	@if [ -f "`dirname $<`/`basename -a -s.bas $<`.yaml" ]; then \
+		echo compiling $< with options; \
+		decb-to-b09 -s$(STR_BUFFER_BYTES) -c "`dirname $<`/`basename -a -s.bas $<`.yaml" -w $< $@; \
+	else \
+		echo compiling $<; \
+		decb-to-b09 -s$(STR_BUFFER_BYTES) -w $< $@; \
+	fi
 
 clean :
 	rm -rf $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~
