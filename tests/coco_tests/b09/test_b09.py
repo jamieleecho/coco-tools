@@ -426,7 +426,10 @@ class TestB09(unittest.TestCase):
         )
 
     def test_val(self) -> None:
-        self.generic_test_parse('11 AA = VAL("2334")', '11 AA := VAL("2334")')
+        self.generic_test_parse(
+            '11 AA = VAL("2334")',
+            '11 RUN ecb_val("2334", AA)'
+        )
 
     def test_num_str_funcs(self) -> None:
         for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS.items():

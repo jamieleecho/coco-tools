@@ -1005,6 +1005,14 @@ for ii=1 to count
 next ii
 
 
+PROCEDURE ecb_val
+PARAM str: STRING
+PARAM valout: REAL
+valout = 0.0
+ON ERROR GOTO 10
+valout = VAL(str)
+10 REM
+
 procedure _ecb_cursor_color
 param v: integer
 dim tmp_buffer(2): byte

@@ -57,9 +57,8 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   than 0x8000, the values are converted to integers of the form $ABCD. For
   values greater than that, they are converted to REAL literals with the
   equivalent value.
-* VAL is a direct port that uses BASIC09's implementation of VAL. This means
-  that when parsing HEX numbers they should look like "$1234" instead of
-  "&H1234".
+* VAL uses BASIC09's implementation of VAL. This means that when parsing
+  HEX numbers they should look like "$1234" instead of "&H1234".
 * `CLEAR N` is mapped to `(* CLEAR N *)` but `CLEAR  N, M` is disallowed.
 * `CLS` requires that we map the VDG screen for any value that is <> `1`.
   The same is true for `POINT`, `RESET` and `SET`. Note that this can easily
@@ -113,8 +112,6 @@ NEXT BB
   DECB programs that use close to 8KB of space may not run properly.
 * `HPUT` ignores the end pixels and instead always draws the same shape
   specified by `HGET`. XOR is added as a drawing action.
-* `VAL` will raise an error when a non-numeric value is given instead of returning
-  0.
 
 ## Unsupported Color BASIC constructs
 * These constructs are NOT supported by decb-to-b09:
@@ -163,9 +160,9 @@ and DIMing it to be large enough. For example:
 DIM XX$: STRING[256]
 ```
 
-Finer grain configuration of program values is possible via `-c` followed by a
-path to a YAML file that maps string variable names to sizes in bytes. For
-example:
+Finer grain configuration of string sizes is possible via the `--config-file`
+followed by a path to a YAML file that maps string variable names to sizes in
+bytes. A file might look like:
 ```
 string_configs:
   strname_to_size:
