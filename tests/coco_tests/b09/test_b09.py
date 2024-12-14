@@ -426,10 +426,7 @@ class TestB09(unittest.TestCase):
         )
 
     def test_val(self) -> None:
-        self.generic_test_parse(
-            '11 AA = VAL("2334")',
-            '11 RUN ecb_val("2334", AA)'
-        )
+        self.generic_test_parse('11 AA = VAL("2334")', '11 RUN ecb_val("2334", AA)')
 
     def test_num_str_funcs(self) -> None:
         for ecb_func, b09_func in b09.grammar.NUM_STR_FUNCTIONS.items():
@@ -1415,10 +1412,7 @@ class TestB09(unittest.TestCase):
             procname="test",
             skip_procedure_headers=True,
         )
-        assert (
-            program == "10 DIM A$: STRING[321]\n"
-            'A$ := ""\n'
-        )
+        assert program == "10 DIM A$: STRING[321]\n" 'A$ := ""\n'
 
     def test_only_initializes_strings_with_str_options(self) -> None:
         string_configs = StringConfigs()

@@ -1,19 +1,17 @@
-version: '3'
-
 services:
   test:
     build: .
     command: bash -c "
         ruff check && \
         ruff linter && \
-        pytest --cov=coco --cov=tests"
+        make test"
 
   testv:
     build: .
     command: bash -c "
         ruff check && \
         ruff linter && \
-        pytest --cov=coco --cov=tests"
+        make test"
     volumes:
     -  .:/root/coco-tools
 

@@ -30,6 +30,12 @@ jobs:
         run: |
           pip3 install -r requirements.txt
           python3 setup.py install
+      - name: Check formatting
+        run: |
+          make lint
       - name: Run tests
         run: |
-          pytest --cov=coco --cov=tests
+          make test
+      - name: Verify dsk images can be built
+        run: |
+          make basic.dsk os9boot.dsk

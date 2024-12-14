@@ -230,18 +230,38 @@ options:
 ## Developing and Testing
 
 ```
+# To set up pre-commit checks
+pre-commit install
+
 # Build the docker image
-docker-compose build test
+docker compose build test
 
 # Run tests using the source on the docker image
-docker-compose run test
+docker compose run test
 
 # Run tests using the source on the host computer
-docker-compose run testv
+docker compose run testv
 
-# To make changes and develop locally
+# To develop locally
 pip install -r requirements.txt
-pre-commit install
+
+# Run linting, build example disk images for basic conversion
+make
+
+# Remove built artifacts
+make clean
+
+# Reformats the code
+make format
+
+# Only runs linting
+make lint
+
+# Only run tests
+make test
+
+# Build basic and os-9 eample images
+make basic.dsk os9boot.dsk
 ```
 
 ## Credits

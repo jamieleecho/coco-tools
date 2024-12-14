@@ -39,10 +39,10 @@ build: lint
 test:
 	coverage run -m pytest && coverage report --show-missing
 
-$(TARGET) : $(TMPTARGET) $(EXAMPLES_OUTPUTS)
+$(TARGET) : $(EXAMPLES_OUTPUTS)
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
 	zsh -c 'for each in $(EXAMPLE_OUTPUT_DIR)/*.b09; do $(IMGTOOL) put coco_jvc_os9 $(TMPTARGET) $${each} `basename $${each}`; done'
-	cp $(TMPTARGET) $(@)
+	mv $(TMPTARGET) $(@)
 
 $(TARGET_DECB) : $(EXAMPLES_INPUTS)
 	$(DECB) dskini $(TMPTARGET_DECB)
