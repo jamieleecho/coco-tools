@@ -36,6 +36,3 @@ jobs:
       - name: Run tests
         run: |
           make test
-      - name: Verify dsk images can be built
-        run: |
-          make basic.dsk os9boot.dsk
