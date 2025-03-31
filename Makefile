@@ -36,7 +36,7 @@ EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES
     fix-lint \
     fix-lint-unsafe \
     help \
-	install \
+    install \
     install-pre-commit \
     lock \
     run-tests \
