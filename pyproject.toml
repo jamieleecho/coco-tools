@@ -46,6 +46,7 @@ Issues = "https://github.com/jamieleecho/coco-tools/issues"
 
 [dependency-groups]
 dev = [
+  "coverage",
   "imagehash",
   "pytest",
   "pytest-cov",
