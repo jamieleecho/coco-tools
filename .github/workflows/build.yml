@@ -33,8 +33,14 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Remove default python version
+      - name: Install dependencies (Mac)
+        if: matrix.os == 'macos-latest'
         run: |
+          brew install python-tk
+
+      - name: Set up Python
+        run: |
+          uv venv -p ${{ matrix.python-version }}
           rm .python-version
 
       - name: Install Requirements
