@@ -17,9 +17,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Check linting, formatting and run unit-tests
+      - name: Check linting, formatting
         run: |
-          make
+          make check-all
 
   check-multiplatform-builds:
     runs-on: ${{ matrix.os }}

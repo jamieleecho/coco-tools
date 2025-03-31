@@ -866,7 +866,7 @@ class BasicVisitor(NodeVisitor):
         return BasicDimStatement(dim_var_list)
 
     def visit_clear_statement(self, node, visited_children) -> AbstractBasicStatement:
-        return BasicComment(f" {node.text.strip() }")
+        return BasicComment(f" {node.text.strip()}")
 
     def visit_read_statement(self, _, visited_children) -> AbstractBasicStatement:
         _, _, rhs, _, rhs_list = visited_children

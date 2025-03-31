@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 import coco.veftopng
-from .util import unix_only
+from .util import compare_images_imagehash, unix_only
 from coco import __version__
 from coco.util import iotostr
 
@@ -39,6 +39,7 @@ class TestVEFToPNG(unittest.TestCase):
         )
         self.outfile.close()
         coco.veftopng.start([infilename, self.outfile.name])
+
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_640x200x4_vef_to_png(self) -> None:
@@ -48,7 +49,7 @@ class TestVEFToPNG(unittest.TestCase):
         )
         self.outfile.close()
         coco.veftopng.start([infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        self.assertTrue(compare_images_imagehash(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:

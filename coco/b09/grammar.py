@@ -133,7 +133,7 @@ KEYWORDS = "|".join(
             "GOSUB",
             "GOTO",
             "HBUFF",
-            "HGET" "HCIRCLE",
+            "HGETHCIRCLE",
             "HCLS",
             "HCOLOR",
             "HEX$",
@@ -299,8 +299,8 @@ grammar = Grammar(
                     / hget_statement
                     / hput_statement
                     / hpaint_statement
-    statement2      = ({ ' / '.join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
-    statement3      = ({ ' / '.join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
+    statement2      = ({" / ".join(QUOTED_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space* ")" space*
+    statement3      = ({" / ".join(QUOTED_STATEMENTS3_NAMES)}) space* "(" space* exp space* "," space* exp space* "," space* exp space* ")" space*
     statements           = statement? space* statements_elements space* last_statement?
     last_statement  = comment / partial_str_arr_assign / partial_str_assign
     partial_str_arr_assign = "LET"? space* str_array_ref_exp space* "=" space* partial_str_lit
@@ -342,8 +342,8 @@ grammar = Grammar(
     num_power_exp        = val_exp space* num_power_sub_exps
     num_power_sub_exps   = num_power_sub_exp*
     num_power_sub_exp    = ("^" space* val_exp space*)
-    func_exp        = ({ ' / '.join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
-    func_str_exp    = ({ ' / '.join(QUOTED_STR_NUM_FUNCTIONS_NAMES)}) space* "(" space* str_exp space* ")" space*
+    func_exp        = ({" / ".join(QUOTED_FUNCTION_NAMES)}) space* "(" space* exp space* ")" space*
+    func_str_exp    = ({" / ".join(QUOTED_STR_NUM_FUNCTIONS_NAMES)}) space* "(" space* str_exp space* ")" space*
     val_exp         = num_literal
                     / hex_literal
                     / paren_exp
@@ -363,11 +363,11 @@ grammar = Grammar(
     str_exp          = str_simple_exp space* str_exp_elements
     str_exp_elements = str_exp_element*
     str_exp_element  = "+" space* str_simple_exp space*
-    str2_func_exp    = ({ ' / '.join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
-    str3_func_exp    = ({ ' / '.join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
-    num_str_func_exp = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
-    num_str_func_exp_statements = ({ ' / '.join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
-    str_func_exp_statements = ({ ' / '.join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space*
+    str2_func_exp    = ({" / ".join(QUOTED_STR2_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* ")" space*
+    str3_func_exp    = ({" / ".join(QUOTED_STR3_FUNCTION_NAMES)}) space* "(" space* str_exp space* "," space* exp space* "," space* exp space* ")" space*
+    num_str_func_exp = ({" / ".join(QUOTED_NUM_STR_FUNCTIONS_NAMES)}) space* "(" space* exp space* ")" space*
+    num_str_func_exp_statements = ({" / ".join(QUOTED_NUM_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
+    str_func_exp_statements = ({" / ".join(QUOTED_STR_FUNCTIONS_TO_STATEMENTS_NAMES)}) space*
     str_simple_exp   = str_literal
                      / str2_func_exp
                      / str3_func_exp
@@ -413,7 +413,7 @@ grammar = Grammar(
     linenum_list        = linenum space* linenum_list0
     linenum_list0       = linenum_list_elem*
     linenum_list_elem   = "," space* linenum space*
-    functions           = ~r"{'|'.join(FUNCTIONS.keys())}"
+    functions           = ~r"{"|".join(FUNCTIONS.keys())}"
     data_statement      = "DATA" space* data_elements space*
     data_elements       = data_element space* data_elements0
     data_element        = data_num_element / data_str_element
@@ -425,7 +425,7 @@ grammar = Grammar(
     data_str_element0   = space* str_literal space*
     data_str_element1   = space* data_str_literal
     data_str_literal    = ~r'[^",:\n]*'
-    single_kw_statement = ({ ' / '.join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
+    single_kw_statement = ({" / ".join(QUOTED_SINGLE_KEYWORD_STATEMENTS)}) space*
     for_statement       = "FOR" space* var space* "=" space* exp space* "TO" space* exp space*
     for_step_statement  = "FOR" space* var space* "=" space* exp space* "TO" space* exp space* "STEP" space* exp space*
     next_statement      = next_var_statement / next_empty_statement
@@ -434,8 +434,8 @@ grammar = Grammar(
     var_list            = var space* var_list_elements
     var_list_elements   = var_list_element*
     var_list_element    = "," space* var space*
-    func_to_statements  = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
-    func_to_statements2 = ({ ' / '.join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
+    func_to_statements  = ({" / ".join(QUOTED_FUNCTIONS_TO_STATEMENTS_NAMES)}) space* "(" space* exp space* ")" space*
+    func_to_statements2 = ({" / ".join(QUOTED_FUNCTIONS_TO_STATEMENTS2_NAMES)}) space* "(" space* exp space* "," space* exp space*")" space*
     joystk_to_statement = "JOYSTK" space* "(" space* exp space* ")" space*
     dim_element0        = (int_literal / int_hex_literal)
     dim_var             = (dim_array_var / str_var / var)

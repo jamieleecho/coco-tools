@@ -46,11 +46,12 @@ Issues = "https://github.com/jamieleecho/coco-tools/issues"
 
 [dependency-groups]
 dev = [
+  "imagehash",
   "pytest",
   "pytest-cov",
-  "tk",
   "pre-commit",
   "ruff",
+  "tk",
   "types-setuptools",
 ]
 

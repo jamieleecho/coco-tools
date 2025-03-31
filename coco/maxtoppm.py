@@ -184,7 +184,7 @@ Copyright (c) 2018 by Mathieu Bouchard
 Copyright (c) 2018-2020 by Mathieu Bouchard, Jamie Cho
 Version: {}""".format(__version__)
 PIXEL_MODE_DESCRIPTION = (
-    "Default pixel mode is no artifact (PMODE 4 on " "monitor). The 6 other modes:"
+    "Default pixel mode is no artifact (PMODE 4 on monitor). The 6 other modes:"
 )
 PARSER_MODE_DESCRIPTION = """Default file format is CocoMax 1/2's .MAX, which is also Graphicom's
     .PIC and SAVEM of 4 or 8 pages of PMODE 3/4.

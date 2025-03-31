@@ -493,7 +493,7 @@ class BasicLine(AbstractBasicConstruct):
 
     def basic09_text(self, indent_level) -> str:
         if self._is_referenced and self._num is not None:
-            return f"{self._num} " f"{self._statements.basic09_text(indent_level)}"
+            return f"{self._num} {self._statements.basic09_text(indent_level)}"
         return f"{self._statements.basic09_text(indent_level)}"
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
@@ -827,7 +827,7 @@ class BasicFunctionCall(AbstractBasicExpression):
         self._args = args
 
     def basic09_text(self, indent_level: int) -> str:
-        return f"{self._func}" f"{self._args.basic09_text(indent_level)}"
+        return f"{self._func}{self._args.basic09_text(indent_level)}"
 
 
 class BasicDataStatement(AbstractBasicStatement):
