@@ -24,7 +24,7 @@ EXAMPLE_OUTPUT_DIR=$(EXAMPLE_DIR)/b09
 EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES_INPUTS:.bas=.b09)}
 
 .PHONY = \
-	all \
+    all \
     build-dist \
     default \
     check-all \
@@ -49,9 +49,9 @@ all: sync $(TARGET) $(TARGET_DECB)
 build-dist: sync
 	uv build --verbose --sdist
 
-check-all: check-lint check-lock
+check-all: check-lock check-lint
 
-check-lint:
+check-lint: check-lock
 	uv run ruff check
 
 check-lock:
@@ -62,19 +62,19 @@ clean:
 
 fix-all: fix-format fix-lint lock
 
-fix-format:
+fix-format: check-lock
 	uv run ruff format
 
-fix-lint:
+fix-lint: check-lock
 	uv run ruff check --fix
 
-fix-lint-unsafe:
+fix-lint-unsafe: check-lock
 	uv run ruff check --fix --unsafe-fixes
 
 help:
 	@echo ${.PHONY}
 
-install: build-dist
+install: check-lock build-dist
 	uv run pip install .
 
 install-pre-commit:
@@ -83,11 +83,11 @@ install-pre-commit:
 lock:
 	uv lock
 
-run-tests:
+run-tests: check-lock
 	uv run coverage run -m pytest
 	uv run coverage report --show-missing
 
-sync:
+sync: check-lock
 	uv sync --no-install-workspace
 
 $(TARGET) : $(EXAMPLES_OUTPUTS)
