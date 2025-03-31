@@ -26,7 +26,7 @@ wheels = [
 
 [[package]]
 name = "coco-tools"
-version = "0.22"
+version = "0.23"
 source = { editable = "." }
 dependencies = [
     { name = "parsimonious" },
