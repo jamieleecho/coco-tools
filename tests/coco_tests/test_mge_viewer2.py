@@ -33,6 +33,7 @@ class TestMGE_Viewer2(unittest.TestCase):
                 env={"PYTHONPATH": "."},
                 stderr=subprocess.STDOUT,
             )
+
         self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
         self.assertRegex(
             iotostr(context.exception.output),

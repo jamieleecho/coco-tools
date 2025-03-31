@@ -1,35 +1,51 @@
-name: Build
+name: Continuous Integration
 
 on:
   - push
 
 jobs:
-  ruff:
+  check-linting-and-formatting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: chartboost/ruff-action@v1
+      - name:  Install requirements
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libblas-dev liblapack-dev
 
-  build:
+      - uses: actions/checkout@master
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Check linting, formatting and run unit-tests
+        run: |
+          make
+
+  check-multiplatform-builds:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.10']
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.13']
     steps:
       - uses: actions/checkout@master
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: set pythonpath
         run: |
-          echo "PYTHONPATH=$(pwd)" >> $GITHUB_ENV
-          echo "PATH=${PATH}:${HOME}/.local/bin" >> $GITHUB_ENV
+          uv venv -p ${{ matrix.python-version }}
+          rm .python-version
+
       - name: Install Requirements
         run: |
-          pip3 install -r requirements.txt
-          python3 setup.py install
+          make sync
+
+      - name: Verify the distribution can be built
+        run: |
+          make build-dist
+
       - name: Run tests
         run: |
-          make test
+          make run-tests
