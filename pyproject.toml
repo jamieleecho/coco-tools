@@ -51,7 +51,6 @@ dev = [
   "pytest",
   "pre-commit",
   "ruff",
-  "tk",
   "types-setuptools",
 ]
 

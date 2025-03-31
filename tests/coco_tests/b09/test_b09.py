@@ -184,7 +184,7 @@ class TestB09(unittest.TestCase):
             "10 A = B(123 - 1 - (2/2),1,2)\n",
             "A := 0.0\n"
             "DIM arr_B(11)\n"
-            "FOR tmp_1 = 0 TO 10 \ arr_B(tmp_1) := 0 \ NEXT tmp_1\n"
+            "FOR tmp_1 = 0 TO 10 \\ arr_B(tmp_1) := 0 \\ NEXT tmp_1\n"
             "10 A := arr_B(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
@@ -193,7 +193,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "10 A (123 - 1 - (2/2),1,2)=123+64",
             "DIM arr_A(11)\n"
-            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "FOR tmp_1 = 0 TO 10 \\ arr_A(tmp_1) := 0 \\ NEXT tmp_1\n"
             "10 arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := 123.0 + 64.0",
             initialize_vars=True,
         )
@@ -201,7 +201,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "10 LETA (123 - 1 - (2/2),1,2)=123+64",
             "DIM arr_A(11)\n"
-            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "FOR tmp_1 = 0 TO 10 \\ arr_A(tmp_1) := 0 \\ NEXT tmp_1\n"
             "10 LET arr_A(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "
             "123.0 + 64.0",
             initialize_vars=True,
@@ -212,7 +212,7 @@ class TestB09(unittest.TestCase):
             "10 A$ = B$(123 - 1 - (2/2),1,2)",
             'A$ := ""\n'
             "DIM arr_B$(11)\n"
-            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
+            'FOR tmp_1 = 0 TO 10 \\ arr_B$(tmp_1) := "" \\ NEXT tmp_1\n'
             "10 A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
@@ -221,7 +221,7 @@ class TestB09(unittest.TestCase):
             "10 LETA$ = B$(123 - 1 - (2/2),1,2)",
             'A$ := ""\n'
             "DIM arr_B$(11)\n"
-            'FOR tmp_1 = 0 TO 10 \ arr_B$(tmp_1) := "" \ NEXT tmp_1\n'
+            'FOR tmp_1 = 0 TO 10 \\ arr_B$(tmp_1) := "" \\ NEXT tmp_1\n'
             "10 LET A$ := arr_B$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0)",
             initialize_vars=True,
         )
@@ -230,7 +230,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 A$ (123 - 1 - (2/2),1,2)="123"+"64"',
             "DIM arr_A$(11)\n"
-            'FOR tmp_1 = 0 TO 10 \ arr_A$(tmp_1) := "" \ NEXT tmp_1\n'
+            'FOR tmp_1 = 0 TO 10 \\ arr_A$(tmp_1) := "" \\ NEXT tmp_1\n'
             '10 arr_A$(123.0 - 1.0 - (2.0 / 2.0), 1.0, 2.0) := "123" + "64"',
             initialize_vars=True,
         )
@@ -292,7 +292,7 @@ class TestB09(unittest.TestCase):
     def test_parse_string_expression(self) -> None:
         self.generic_test_parse(
             '10 PRINT STRING$(32, "*")',
-            '10 run ecb_string(32.0, "*", tmp_1$) \ PRINT tmp_1$',
+            '10 run ecb_string(32.0, "*", tmp_1$) \\ PRINT tmp_1$',
         )
 
     def test_parse_multi_expression(self) -> None:
@@ -792,7 +792,7 @@ class TestB09(unittest.TestCase):
             "480 IFL(4)<>11ORL(6)<>11ORL(32)<>11ORL(30)<>11ORGR=0THEN500\n500 '\n",
             "GR := 0.0\n"
             "DIM arr_L(11)\n"
-            "FOR tmp_1 = 0 TO 10 \ arr_L(tmp_1) := 0 \ NEXT tmp_1\n"
+            "FOR tmp_1 = 0 TO 10 \\ arr_L(tmp_1) := 0 \\ NEXT tmp_1\n"
             "480 IF arr_L(4.0) <> 11.0 "
             "OR arr_L(6.0) <> 11.0 "
             "OR arr_L(32.0) <> 11.0 "
@@ -1037,7 +1037,7 @@ class TestB09(unittest.TestCase):
     def test_hprint_num(self) -> None:
         self.generic_test_parse(
             "10 HPRINT(10, 20), 3.0",
-            "10 run ecb_str(3.0, tmp_1) \ run ecb_hprint(10.0, 20.0, tmp_1, display)",
+            "10 run ecb_str(3.0, tmp_1) \\ run ecb_hprint(10.0, 20.0, tmp_1, display)",
         )
 
     def test_on_brk(self) -> None:
@@ -1147,7 +1147,7 @@ class TestB09(unittest.TestCase):
     def test_erno(self) -> None:
         self.generic_test_parse(
             "10 PRINT ERNO",
-            "10 run ecb_str(erno, tmp_1$) \ PRINT tmp_1$",
+            "10 run ecb_str(erno, tmp_1$) \\ PRINT tmp_1$",
         )
 
     def test_play(self) -> None:
@@ -1350,7 +1350,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "10 A(10) = 3",
             "DIM arr_A(11)\n"
-            "FOR tmp_1 = 0 TO 10 \ arr_A(tmp_1) := 0 \ NEXT tmp_1\n"
+            "FOR tmp_1 = 0 TO 10 \\ arr_A(tmp_1) := 0 \\ NEXT tmp_1\n"
             "10 arr_A(10.0) := 3.0",
             initialize_vars=True,
         )
@@ -1360,7 +1360,7 @@ class TestB09(unittest.TestCase):
             "\n5 CLEAR1000\n10 DIM A(100)\n",
             "5 (* CLEAR1000 *)\n"
             "10 DIM arr_A(101)\n"
-            "FOR tmp_1 = 0 TO 100 \ arr_A(tmp_1) := 0 \ NEXT tmp_1",
+            "FOR tmp_1 = 0 TO 100 \\ arr_A(tmp_1) := 0 \\ NEXT tmp_1",
             initialize_vars=True,
         )
 
