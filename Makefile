@@ -75,7 +75,7 @@ help:
 	@echo ${.PHONY}
 
 install: build-dist
-	pip install .
+	uv run pip install .
 
 install-pre-commit:
 	uv run pre-commit install
