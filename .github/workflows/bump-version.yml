@@ -42,13 +42,10 @@ jobs:
       - uses: EndBug/add-and-commit@v9
         with:
           message: Update uv.lock to new version (${{ env.TAG }})'
+          push: true
+          tag: ${{ env.TAG }}
           committer_name: GitHub Actions
           committer_email: actions@github.com
-
-      - uses: actions-ecosystem/action-push-tag@v1
-        with:
-          tag: ${{ env.TAG }}
-          message: '${{ env.TAG }}: Update uv.lock to new version (${{ env.TAG }})'
 
       - name: Trigger release
         env:
