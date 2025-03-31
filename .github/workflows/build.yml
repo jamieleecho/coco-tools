@@ -33,11 +33,6 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Set up Python
-        run: |
-          uv venv -p ${{ matrix.python-version }}
-          rm .python-version
-
       - name: Install Requirements
         run: |
           make sync
