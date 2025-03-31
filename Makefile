@@ -85,7 +85,7 @@ lock:
 
 run-tests:
 	uv run coverage run -m pytest
-	coverage report --show-missing
+	uv run coverage report --show-missing
 
 sync:
 	uv sync --no-install-workspace
