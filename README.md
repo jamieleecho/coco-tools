@@ -12,7 +12,6 @@ pip install coco-tools
 # To install from source
 git clone https://github.com/jamieleecho/coco-tools.git
 cd coco-tools
-make sync
 make install-pre-commit
 make install
 ```
@@ -20,7 +19,7 @@ make install
 The `Makefile` makes it easy to perform the most common operations:
 * `make all` transpiles several exapmle ECB programs to Basic09
 * `make check-all` runs linting and `uv.lock` checks
-* `make check-lint` checks the linting
+* `make check-lint` checks for linting issues
 * `make check-lock` verifies the `uv.lock` is aligned to `pyproject.toml`
 * `make clean` cleans the virtual environment and caches
 * `make default` runs a default set of checks on the code

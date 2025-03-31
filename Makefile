@@ -46,7 +46,7 @@ default: check-all run-tests
 
 all: sync $(TARGET) $(TARGET_DECB)
 
-build-dist:
+build-dist: sync
 	uv build --verbose --sdist
 
 check-all: check-lint check-lock
