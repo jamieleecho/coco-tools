@@ -9,12 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-        with:
-          ref: ${{ github.ref }}
+
       - name: Get the tag
         run: |
           echo "RELEASE_TAG=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
           echo "REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+
       - uses: ncipollo/release-action@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -27,18 +27,23 @@ jobs:
     name: Build and publish distribution PyPI
     needs: create-release
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
     steps:
+      - name:  Install requirements
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libblas-dev liblapack-dev
+
       - uses: actions/checkout@master
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.11
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
 
-      - name: Build a binary wheel and a source tarball
-        run: ./setup.py sdist
+      - name: Build the dsitribution
+        run: |
+          make build-dist
 
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}

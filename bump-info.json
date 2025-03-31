@@ -3,8 +3,8 @@
   "schemeDefinition": "major.minor[.build][->patch]",
   "versionFile": "./package.json",
   "files": [{
-      "path": "./setup.py",
-      "line": 6
+      "path": "./pyproject.toml",
+      "line": 3
   }, {
       "path": "./coco/__init__.py",
       "line": 2

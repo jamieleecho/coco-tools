@@ -1,4 +1,4 @@
-name: Bump and Tag Version
+name: Bump Version and Start New Release
 
 on:
   workflow_dispatch:
@@ -9,13 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout action is required
+      - name: Fail if branch is not main
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "This workflow should not be triggered with workflow_dispatch on a branch other than main"
+          exit 1
+
       - uses: actions/checkout@master
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Bump Versions
         uses: michmich112/version-bumper@master
         env:
@@ -23,6 +28,7 @@ jobs:
         with:
           options-file: './bump-info.json'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Trigger release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

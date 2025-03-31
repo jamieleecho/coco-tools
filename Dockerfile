@@ -13,8 +13,8 @@ RUN pip3 install -r requirements.txt
 COPY coco ./coco
 COPY Makefile .
 COPY README.md ./
-COPY setup.py ./
 COPY tests ./tests
 
 # Install coco-tools
-RUN python3 setup.py install
+RUN make build-dist && \
+  make install

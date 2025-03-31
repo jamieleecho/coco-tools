@@ -23,21 +23,72 @@ EXAMPLES_INPUTS=$(wildcard $(EXAMPLE_INPUT_DIR)/*.bas)
 EXAMPLE_OUTPUT_DIR=$(EXAMPLE_DIR)/b09
 EXAMPLES_OUTPUTS=${subst $(EXAMPLE_INPUT_DIR), $(EXAMPLE_OUTPUT_DIR), $(EXAMPLES_INPUTS:.bas=.b09)}
 
-all: build $(TARGET) $(TARGET_DECB)
+.PHONY = \
+	all \
+    build-dist \
+    default \
+    check-all \
+    check-lint \
+    check-lock \
+    clean \
+    fix-all \
+    fix-format \
+    fix-lint \
+    fix-lint-unsafe \
+    help \
+	install \
+    install-pre-commit \
+    lock \
+    run-tests \
+    sync
 
+default: check-all run-tests
 
-lint:
-	ruff check
-	ruff linter
+all: sync $(TARGET) $(TARGET_DECB)
 
-format:
-	ruff format
+build-dist: sync
+	uv build --verbose --sdist
 
-build: lint
-	python3 setup.py install
+check-all: check-lint check-lock
 
-test:
-	coverage run -m pytest && coverage report --show-missing
+check-lint:
+	uv run ruff check
+
+check-lock:
+	uv lock --locked
+
+clean:
+	rm -rf .ruff_cache .venv build .cache *.egg-info dist $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS)
+
+fix-all: fix-format fix-lint lock
+
+fix-format:
+	uv run ruff format
+
+fix-lint:
+	uv run ruff check --fix
+
+fix-lint-unsafe:
+	uv run ruff check --fix --unsafe-fixes
+
+help:
+	@echo ${.PHONY}
+
+install: build-dist
+	uv run pip install .
+
+install-pre-commit:
+	uv run pre-commit install
+
+lock:
+	uv lock
+
+run-tests:
+	uv run coverage run -m pytest
+	uv run coverage report --show-missing
+
+sync:
+	uv sync --no-install-workspace
 
 $(TARGET) : $(EXAMPLES_OUTPUTS)
 	cp $(OS9BOOTSOURCE) $(TMPTARGET)
@@ -63,9 +114,6 @@ $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR) $(
 		echo compiling $<; \
 		decb-to-b09 -s$(STR_BUFFER_BYTES) -w $< $@; \
 	fi
-
-clean :
-	rm -rf $(TARGET) $(TMPTARGET) $(TARGET_DECB) $(TMPTARGET_DECB) $(EXAMPLES_OUTPUTS) build dist coco_tools.egg-info $(MODULE_DIR)/*~
 
 run :
 	$(MAME) coco3 -rompath $(MAME_DIR)/roms -window -ext:fdc:wd17xx:0 525qd -flop1 $(TARGET)

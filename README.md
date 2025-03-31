@@ -12,8 +12,30 @@ pip install coco-tools
 # To install from source
 git clone https://github.com/jamieleecho/coco-tools.git
 cd coco-tools
-python3 setup.py
+make install-pre-commit
+make install
 ```
+
+The `Makefile` makes it easy to perform the most common operations:
+* `make all` transpiles several exapmle ECB programs to Basic09
+* `make check-all` runs linting and `uv.lock` checks
+* `make check-lint` checks for linting issues
+* `make check-lock` verifies the `uv.lock` is aligned to `pyproject.toml`
+* `make clean` cleans the virtual environment and caches
+* `make default` runs a default set of checks on the code
+* `make fix-all` formats the code, fixes lint errors and runs locks `uv.lock` to `pyproject.toml`
+* `make fix-format` formats the code
+* `make fix-lint` fixes linting issues
+* `make fix-lint-unsafe` fixes linting issues potentially adding inadvertant bugs
+* `make help` outputs the different make options
+* `make install` build install the distribution
+* `make install-pre-commit` installs pre-commit hooks
+* `make lock` locks `uv.lock` to `pyproject.toml`
+* `make install-pre-commit` installs pre-commit hooks
+* `make run-tests` runs the unit tests
+* `make sync` syncs the python environment with `uv.lock`
+
+`.vscode/settings.json` is set so that unit tests can be run without further configuration.
 
 ## Tools
 
