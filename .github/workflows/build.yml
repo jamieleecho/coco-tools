@@ -33,6 +33,10 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
+      - name: Remove default python version
+        run: |
+          rm .python-version
+
       - name: Install Requirements
         run: |
           make sync
