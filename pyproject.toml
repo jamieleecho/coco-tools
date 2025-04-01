@@ -29,7 +29,7 @@ dependencies = [
   "pydantic-yaml>=1.3.0",
 ]
 
-[project.scripts  ]
+[project.scripts]
   decb-to-b09 = "coco.decb_to_b09:main"
   cm3toppm = "coco.cm3toppm:main"
   hrstoppm = "coco.hrstoppm:main"
