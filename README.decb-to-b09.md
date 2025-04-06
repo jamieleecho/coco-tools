@@ -2,12 +2,14 @@
 
 This utility converts Microsoft Color BASIC programs into Microware BASIC09
 Programs that work on OS-9 Level 2. This conversion process has many benefits:
+
 1. Makes the wealth of Color BASIC programs available to OS-9.
 2. Makes the program run a lot faster in most cases.
 3. Provides a gentle slope to learning BASIC09 as this language has many of
    its own quirks that can be hard to learn when coming from Color BASIC.
 
 The utility provides a best effort for conversion which means:
+
 * We make a reasonable effort to maintain the intended semantics of the source
   program.
 * For valid programs, results will vary because it will use BASIC09's and
@@ -22,20 +24,25 @@ The utility provides a best effort for conversion which means:
   clear.
 
 ## Supported constructs
+
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
 include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FOR, GOSUB, GOTO, >, HBUFF, HCIRCLE, HCLS, HCOLOR, HDRAW, HEX$, HGET, HLINE, HPAINT, HPRINT, HPUT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RGB, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
 
 ## Unsupported statements
+
 AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
 
 ## Unsupported functions
+
 EOF, ERLIN, HPOINT, LPEEK, MEM, POS, PPOINT, USR, VARPTR
 
 ## Unsupported disk functions and statements
+
 BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FREE, GET, INPUT #, KILL, LINE INPUT, LOAD, LOADM, LOC, LOF, LSET, MERGE, MKN, OPEN, PRINT #, PRINT # USING, PUT #, RENAME, RSET, RUN, SAVE, SAVEM, UNLOAD, VERIFY ON, VERIFY OFF, WRITE #
 
 ## Supported constructs that need some explanation
+
 * BASIC09 does not allow strings to contain CHR$(255)
 * BASIC09 does not allow programs with line number zero. To handle this, the
   zero line number is stripped as long as there are no `GOTO` or `GOSUB`
@@ -79,10 +86,12 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   previous `FOR` variable is assumed to be the iteration variable and added
   explicitly.
 * `NEXT AA, BB` is translated to
-```
+
+```basic
   NEXT AA
 NEXT BB
 ```
+
 * `WIDTH` is supported, but use with caution as it really confuses BASIC09,
   making it hard to actually debug programs interactively. `WIDTH` does not
   cause issues if you don't have to switch between VDG and WIND windows. Use
@@ -98,10 +107,12 @@ NEXT BB
   repeat the command instead.
 * Some constructs require introducing an intermediary variable including
   `BUTTON`, `INKEY`, `JOYSTK` and `POINT`.
-10 IF (INKEY$()="") THEN 10 is converted into a construct that looks like:
-```
+`10 IF (INKEY$()="") THEN 10` is converted into a construct that looks like:
+
+```basic
 10 RUN INKEY$(TMP1): IF TMP1 = "" THEN 10
 ```
+
 * Drawing commands use the OS-9 Windowing System drawing commands and will
   produce slighly different shapes.
 * `HPAINT` ignores the stop color. Instead, the flood fill continues until
@@ -114,19 +125,23 @@ NEXT BB
   specified by `HGET`. XOR is added as a drawing action.
 
 ## Unsupported Color BASIC constructs
+
 * These constructs are NOT supported by decb-to-b09:
 AUDIO, CLEAR, CLOAD, CONT, CSAVE, EOF, EVAL, EXEC, LIST, LLIST, LOAD, MEM,
 MOTOR, NEW, RUN, SKIPF, USR
 * It is NOT possible to GOTO, GOSUB, ON GOTO or ON GOSUB to a variable.
 * NEXT statements must be nested and not interleaved. For example, this is legal:
-```
+
+```basic
 FOR II = 1 to 10
   FOR JJ = 1 to 10
   NEXT JJ
 NEXT II
 ```
+
 But this is illegal:
-```
+
+```basic
 FOR II = 1 to 10
   FOR JJ = 1 to 10
   NEXT II
@@ -134,21 +149,26 @@ NEXT JJ
 ```
 
 ## Weird, unsupported Color BASIC constructs
+
 * Numeric literals must NOT have whitespace. For example, this is illegal:
   `12 34`
 
 ## Known broken conversions
+
 * Statements like this do not generate working code: `A = 3 < 4`
 
 ## Line numbers
+
 * The maximum supported line number is 32700
 
 ## Break and error handling
+
 * There can be at most 1 ON BRK GOTO statement
 * There can be at most 1 ON ERR GOTO statement
 * When either is invoked, it is as if both are invoked at the same time
 
 ## Common issues with converted programs
+
 By default, BASIC09 strings have a maximum length of 32 characters. This often
 results in strings getting truncated in non-obvious ways.
 
@@ -156,14 +176,16 @@ The simplest way to resolve these issues is to pass the maximum storage space
 for strings via the  `--default-string-storage` option. Alternatively,
 resolving these problems typically involves finding the variable with the issue
 and DIMing it to be large enough. For example:
-```
+
+```basic
 DIM XX$: STRING[256]
 ```
 
 Finer grain configuration of string sizes is possible via the `--config-file`
 followed by a path to a YAML file that maps string variable names to sizes in
 bytes. A file might look like:
-```
+
+```basic
 string_configs:
   strname_to_size:
     A$: 100

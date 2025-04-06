@@ -18,9 +18,9 @@ make install
 
 ## Tools
 
-### [decb-to-b09](./README.decb-to-b09.md)
+### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
 
-```
+```bash
 usage: decb-to-b09 [-h] [--version] [-l] [-z] [-s DEFAULT_STRING_STORAGE] [-D] [-w]
                    [-c CONFIG_FILE]
                    program.bas program.b09
@@ -52,7 +52,7 @@ optional arguments:
 
 ### cm3toppm
 
-```
+```bash
 usage: cm3toppm [-h] [--version] [image.cm3] [image.ppm]
 
 Convert RS-DOS CM3 images to PPM
@@ -71,7 +71,7 @@ options:
 
 ### hrstoppm
 
-```
+```bash
 usage: hrstoppm [-h] [-w width] [-r height] [-s bytes] [--version]
                 [image.hrs] [image.ppm]
 
@@ -94,7 +94,7 @@ options:
 
 ### maxtoppm
 
-```
+```bash
 usage: maxtoppm [-h] [--version]
                 [-br | -rb | -br2 | -rb2 | -br3 | -rb3 | -s10 | -s11] [-i]
                 [-w width] [-r height] [-s bytes] [-newsroom]
@@ -139,7 +139,7 @@ Format and size options::
 
 ### mgetoppm
 
-```
+```bash
 usage: mgetoppm [-h] [--version] [image.mge] [image.ppm]
 
 Convert RS-DOS MGE images to PPM
@@ -158,7 +158,7 @@ options:
 
 ### mge_viewer2
 
-```
+```bash
 usage: mge_viewer2 [-h] [--version] [image.mge]
 
 View ColorMax 3 MGE files
@@ -175,7 +175,7 @@ optional arguments:
 
 ### pixtopgm
 
-```
+```bash
 usage: pixtopgm [-h] [--version] image.pix [image.pgm]
 
 Convert RS-DOS PIX images to PGM
@@ -193,7 +193,7 @@ options:
 
 ### rattoppm
 
-```
+```bash
 usage: rattoppm [-h] [--version] [image.rat] [image.ppm]
 
 Convert RS-DOS RAT images to PPM
@@ -211,7 +211,7 @@ options:
 
 ### veftopng
 
-```
+```bash
 usage: veftopng [-h] [--version] image.vef image.png
 
 Convert OS-9 VEF images to PNG
@@ -233,6 +233,7 @@ options:
 You will need a fairly modern python environment with [uv](https://github.com/astral-sh/uv) installed.
 
 You can begin by entering:
+
 ```bash
 make install-pre-commit
 make sync
@@ -240,6 +241,7 @@ make run-tests
 ```
 
 The `Makefile` makes it easy to perform the most common operations:
+
 * `make all` transpiles several example ECB programs to Basic09
 * `make basic.dsk os9boot.dsk` builds ECB and OS-9 disks with examples
 * `make check-all` runs linting and `uv.lock` checks
@@ -262,6 +264,7 @@ The `Makefile` makes it easy to perform the most common operations:
 `.vscode/settings.json` is set so that unit tests can be run without further configuration.
 
 You can use Docker to run tests in a Linux environment:
+
 ```bash
 # Build the docker image
 docker compose build test
@@ -274,14 +277,16 @@ docker compose run testv
 ```
 
 ## Credits
+
 The programs in the examples/decb and examples/other-decb-examples-to-try directories are from the following sources:
-* alien4k0.bas -- https://github.com/jggames/trs80mc10/blob/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Arcade/4K/Alien4K/ALIEN4K0.TXT#L4
-* bach.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/bach.c10
-* banner.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/banner.c10
-* cadnza.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cadnza.c10
-* cflip.bas -- https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cflip.c10
-* flip.bas -- https://github.com/daftspaniel/RetroCornerRedux/blob/main/Dragon/Originals/FlipBits/flip.bas
-* loops.bas -- https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf
-* f15eagle.bas -- https://colorcomputerarchive.com/repo/Disks/Magazines/Rainbow%20On%20Disk.zip
-* mars.bas -- https://github.com/jggames/trs80mc10/tree/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Text%20Adventures/WorkInProgress/Mars
-* saints.bas -- https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf
+
+* alien4k0.bas -- <https://github.com/jggames/trs80mc10/blob/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Arcade/4K/Alien4K/ALIEN4K0.TXT#L4>
+* bach.bas -- <https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/bach.c10>
+* banner.bas -- <https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/banner.c10>
+* cadnza.bas -- <https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cadnza.c10>
+* cflip.bas -- <https://colorcomputerarchive.com/repo/MC-10/Software/Books/TRS-80%20Color%20Computer%20%26%20MC-10%20Programs/cflip.c10>
+* flip.bas -- <https://github.com/daftspaniel/RetroCornerRedux/blob/main/Dragon/Originals/FlipBits/flip.bas>
+* loops.bas -- <https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf>
+* f15eagle.bas -- <https://colorcomputerarchive.com/repo/Disks/Magazines/Rainbow%20On%20Disk.zip>
+* mars.bas -- <https://github.com/jggames/trs80mc10/tree/9df4c9578250009d68a03101d626faa3c22e7445/quicktype/Text%20Adventures/WorkInProgress/Mars>
+* saints.bas -- <https://colorcomputerarchive.com/repo/Documents/Manuals/Hardware/Color%20Computer%203%20Extended%20Basic%20(Tandy).pdf>
