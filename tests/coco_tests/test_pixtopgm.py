@@ -1,10 +1,11 @@
-import os
 import filecmp
-import pkg_resources
-import sys
+import os
 import subprocess
+import sys
 import tempfile
 import unittest
+
+import pkg_resources
 
 import coco.pixtopgm
 from coco import __version__

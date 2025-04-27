@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import chain
-from typing import Dict, List, Literal, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Union
 
 from coco.b09 import DEFAULT_STR_STORAGE
 

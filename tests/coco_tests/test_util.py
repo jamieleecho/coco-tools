@@ -1,6 +1,6 @@
 import argparse
-import unittest
 import sys
+import unittest
 
 from coco.util import (
     check_positive,

@@ -2,7 +2,6 @@ import argparse
 import codecs
 import sys
 
-
 if sys.version_info < (3,):
 
     def iotostr(x):

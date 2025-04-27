@@ -1,12 +1,11 @@
 import importlib.resources as pkg_resources
 import re
-
 from collections import defaultdict
 from typing import Dict, Set
 
 from coco import b09
-from .. import resources
 
+from .. import resources
 
 # Procedure names that start with a procedure keyword.
 PROCEDURE_START_PREFIX = re.compile(r"(?i)procedure\s+(\w+)\s*$")

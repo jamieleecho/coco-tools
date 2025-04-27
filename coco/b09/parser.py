@@ -1,25 +1,11 @@
 from typing import List, Union
-from parsimonious import NodeVisitor
 
-from coco.b09.grammar import (
-    FUNCTIONS,
-    FUNCTIONS_TO_STATEMENTS,
-    FUNCTIONS_TO_STATEMENTS2,
-    NUM_STR_FUNCTIONS,
-    NUM_STR_FUNCTIONS_TO_STATEMENTS,
-    SINGLE_KEYWORD_STATEMENTS,
-    STATEMENTS2,
-    STATEMENTS3,
-    STR2_FUNCTIONS,
-    STR3_FUNCTIONS,
-    STR_FUNCTIONS_TO_STATEMENTS,
-    STR_NUM_FUNCTIONS,
-)
+from parsimonious import NodeVisitor
 
 from coco.b09.elements import (
     AbstractBasicConstruct,
-    AbstractBasicStatement,
     AbstractBasicExpression,
+    AbstractBasicStatement,
     BasicArcStatement,
     BasicArrayRef,
     BasicAssignment,
@@ -36,8 +22,8 @@ from coco.b09.elements import (
     BasicEllipseStatement,
     BasicExpressionList,
     BasicForStatement,
-    BasicFunctionCall,
     BasicFunctionalExpression,
+    BasicFunctionCall,
     BasicGoto,
     BasicHbuffStatement,
     BasicIf,
@@ -51,18 +37,18 @@ from coco.b09.elements import (
     BasicOnBrkGoStatement,
     BasicOnErrGoStatement,
     BasicOnGoStatement,
-    BasicOpExp,
     BasicOperator,
+    BasicOpExp,
     BasicParenExp,
     BasicPoke,
     BasicPrintArgs,
     BasicPrintControl,
     BasicPrintStatement,
     BasicReadStatement,
-    BasicStatementsOrBasicGoto,
     BasicRunCall,
     BasicSound,
     BasicStatements,
+    BasicStatementsOrBasicGoto,
     BasicVar,
     BasicVarptrExpression,
     BasicWidthStatement,
@@ -74,6 +60,20 @@ from coco.b09.elements import (
     LineType,
     PsetOrPreset,
     PutDrawAction,
+)
+from coco.b09.grammar import (
+    FUNCTIONS,
+    FUNCTIONS_TO_STATEMENTS,
+    FUNCTIONS_TO_STATEMENTS2,
+    NUM_STR_FUNCTIONS,
+    NUM_STR_FUNCTIONS_TO_STATEMENTS,
+    SINGLE_KEYWORD_STATEMENTS,
+    STATEMENTS2,
+    STATEMENTS3,
+    STR2_FUNCTIONS,
+    STR3_FUNCTIONS,
+    STR_FUNCTIONS_TO_STATEMENTS,
+    STR_NUM_FUNCTIONS,
 )
 from coco.b09.prog import BasicProg
 

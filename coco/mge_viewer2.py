@@ -11,11 +11,10 @@
 
 import argparse
 import sys
-from tkinter import Tk, Canvas, PhotoImage, NW
+from tkinter import NW, Canvas, PhotoImage, Tk
 
 from coco import __version__
 from coco.util import stdiotobuffer
-
 
 # Color Computer 3 RGB Palette in Photoimage color format
 RGB = [

@@ -1,9 +1,8 @@
 import platform
-import pytest
 
-from PIL import Image
 import imagehash
-
+import pytest
+from PIL import Image
 
 unix_only = pytest.mark.skipif(
     platform.system() == "Windows", reason="This test does not work in Windows"

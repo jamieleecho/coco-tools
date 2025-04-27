@@ -1,7 +1,7 @@
 import re
 from itertools import chain
-from parsimonious.grammar import Grammar
 
+from parsimonious.grammar import Grammar
 
 PROCNAME_REGEX = re.compile(r"[a-zA-Z0-9_-]+")
 

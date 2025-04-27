@@ -1,15 +1,17 @@
-import os
 import filecmp
-import pkg_resources
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 
+import pkg_resources
+
 import coco.cm3toppm
-from .util import unix_only
 from coco import __version__
 from coco.util import iotostr
+
+from .util import unix_only
 
 
 class TestCM3ToPPM(unittest.TestCase):

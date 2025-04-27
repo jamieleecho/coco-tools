@@ -23,7 +23,6 @@ from coco.util import (
     strtoio,
 )
 
-
 PIXEL_MODE_BW = 0
 PIXEL_MODE_BR = 1
 PIXEL_MODE_RB = 2
