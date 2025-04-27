@@ -1,11 +1,13 @@
-import pkg_resources
 import subprocess
 import sys
 import unittest
 
-from .util import unix_only
+import pkg_resources
+
 from coco import __version__
 from coco.util import iotostr
+
+from .util import unix_only
 
 
 class TestMGE_Viewer2(unittest.TestCase):

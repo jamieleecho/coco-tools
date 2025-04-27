@@ -3,6 +3,7 @@ from typing import List
 
 from coco import b09
 from coco.b09 import error_handler
+from coco.b09.configs import CompilerConfigs
 from coco.b09.elements import (
     Basic09CodeStatement,
     BasicExpressionList,
@@ -13,8 +14,7 @@ from coco.b09.elements import (
     BasicRunCall,
     BasicVar,
 )
-from coco.b09.configs import CompilerConfigs
-from coco.b09.grammar import grammar, PROCNAME_REGEX
+from coco.b09.grammar import PROCNAME_REGEX, grammar
 from coco.b09.parser import BasicVisitor
 from coco.b09.procbank import ProcedureBank
 from coco.b09.prog import BasicProg
@@ -29,8 +29,8 @@ from coco.b09.visitors import (
     DeclareImplicitArraysVisitor,
     GetDimmedArraysVisitor,
     JoystickVisitor,
-    LineNumberFilterVisitor,
     LineNumberCheckerVisitor,
+    LineNumberFilterVisitor,
     LineReferenceVisitor,
     LineZeroFilterVisitor,
     SetDimStringStorageVisitor,

@@ -1,16 +1,18 @@
-import os
 import filecmp
-import pkg_resources
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
+
+import pkg_resources
 
 import coco.maxtoppm
-from .util import unix_only
-from unittest import mock
 from coco import __version__
 from coco.util import iotostr
+
+from .util import unix_only
 
 
 class TestMaxToPPM(unittest.TestCase):

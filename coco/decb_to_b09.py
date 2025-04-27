@@ -11,7 +11,6 @@ import sys
 from coco import __version__
 from coco.b09.compiler import convert_file
 
-
 DESCRIPTION = """Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
 Version: {}""".format(__version__)

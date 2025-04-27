@@ -1,6 +1,7 @@
-import pytest
-import pkg_resources
 from typing import List
+
+import pkg_resources
+import pytest
 
 from coco import b09
 from coco.b09.elements import (

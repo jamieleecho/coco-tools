@@ -25,10 +25,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 import argparse
-import png
 import sys
 
+import png
 from PIL import Image
+
 from coco import __version__
 from coco.util import iotobytes
 

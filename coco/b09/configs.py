@@ -1,8 +1,9 @@
 import re
 from pathlib import Path
+from typing import Dict
+
 from pydantic import BaseModel, Field, field_validator
 from pydantic_yaml import parse_yaml_raw_as
-from typing import Dict
 
 
 class StringConfigs(BaseModel):

@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Set
 
 from coco import b09
 from coco.b09.configs import StringConfigs
@@ -15,8 +15,8 @@ from coco.b09.elements import (
     BasicFunctionalExpression,
     BasicGoStatements,
     BasicHbuffStatement,
-    BasicJoystkExpression,
     BasicInputStatement,
+    BasicJoystkExpression,
     BasicLine,
     BasicLiteral,
     BasicNextStatement,
