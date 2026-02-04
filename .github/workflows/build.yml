@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies (Mac)
         if: matrix.os == 'macos-latest'
         run: |
-          brew install python-tk
+          brew install python-tk@${{ matrix.python-version }}
 
       - name: Set up Python
         run: |
