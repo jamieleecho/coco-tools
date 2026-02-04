@@ -1,6 +1,6 @@
+import importlib.resources as pkg_resources
 from typing import List
 
-import pkg_resources
 import pytest
 
 from coco import b09
@@ -20,16 +20,16 @@ from coco.b09.visitors import (
 
 
 def parse_program(resource_name: str) -> BasicProg:
-    path = pkg_resources.resource_filename(__name__, f"fixtures/{resource_name}")
-    prog: str
-    with open(path) as f:
-        prog = f.read()
+    with pkg_resources.files(__package__) / f"fixtures/{resource_name}" as path:
+        prog: str
+        with open(path) as f:
+            prog = f.read()
 
-    tree = grammar.parse(prog)
-    bv = BasicVisitor()
-    prog: BasicProg = bv.visit(tree)
-    prog.visit(BasicFunctionalExpressionPatcherVisitor())
-    return prog
+        tree = grammar.parse(prog)
+        bv = BasicVisitor()
+        prog: BasicProg = bv.visit(tree)
+        prog.visit(BasicFunctionalExpressionPatcherVisitor())
+        return prog
 
 
 @pytest.fixture

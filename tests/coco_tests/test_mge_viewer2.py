@@ -1,8 +1,7 @@
+import importlib.resources as pkg_resources
 import subprocess
 import sys
 import unittest
-
-import pkg_resources
 
 from coco import __version__
 from coco.util import iotostr
@@ -23,23 +22,23 @@ class TestMGE_Viewer2(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/dragon1.mge")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/mge_viewer2.py",
-                    infilename,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/dragon1.mge" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/mge_viewer2.py",
+                        infilename,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"mge_viewer2.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"mge_viewer2.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_help(self) -> None:

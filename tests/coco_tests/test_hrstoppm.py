@@ -1,11 +1,10 @@
 import filecmp
+import importlib.resources as pkg_resources
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-
-import pkg_resources
 
 import coco.hrstoppm
 from coco import __version__
@@ -43,93 +42,101 @@ class TestHRSToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_hrs_to_ppm(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.ppm"
-        )
-        self.outfile.close()
-        coco.hrstoppm.start([infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/monalisa.hrs" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa.ppm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.hrstoppm.start([str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_hrs_to_ppm_with_height(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa_r97.ppm"
-        )
-        self.outfile.close()
-        coco.hrstoppm.start(["-r", "97", infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/monalisa.hrs" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa_r97.ppm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.hrstoppm.start(["-r", "97", str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_hrs_to_ppm_with_width(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa_w160.ppm"
-        )
-        self.outfile.close()
-        coco.hrstoppm.start(["-w", "160", infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/monalisa.hrs" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa_w160.ppm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.hrstoppm.start(["-w", "160", str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_skipping_bytes(self) -> None:
-        infilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa_s7.hrs"
-        )
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.ppm"
-        )
-        self.outfile.close()
-        coco.hrstoppm.start(["-s", "7", infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with (
+            pkg_resources.files(__package__) / "fixtures/monalisa_s7.hrs" as infilename
+        ):
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa.ppm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.hrstoppm.start(["-s", "7", str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/hrstoppm.py",
-                    infilename,
-                    self.outfile.name,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/monalisa.hrs" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/hrstoppm.py",
+                        infilename,
+                        self.outfile.name,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"hrstoppm.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"hrstoppm.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_converts_hrs_to_ppm_via_stdio(self) -> None:
-        infile = pkg_resources.resource_stream(__name__, "fixtures/monalisa.hrs")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.ppm"
-        )
-        read, write = os.pipe()
-        os.write(write, infile.read())
-        os.close(write)
-        subprocess.check_call(
-            [sys.executable, "coco/hrstoppm.py"],
-            env={"PYTHONPATH": "."},
-            stdin=read,
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with (pkg_resources.files(__package__) / "fixtures/monalisa.hrs").open(
+            "rb"
+        ) as infile:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa.ppm" as comparefilename
+            ):
+                read, write = os.pipe()
+                os.write(write, infile.read())
+                os.close(write)
+                subprocess.check_call(
+                    [sys.executable, "coco/hrstoppm.py"],
+                    env={"PYTHONPATH": "."},
+                    stdin=read,
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_converts_hrs_to_ppm_via_stdin(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/monalisa.hrs")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/monalisa.ppm"
-        )
-        subprocess.check_call(
-            [sys.executable, "coco/hrstoppm.py", infilename],
-            env={"PYTHONPATH": "."},
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/monalisa.hrs" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/monalisa.ppm" as comparefilename
+            ):
+                subprocess.check_call(
+                    [sys.executable, "coco/hrstoppm.py", infilename],
+                    env={"PYTHONPATH": "."},
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_help(self) -> None:

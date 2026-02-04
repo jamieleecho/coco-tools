@@ -1,11 +1,10 @@
 import filecmp
+import importlib.resources as pkg_resources
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-
-import pkg_resources
 
 import coco.cm3toppm
 from coco import __version__
@@ -35,64 +34,61 @@ class TestCM3ToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_cm3_to_ppm(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.ppm"
-        )
+        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        comparefilename = pkg_resources.files(__package__) / "fixtures/clip1.ppm"
         self.outfile.close()
-        coco.cm3toppm.start([infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with infilename as infile_path, comparefilename as compare_path:
+            coco.cm3toppm.start([str(infile_path), self.outfile.name])
+            self.assertTrue(filecmp.cmp(self.outfile.name, str(compare_path)))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/cm3toppm.py",
-                    infilename,
-                    self.outfile.name,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        with infilename as infile_path:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/cm3toppm.py",
+                        infile_path,
+                        self.outfile.name,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"cm3toppm.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"cm3toppm.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdio(self) -> None:
-        infile = pkg_resources.resource_stream(__name__, "fixtures/clip1.cm3")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.ppm"
-        )
-        read, write = os.pipe()
-        os.write(write, infile.read())
-        os.close(write)
-        subprocess.check_call(
-            [sys.executable, "coco/cm3toppm.py"],
-            env={"PYTHONPATH": "."},
-            stdin=read,
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        infile = (pkg_resources.files(__package__) / "fixtures/clip1.cm3").open("rb")
+        with pkg_resources.files(__package__) / "fixtures/clip1.ppm" as comparefilename:
+            read, write = os.pipe()
+            os.write(write, infile.read())
+            os.close(write)
+            subprocess.check_call(
+                [sys.executable, "coco/cm3toppm.py"],
+                env={"PYTHONPATH": "."},
+                stdin=read,
+                stdout=self.outfile,
+            )
+            self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdin(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/clip1.cm3")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/clip1.ppm"
-        )
-        subprocess.check_call(
-            [sys.executable, "coco/cm3toppm.py", infilename],
-            env={"PYTHONPATH": "."},
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        comparefilename = pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+        with infilename as infile_path, comparefilename as comparefile_path:
+            subprocess.check_call(
+                [sys.executable, "coco/cm3toppm.py", infile_path],
+                env={"PYTHONPATH": "."},
+                stdout=self.outfile,
+            )
+            self.assertTrue(filecmp.cmp(self.outfile.name, comparefile_path))
 
     @unix_only
     def test_help(self) -> None:

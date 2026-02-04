@@ -1,11 +1,10 @@
 import filecmp
+import importlib.resources as pkg_resources
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-
-import pkg_resources
 
 import coco.rattoppm
 from coco import __version__
@@ -35,64 +34,69 @@ class TestRatToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_rat_to_ppm(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.ppm"
-        )
-        self.outfile.close()
-        coco.rattoppm.start([infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/watrfall.ppm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.rattoppm.start([str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/rattoppm.py",
-                    infilename,
-                    self.outfile.name,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/rattoppm.py",
+                        infilename,
+                        self.outfile.name,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"rattoppm.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"rattoppm.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_converts_rat_to_ppm_via_stdio(self) -> None:
-        infile = pkg_resources.resource_stream(__name__, "fixtures/watrfall.rat")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.ppm"
-        )
-        read, write = os.pipe()
-        os.write(write, infile.read())
-        os.close(write)
-        subprocess.check_call(
-            [sys.executable, "coco/rattoppm.py"],
-            env={"PYTHONPATH": "."},
-            stdin=read,
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with (pkg_resources.files(__package__) / "fixtures/watrfall.rat").open(
+            "rb"
+        ) as infile:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/watrfall.ppm" as comparefilename
+            ):
+                read, write = os.pipe()
+                os.write(write, infile.read())
+                os.close(write)
+                subprocess.check_call(
+                    [sys.executable, "coco/rattoppm.py"],
+                    env={"PYTHONPATH": "."},
+                    stdin=read,
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_converts_rat_to_ppm_via_stdin(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/watrfall.rat")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/watrfall.ppm"
-        )
-        subprocess.check_call(
-            [sys.executable, "coco/rattoppm.py", infilename],
-            env={"PYTHONPATH": "."},
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/watrfall.ppm" as comparefilename
+            ):
+                subprocess.check_call(
+                    [sys.executable, "coco/rattoppm.py", infilename],
+                    env={"PYTHONPATH": "."},
+                    stdout=self.outfile,
+                )
+            self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_help(self) -> None:

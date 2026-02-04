@@ -1,11 +1,10 @@
 import filecmp
+import importlib.resources as pkg_resources
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-
-import pkg_resources
 
 import coco.veftopng
 from coco import __version__
@@ -35,44 +34,48 @@ class TestVEFToPNG(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_320x200x16_vef_to_png(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/trekies.png"
-        )
-        self.outfile.close()
-        coco.veftopng.start([infilename, self.outfile.name])
+        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/trekies.png" as comparefilename
+            ):
+                self.outfile.close()
+                coco.veftopng.start([str(infilename), self.outfile.name])
 
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_640x200x4_vef_to_png(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/owlcasl.vef")
-        comparefilename = pkg_resources.resource_filename(
-            __name__, "fixtures/owlcasl.png"
-        )
-        self.outfile.close()
-        coco.veftopng.start([infilename, self.outfile.name])
-        self.assertTrue(compare_images_imagehash(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/owlcasl.vef" as infilename:
+            with (
+                pkg_resources.files(__package__)
+                / "fixtures/owlcasl.png" as comparefilename
+            ):
+                self.outfile.close()
+                coco.veftopng.start([str(infilename), self.outfile.name])
+                self.assertTrue(
+                    compare_images_imagehash(self.outfile.name, comparefilename)
+                )
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/veftopng.py",
-                    infilename,
-                    self.outfile.name,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/veftopng.py",
+                        infilename,
+                        self.outfile.name,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"veftopng.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"veftopng.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_help(self) -> None:
@@ -98,21 +101,21 @@ class TestVEFToPNG(unittest.TestCase):
 
     @unix_only
     def test_unknown_argument(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/trekies.vef")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/veftopng.py",
-                    infilename,
-                    self.outfile.name,
-                    "--oops",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/veftopng.py",
+                        infilename,
+                        self.outfile.name,
+                        "--oops",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"veftopng.py: error: unrecognized arguments: --oops",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"veftopng.py: error: unrecognized arguments: --oops",
-        )

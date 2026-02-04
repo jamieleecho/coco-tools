@@ -1,11 +1,10 @@
 import filecmp
+import importlib.resources as pkg_resources
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-
-import pkg_resources
 
 import coco.pixtopgm
 from coco import __version__
@@ -35,43 +34,47 @@ class TestPixToPGM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_pix_to_pgm(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
-        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pgm")
-        self.outfile.close()
-        coco.pixtopgm.start([infilename, self.outfile.name])
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infilename:
+            with (
+                pkg_resources.files(__package__) / "fixtures/sue.pgm" as comparefilename
+            ):
+                self.outfile.close()
+                coco.pixtopgm.start([str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
-        with self.assertRaises(subprocess.CalledProcessError) as context:
-            subprocess.check_output(
-                [
-                    sys.executable,
-                    "coco/pixtopgm.py",
-                    infilename,
-                    self.outfile.name,
-                    "baz",
-                ],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infilename:
+            with self.assertRaises(subprocess.CalledProcessError) as context:
+                subprocess.check_output(
+                    [
+                        sys.executable,
+                        "coco/pixtopgm.py",
+                        infilename,
+                        self.outfile.name,
+                        "baz",
+                    ],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"pixtopgm.py: error: unrecognized arguments: baz",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"pixtopgm.py: error: unrecognized arguments: baz",
-        )
 
     @unix_only
     def test_converts_pix_to_pgm_via_stdout(self) -> None:
-        infile = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
-        comparefilename = pkg_resources.resource_filename(__name__, "fixtures/sue.pgm")
-        subprocess.check_call(
-            [sys.executable, "coco/pixtopgm.py", infile],
-            env={"PYTHONPATH": "."},
-            stdout=self.outfile,
-        )
-        self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infile:
+            with (
+                pkg_resources.files(__package__) / "fixtures/sue.pgm" as comparefilename
+            ):
+                subprocess.check_call(
+                    [sys.executable, "coco/pixtopgm.py", infile],
+                    env={"PYTHONPATH": "."},
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_help(self) -> None:
@@ -98,14 +101,14 @@ class TestPixToPGM(unittest.TestCase):
     @unix_only
     def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
-            infile = pkg_resources.resource_filename(__name__, "fixtures/sue.pix")
-            subprocess.check_output(
-                [sys.executable, "coco/pixtopgm.py", infile, "--oops"],
-                env={"PYTHONPATH": "."},
-                stderr=subprocess.STDOUT,
+            with pkg_resources.files(__package__) / "fixtures/sue.pix" as infile:
+                subprocess.check_output(
+                    [sys.executable, "coco/pixtopgm.py", infile, "--oops"],
+                    env={"PYTHONPATH": "."},
+                    stderr=subprocess.STDOUT,
+                )
+            self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
+            self.assertRegex(
+                iotostr(context.exception.output),
+                r"pixtopgm.py: error: unrecognized arguments: --oops",
             )
-        self.assertRegex(iotostr(context.exception.output), self.USAGE_REGEX)
-        self.assertRegex(
-            iotostr(context.exception.output),
-            r"pixtopgm.py: error: unrecognized arguments: --oops",
-        )
