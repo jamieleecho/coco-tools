@@ -1,5 +1,5 @@
 import filecmp
-import importlib.resources as pkg_resources
+import importlib.resources as importlib_resources
 import os
 import subprocess
 import sys
@@ -34,11 +34,11 @@ class TestCM3ToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_cm3_to_ppm(self) -> None:
-        with pkg_resources.as_file(
-            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        with importlib_resources.as_file(
+            importlib_resources.files(__package__) / "fixtures/clip1.cm3"
         ) as infilename:
-            with pkg_resources.as_file(
-                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            with importlib_resources.as_file(
+                importlib_resources.files(__package__) / "fixtures/clip1.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.cm3toppm.start([str(infilename), self.outfile.name])
@@ -46,8 +46,8 @@ class TestCM3ToPPM(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.as_file(
-            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        with importlib_resources.as_file(
+            importlib_resources.files(__package__) / "fixtures/clip1.cm3"
         ) as infilename:
             infile_path = str(infilename)
             with self.assertRaises(subprocess.CalledProcessError) as context:
@@ -70,11 +70,11 @@ class TestCM3ToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdio(self) -> None:
-        with (pkg_resources.files(__package__) / "fixtures/clip1.cm3").open(
+        with (importlib_resources.files(__package__) / "fixtures/clip1.cm3").open(
             "rb"
         ) as infile:
-            with pkg_resources.as_file(
-                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            with importlib_resources.as_file(
+                importlib_resources.files(__package__) / "fixtures/clip1.ppm"
             ) as comparefilename:
                 read, write = os.pipe()
                 os.write(write, infile.read())
@@ -89,11 +89,11 @@ class TestCM3ToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdin(self) -> None:
-        with pkg_resources.as_file(
-            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        with importlib_resources.as_file(
+            importlib_resources.files(__package__) / "fixtures/clip1.cm3"
         ) as infilename:
-            with pkg_resources.as_file(
-                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            with importlib_resources.as_file(
+                importlib_resources.files(__package__) / "fixtures/clip1.ppm"
             ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/cm3toppm.py", str(infilename)],

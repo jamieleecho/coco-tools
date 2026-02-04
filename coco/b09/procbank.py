@@ -1,4 +1,4 @@
-import importlib.resources as pkg_resources
+import importlib.resources as importlib_resources
 import re
 from collections import defaultdict
 from typing import Dict, Set
@@ -42,7 +42,7 @@ class ProcedureBank(object):
         Loads the BASIC09 file and stores the procedures and determines the
         dependencies.
         """
-        resource_file = pkg_resources.files(resources) / resource_name
+        resource_file = importlib_resources.files(resources) / resource_name
         with resource_file.open("r") as f:
             return self.add_from_str(f.read())
 

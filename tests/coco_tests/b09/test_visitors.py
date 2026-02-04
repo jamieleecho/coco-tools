@@ -1,4 +1,4 @@
-import importlib.resources as pkg_resources
+import importlib.resources as importlib_resources
 from typing import List
 
 import pytest
@@ -20,8 +20,8 @@ from coco.b09.visitors import (
 
 
 def parse_program(resource_name: str) -> BasicProg:
-    with pkg_resources.as_file(
-        pkg_resources.files(__package__) / f"fixtures/{resource_name}"
+    with importlib_resources.as_file(
+        importlib_resources.files(__package__) / f"fixtures/{resource_name}"
     ) as path:
         prog: str
         with open(path) as f:

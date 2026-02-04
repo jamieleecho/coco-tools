@@ -1,4 +1,4 @@
-import importlib.resources as pkg_resources
+import importlib.resources as importlib_resources
 import subprocess
 import sys
 import unittest
@@ -22,8 +22,8 @@ class TestMGE_Viewer2(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.as_file(
-            pkg_resources.files(__package__) / "fixtures/dragon1.mge"
+        with importlib_resources.as_file(
+            importlib_resources.files(__package__) / "fixtures/dragon1.mge"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
