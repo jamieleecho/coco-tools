@@ -20,7 +20,7 @@ make install
 
 ### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
 
-```bash
+```text
 usage: decb-to-b09 [-h] [--version] [-l] [-z] [-s DEFAULT_STRING_STORAGE] [-D] [-w]
                    [-c CONFIG_FILE]
                    program.bas program.b09
@@ -52,7 +52,7 @@ optional arguments:
 
 ### cm3toppm
 
-```bash
+```text
 usage: cm3toppm [-h] [--version] [image.cm3] [image.ppm]
 
 Convert RS-DOS CM3 images to PPM
@@ -71,7 +71,7 @@ options:
 
 ### hrstoppm
 
-```bash
+```text
 usage: hrstoppm [-h] [-w width] [-r height] [-s bytes] [--version]
                 [image.hrs] [image.ppm]
 
@@ -94,7 +94,7 @@ options:
 
 ### maxtoppm
 
-```bash
+```text
 usage: maxtoppm [-h] [--version]
                 [-br | -rb | -br2 | -rb2 | -br3 | -rb3 | -s10 | -s11] [-i]
                 [-w width] [-r height] [-s bytes] [-newsroom]
@@ -139,7 +139,7 @@ Format and size options::
 
 ### mgetoppm
 
-```bash
+```text
 usage: mgetoppm [-h] [--version] [image.mge] [image.ppm]
 
 Convert RS-DOS MGE images to PPM
@@ -158,7 +158,7 @@ options:
 
 ### mge_viewer2
 
-```bash
+```text
 usage: mge_viewer2 [-h] [--version] [image.mge]
 
 View ColorMax 3 MGE files
@@ -175,7 +175,7 @@ optional arguments:
 
 ### pixtopgm
 
-```bash
+```text
 usage: pixtopgm [-h] [--version] image.pix [image.pgm]
 
 Convert RS-DOS PIX images to PGM
@@ -191,9 +191,63 @@ options:
   --version   show program's version number and exit
 ```
 
+### png-to-cocopng
+
+```text
+usage: png-to-coco-png [-h] [--bits-per-pixel BITS_PER_PIXEL] input_png input_palette output_png
+
+Convert a PNG image to a CoCo 3 palette PNG.
+
+positional arguments:
+  input_png             Path to the input PNG image file.
+  input_palette         Path to the input palette file is in the Multi Vue env.file format.
+  output_png            Path to the output PNG file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --bits-per-pixel BITS_PER_PIXEL
+                        Number of bits per pixel.
+```
+
+### png-to-mvicon
+
+```text
+usage: png-to-mvicon [-h] input_png input_palette output_icon
+
+Convert a 24x24 PNG image to a Multi Vue icon file.
+
+positional arguments:
+  input_png      Path to the input PNG image file.
+  input_palette  Path to the input palette file is in the Multi Vue env.file format.
+  output_icon    Path to the output icon file.
+
+optional arguments:
+  -h, --help     show this help message and exit
+```
+
+### png-to-os9-image
+
+```text
+usage: png-to-os9-image [-h] [--mask-index MASK_INDEX] [--bits-per-pixel BITS_PER_PIXEL]
+                        input_png input_palette output_os9_image
+
+Convert an PNG image to an OS-9 image.
+
+positional arguments:
+  input_png             Path to the input PNG image file.
+  input_palette         Path to the input palette file is in the Multi Vue env.file format.
+  output_os9_image      Path to the output OS-9 image file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --mask-index MASK_INDEX
+  --bits-per-pixel BITS_PER_PIXEL
+                        Number of bits per pixel.
+```
+
 ### rattoppm
 
-```bash
+```text
 usage: rattoppm [-h] [--version] [image.rat] [image.ppm]
 
 Convert RS-DOS RAT images to PPM
@@ -211,7 +265,7 @@ options:
 
 ### veftopng
 
-```bash
+```text
 usage: veftopng [-h] [--version] image.vef image.png
 
 Convert OS-9 VEF images to PNG
