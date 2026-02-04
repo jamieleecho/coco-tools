@@ -1,6 +1,6 @@
 [project]
 name = "coco-tools"
-version = "0.24"
+version = "0.25"
 authors = [
   {name = "Jamie Cho", email = "jamieleecho@gmail.com"},
 ]
