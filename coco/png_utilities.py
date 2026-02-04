@@ -4,6 +4,7 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from io import BufferedWriter
+from typing import Optional
 
 import numpy as np
 from colormath.color_conversions import convert_color
@@ -290,7 +291,7 @@ def convert_png_to_mvicon(
     )
 
 
-def png_to_mvicon(args: Sequence[str] | None = None) -> None:
+def png_to_mvicon(args: Optional[Sequence[str]] = None) -> None:
     parser = _create_mvicon_arg_parser()
     parsed_args = parser.parse_args(args)
     convert_png_to_mvicon(
@@ -451,7 +452,7 @@ def _create_png_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def png_to_coco_png(args: Sequence[str] | None = None) -> None:
+def png_to_coco_png(args: Optional[Sequence[str]] = None) -> None:
     parser = _create_png_arg_parser()
     parsed_args = parser.parse_args(args)
     convert_png_to_coco_png(
@@ -480,7 +481,7 @@ def _create_os9_image_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def png_to_os9_image(args: Sequence[str] | None = None) -> None:
+def png_to_os9_image(args: Optional[Sequence[str]] = None) -> None:
     parser = _create_os9_image_arg_parser()
     parsed_args = parser.parse_args(args)
     convert_png_to_os9_image(
