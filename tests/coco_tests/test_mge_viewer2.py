@@ -22,7 +22,9 @@ class TestMGE_Viewer2(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/dragon1.mge" as infilename:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/dragon1.mge"
+        ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [

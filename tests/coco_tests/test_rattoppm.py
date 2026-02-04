@@ -34,18 +34,21 @@ class TestRatToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_rat_to_ppm(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
-            with (
-                pkg_resources.files(__package__)
-                / "fixtures/watrfall.ppm" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/watrfall.rat"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/watrfall.ppm"
+            ) as comparefilename:
                 self.outfile.close()
                 coco.rattoppm.start([str(infilename), self.outfile.name])
                 self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/watrfall.rat"
+        ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [
@@ -69,10 +72,9 @@ class TestRatToPPM(unittest.TestCase):
         with (pkg_resources.files(__package__) / "fixtures/watrfall.rat").open(
             "rb"
         ) as infile:
-            with (
-                pkg_resources.files(__package__)
-                / "fixtures/watrfall.ppm" as comparefilename
-            ):
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/watrfall.ppm"
+            ) as comparefilename:
                 read, write = os.pipe()
                 os.write(write, infile.read())
                 os.close(write)
@@ -86,11 +88,12 @@ class TestRatToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_rat_to_ppm_via_stdin(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/watrfall.rat" as infilename:
-            with (
-                pkg_resources.files(__package__)
-                / "fixtures/watrfall.ppm" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/watrfall.rat"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/watrfall.ppm"
+            ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/rattoppm.py", infilename],
                     env={"PYTHONPATH": "."},

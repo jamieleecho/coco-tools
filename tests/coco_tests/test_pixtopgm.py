@@ -34,17 +34,21 @@ class TestPixToPGM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_pix_to_pgm(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infilename:
-            with (
-                pkg_resources.files(__package__) / "fixtures/sue.pgm" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/sue.pix"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/sue.pgm"
+            ) as comparefilename:
                 self.outfile.close()
                 coco.pixtopgm.start([str(infilename), self.outfile.name])
                 self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infilename:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/sue.pix"
+        ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [
@@ -65,10 +69,12 @@ class TestPixToPGM(unittest.TestCase):
 
     @unix_only
     def test_converts_pix_to_pgm_via_stdout(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/sue.pix" as infile:
-            with (
-                pkg_resources.files(__package__) / "fixtures/sue.pgm" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/sue.pix"
+        ) as infile:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/sue.pgm"
+            ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/pixtopgm.py", infile],
                     env={"PYTHONPATH": "."},
@@ -101,7 +107,9 @@ class TestPixToPGM(unittest.TestCase):
     @unix_only
     def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
-            with pkg_resources.files(__package__) / "fixtures/sue.pix" as infile:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/sue.pix"
+            ) as infile:
                 subprocess.check_output(
                     [sys.executable, "coco/pixtopgm.py", infile, "--oops"],
                     env={"PYTHONPATH": "."},

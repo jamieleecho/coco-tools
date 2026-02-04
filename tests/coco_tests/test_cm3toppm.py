@@ -34,17 +34,22 @@ class TestCM3ToPPM(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_cm3_to_ppm(self) -> None:
-        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
-        comparefilename = pkg_resources.files(__package__) / "fixtures/clip1.ppm"
-        self.outfile.close()
-        with infilename as infile_path, comparefilename as compare_path:
-            coco.cm3toppm.start([str(infile_path), self.outfile.name])
-            self.assertTrue(filecmp.cmp(self.outfile.name, str(compare_path)))
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            ) as comparefilename:
+                self.outfile.close()
+                coco.cm3toppm.start([str(infilename), self.outfile.name])
+                self.assertTrue(filecmp.cmp(self.outfile.name, str(comparefilename)))
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
-        with infilename as infile_path:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        ) as infilename:
+            infile_path = str(infilename)
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [
@@ -65,30 +70,37 @@ class TestCM3ToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdio(self) -> None:
-        infile = (pkg_resources.files(__package__) / "fixtures/clip1.cm3").open("rb")
-        with pkg_resources.files(__package__) / "fixtures/clip1.ppm" as comparefilename:
-            read, write = os.pipe()
-            os.write(write, infile.read())
-            os.close(write)
-            subprocess.check_call(
-                [sys.executable, "coco/cm3toppm.py"],
-                env={"PYTHONPATH": "."},
-                stdin=read,
-                stdout=self.outfile,
-            )
-            self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
+        with (pkg_resources.files(__package__) / "fixtures/clip1.cm3").open(
+            "rb"
+        ) as infile:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            ) as comparefilename:
+                read, write = os.pipe()
+                os.write(write, infile.read())
+                os.close(write)
+                subprocess.check_call(
+                    [sys.executable, "coco/cm3toppm.py"],
+                    env={"PYTHONPATH": "."},
+                    stdin=read,
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_converts_cm3_to_ppm_via_stdin(self) -> None:
-        infilename = pkg_resources.files(__package__) / "fixtures/clip1.cm3"
-        comparefilename = pkg_resources.files(__package__) / "fixtures/clip1.ppm"
-        with infilename as infile_path, comparefilename as comparefile_path:
-            subprocess.check_call(
-                [sys.executable, "coco/cm3toppm.py", infile_path],
-                env={"PYTHONPATH": "."},
-                stdout=self.outfile,
-            )
-            self.assertTrue(filecmp.cmp(self.outfile.name, comparefile_path))
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/clip1.cm3"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/clip1.ppm"
+            ) as comparefilename:
+                subprocess.check_call(
+                    [sys.executable, "coco/cm3toppm.py", str(infilename)],
+                    env={"PYTHONPATH": "."},
+                    stdout=self.outfile,
+                )
+                self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     @unix_only
     def test_help(self) -> None:

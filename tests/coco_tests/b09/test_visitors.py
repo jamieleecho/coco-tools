@@ -20,7 +20,9 @@ from coco.b09.visitors import (
 
 
 def parse_program(resource_name: str) -> BasicProg:
-    with pkg_resources.files(__package__) / f"fixtures/{resource_name}" as path:
+    with pkg_resources.as_file(
+        pkg_resources.files(__package__) / f"fixtures/{resource_name}"
+    ) as path:
         prog: str
         with open(path) as f:
             prog = f.read()

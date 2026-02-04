@@ -34,22 +34,24 @@ class TestVEFToPNG(unittest.TestCase):
         os.remove(self.outfile.name)
 
     def test_converts_320x200x16_vef_to_png(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
-            with (
-                pkg_resources.files(__package__)
-                / "fixtures/trekies.png" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/trekies.vef"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/trekies.png"
+            ) as comparefilename:
                 self.outfile.close()
                 coco.veftopng.start([str(infilename), self.outfile.name])
 
         self.assertTrue(filecmp.cmp(self.outfile.name, comparefilename))
 
     def test_converts_640x200x4_vef_to_png(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/owlcasl.vef" as infilename:
-            with (
-                pkg_resources.files(__package__)
-                / "fixtures/owlcasl.png" as comparefilename
-            ):
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/owlcasl.vef"
+        ) as infilename:
+            with pkg_resources.as_file(
+                pkg_resources.files(__package__) / "fixtures/owlcasl.png"
+            ) as comparefilename:
                 self.outfile.close()
                 coco.veftopng.start([str(infilename), self.outfile.name])
                 self.assertTrue(
@@ -58,7 +60,9 @@ class TestVEFToPNG(unittest.TestCase):
 
     @unix_only
     def test_too_many_arguments(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/trekies.vef"
+        ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [
@@ -101,7 +105,9 @@ class TestVEFToPNG(unittest.TestCase):
 
     @unix_only
     def test_unknown_argument(self) -> None:
-        with pkg_resources.files(__package__) / "fixtures/trekies.vef" as infilename:
+        with pkg_resources.as_file(
+            pkg_resources.files(__package__) / "fixtures/trekies.vef"
+        ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
                     [
