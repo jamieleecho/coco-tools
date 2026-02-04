@@ -75,7 +75,7 @@ help:
 	@echo ${.PHONY}
 
 install: check-lock build-dist
-	uv run pip install .
+	uv pip install .
 
 install-pre-commit:
 	uv run pre-commit install

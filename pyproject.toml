@@ -22,6 +22,7 @@ keywords = [
 ]
 requires-python = ">=3.9.19"
 dependencies = [
+  "colormath>=3.0.0",
   "parsimonious>=0.10.0",
   "Pillow>=7.0.0",
   "pypng>=0.0.18",
@@ -30,15 +31,18 @@ dependencies = [
 ]
 
 [project.scripts]
-  decb-to-b09 = "coco.decb_to_b09:main"
-  cm3toppm = "coco.cm3toppm:main"
-  hrstoppm = "coco.hrstoppm:main"
-  maxtoppm = "coco.maxtoppm:main"
-  mgetoppm = "coco.mgetoppm:main"
-  mge_viewer2 = "coco.mge_viewer2:main"
-  pixtopgm = "coco.pixtopgm:main"
-  rattoppm = "coco.rattoppm:main"
-  veftopng = "coco.veftopng:main"
+decb-to-b09 = "coco.decb_to_b09:main"
+cm3toppm = "coco.cm3toppm:main"
+hrstoppm = "coco.hrstoppm:main"
+maxtoppm = "coco.maxtoppm:main"
+mgetoppm = "coco.mgetoppm:main"
+mge_viewer2 = "coco.mge_viewer2:main"
+pixtopgm = "coco.pixtopgm:main"
+png-to-mvicon = "xmastree_utilities.png_utilities:png_to_mvicon"
+png-to-coco-png = "xmastree_utilities.png_utilities:png_to_coco_png"
+png-to-os9-image = "xmastree_utilities.png_utilities:png_to_os9_image"
+rattoppm = "coco.rattoppm:main"
+veftopng = "coco.veftopng:main"
 
 [project.urls]
 Repository = "https://github.com/jamieleecho/coco-tools"
