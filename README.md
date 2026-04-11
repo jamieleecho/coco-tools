@@ -21,19 +21,20 @@ make install
 ### [decb-to-b09](https://github.com/jamieleecho/coco-tools/blob/main/README.decb-to-b09.md)
 
 ```text
-usage: decb-to-b09 [-h] [--version] [-l] [-z] [-s DEFAULT_STRING_STORAGE] [-D] [-w]
-                   [-c CONFIG_FILE]
+usage: decb-to-b09 [-h] [--version] [-l] [-z] [-s DEFAULT_STRING_STORAGE] [-D]
+                   [-w] [-c CONFIG_FILE] [--list-integer-candidates] [-O]
+                   [--no-optimize A,B,C]
                    program.bas program.b09
 
 Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
-Version: 0.18
+Version: 0.26
 
 positional arguments:
   program.bas           input DECB text program file
   program.b09           output BASIC09 text program file
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -l, --filter-unused-linenum
@@ -48,6 +49,20 @@ optional arguments:
                         if set don't run the default width 32
   -c CONFIG_FILE, --config-file CONFIG_FILE
                         Optional compiler configuration file
+  --list-integer-candidates
+                        Instead of compiling, write a sorted list of
+                        variables that could be stored as BASIC09 integers,
+                        one per line. Array variables are written with a
+                        trailing '()'.
+  -O, --optimize        Enable real-to-integer optimization: variables and
+                        arrays that are only ever assigned integer values
+                        in the range [-32768, 32767] are declared as
+                        BASIC09 INTEGER instead of the default REAL.
+  --no-optimize A,B,C   Comma-separated list of variables to exclude from
+                        the real-to-integer optimization. Use plain names
+                        for scalars (e.g., A) and a trailing '()' for
+                        arrays (e.g., Y()). Has no effect unless -O is also
+                        set.
 ```
 
 ### cm3toppm

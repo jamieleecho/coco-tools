@@ -192,3 +192,118 @@ string_configs:
     A$(): 200
     BC$: 300
 ```
+
+## Real-to-integer optimization (`-O`)
+
+By default every numeric variable and array is emitted as a BASIC09 `REAL`,
+matching Color BASIC semantics. Reals are 5 bytes each and slower than
+integers, so for code paths that only ever deal with whole numbers `-O`
+opts into a static analysis that promotes those variables to BASIC09
+`INTEGER` instead.
+
+A scalar or array becomes an integer candidate only if **every** value
+ever assigned to it is statically provable to be an integer in the signed
+16-bit range `[-32768, 32767]`. The analysis disqualifies a variable if
+any of the following appears in its provenance:
+
+* a transcendental or otherwise non-integer function (`SIN`, `COS`,
+  `TAN`, `ATN`, `LOG`, `EXP`, `SQR`, `RND`, `VAL`),
+* the division `/` or power `^` operator,
+* a fractional literal, or a numeric literal outside the 16-bit range,
+* a value coming from `INPUT` or `READ` (the data could be fractional or
+  out of range),
+* being passed as a `REAL` output parameter to a known procedure (output
+  parameters write back through the caller's storage, so the caller's
+  type is pinned by the callee — `INT()`, `JOYSTK()`, `VAL()`, `STR$()`,
+  etc. all force their target back to `REAL`),
+* a value flowing through another non-integer variable (transitively).
+
+The disqualification rules propagate via fixpoint, so e.g. `A = SIN(1)`
+followed by `B = A` correctly leaves both variables as `REAL`.
+
+The optimization also rewrites the call sites of the `ecb_*` runtime
+procedures: most of them now declare their numeric input parameters as
+`INTEGER` (the exceptions are `ecb_int`, `ecb_str`, `ecb_val`, and
+`ecb_hex`, where the type is load-bearing). At every call site:
+
+* an integer-valued literal is rewritten in place (`5.0` → `5`),
+* a real-typed variable or expression is wrapped with `fix(...)`,
+* an integer variable passed to a `REAL` slot is left alone — BASIC09
+  implicitly widens `INTEGER` to `REAL` at call sites,
+* a redundant `float(x)` wrapper is unwrapped before re-coercing back to
+  integer, so e.g. `HCIRCLE` emits `display.hfore` directly instead of
+  `fix(float(display.hfore))`.
+
+This call-site coercion runs unconditionally, even without `-O`, so a
+non-optimized build still produces well-typed BASIC09 calls to the new
+`INTEGER`-input `ecb_*` procedures.
+
+### Inspecting the candidate set
+
+To preview which variables `-O` would promote without actually compiling,
+use `--list-integer-candidates`. The output is a sorted list, one
+variable per line, with array names printed as `X()` to distinguish them
+from a same-named scalar. For example:
+
+```sh
+decb-to-b09 program.bas candidates.txt --list-integer-candidates
+```
+
+might produce:
+
+```
+A
+B
+I
+X()
+```
+
+### Excluding variables
+
+If a particular variable should stay `REAL` even though it satisfies the
+analysis (e.g. because the code later uses it in a fractional way that
+the analysis can't see), pass `--no-optimize` with a comma-separated list
+of names. Use plain names for scalars and a trailing `()` for arrays:
+
+```sh
+decb-to-b09 program.bas program.b09 -O --no-optimize="B,X()"
+```
+
+This produces a build where `A`, `I`, and any other safe variables are
+`INTEGER`, but `B` and the array `X` remain `REAL`.
+
+### Worked example
+
+For
+```basic
+10 A = 5
+20 B = A + 3
+30 FOR I = 1 TO 10: NEXT I
+40 SOUND B, A
+50 DIM X(5)
+60 X(2) = 7
+70 LOCATE A, B
+80 HCIRCLE(159, 95), 20
+```
+`decb-to-b09 -O` produces (excerpted):
+```basic09
+DIM A, B, I: INTEGER
+A := 0
+B := 0
+I := 0
+...
+A := 5
+B := A + 3
+FOR I = 1 TO 10
+NEXT I
+RUN ecb_sound(B, A, 31, FIX(play.octo))
+DIM arr_X(6): INTEGER
+arr_X(2) := 7
+run ecb_locate(A, B)
+run ecb_hcircle(159, 95, 20, display.hfore, 1.0, display)
+```
+
+Without `-O`, the same source produces a build where `A`, `B`, `I`,
+and `arr_X` are `REAL`, the scalar arguments are wrapped in `fix(...)`
+at the now-`INTEGER` `ecb_*` call sites, and `arr_X` remains a `REAL`
+array.
