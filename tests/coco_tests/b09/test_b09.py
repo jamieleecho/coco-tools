@@ -32,7 +32,9 @@ class TestB09(unittest.TestCase):
         assert "B := 0.0\n" in program
         assert "base 0\n" in program
         assert "RUN _ecb_start" in program
-        assert "RUN ecb_cls(B, display)" in program
+        # B is a real var so it must be coerced to integer for
+        # ecb_cls's now-INTEGER ``color`` parameter.
+        assert "RUN ecb_cls(fix(B), display)" in program
 
     def test_convert_header_no_name_with_dependencies(self) -> None:
         program = compiler.convert(
@@ -45,7 +47,7 @@ class TestB09(unittest.TestCase):
         assert "B := 0.0\n"
         assert "base 0\n" in program
         assert "RUN _ecb_start" in program
-        assert "RUN ecb_cls(B, display)" in program
+        assert "RUN ecb_cls(fix(B), display)" in program
         assert "procedure _ecb_cursor_color\n" in program
 
     def test_convert_no_default_width32(self) -> None:
@@ -71,6 +73,179 @@ class TestB09(unittest.TestCase):
             default_width32=True,
         )
         assert "RUN _ecb_start(display, 1)\n" in program
+
+    def test_collect_integer_candidates(self) -> None:
+        prog = (
+            "10 A = 5\n"
+            "20 B = A + 3\n"
+            "30 C = SIN(A)\n"
+            "40 D = A / 2\n"
+            "50 DIM X(10), Y(10)\n"
+            "60 X(3) = 7\n"
+            "70 Y(2) = SIN(1)\n"
+            "80 FOR I = 1 TO 10\n"
+            "90 NEXT I\n"
+        )
+        assert compiler.collect_integer_candidates(prog) == [
+            "A",
+            "B",
+            "I",
+            "X()",
+        ]
+
+    def test_collect_integer_candidates_empty(self) -> None:
+        # A program that does nothing should produce no candidates.
+        assert compiler.collect_integer_candidates("10 END\n") == []
+
+    def test_optimize_emits_dim_integer_for_scalars(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n20 B = A + 3\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM A, B: INTEGER" in program
+        assert "A := 0\n" in program
+        assert "B := 0\n" in program
+        # Literal RHS values should be rewritten to integer form.
+        assert "A := 5\n" in program
+        assert "A := 5.0" not in program
+        assert "B := A + 3\n" in program
+        assert "B := A + 3.0" not in program
+
+    def test_optimize_integer_array_dim_and_assignment(self) -> None:
+        program = compiler.convert(
+            "10 DIM X(10)\n20 X(3) = 7\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM arr_X(11): INTEGER" in program
+        assert "arr_X(3) := 7" in program
+
+    def test_optimize_passes_integer_vars_to_sound_unwrapped(self) -> None:
+        # Basic09 implicitly widens an INTEGER actual to a REAL
+        # parameter, so passing the optimized integer variables F
+        # and D directly to ecb_sound (which currently takes
+        # INTEGER inputs after the conversion pass) does not need
+        # any explicit float() wrapping.
+        program = compiler.convert(
+            "10 F = 100\n20 D = 10\n30 SOUND F, D\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "RUN ecb_sound(F, D," in program
+        assert "float(F)" not in program
+        assert "float(D)" not in program
+
+    def test_optimize_passes_integer_var_to_cls_unwrapped(self) -> None:
+        program = compiler.convert(
+            "10 B = 3\n20 CLS B\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "RUN ecb_cls(B, display)" in program
+        assert "float(B)" not in program
+
+    def test_optimize_excludes_display(self) -> None:
+        # The ``display`` record must never end up in the integer
+        # set — it's a display_t, not a numeric scalar.
+        program = compiler.convert(
+            "10 A = 5\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "display" not in program.split("DIM A")[1].split("\n")[0]
+        assert "dim display: display_t" in program
+
+    def test_optimize_non_integer_vars_stay_real(self) -> None:
+        # C is assigned SIN(1), so it must be REAL.
+        program = compiler.convert(
+            "10 A = 5\n20 C = SIN(1)\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM A: INTEGER" in program
+        assert "C := 0.0" in program
+        assert "C := SIN(1.0)" in program
+
+    def test_optimize_for_loop_bounds_rewritten(self) -> None:
+        program = compiler.convert(
+            "10 FOR I = 1 TO 10\n20 NEXT I\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "FOR I = 1 TO 10" in program
+        assert "FOR I = 1.0" not in program
+
+    def test_no_optimize_excludes_scalar(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n20 B = 7\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+            no_optimize_vars={"B"},
+        )
+        # Only A is in the INTEGER DIM.
+        assert "DIM A: INTEGER" in program
+        assert "DIM A, B: INTEGER" not in program
+        assert "B := 0.0" in program
+
+    def test_no_optimize_excludes_array(self) -> None:
+        program = compiler.convert(
+            "10 DIM X(5)\n20 X(2) = 3\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+            no_optimize_vars={"X()"},
+        )
+        assert "DIM arr_X(6): INTEGER" not in program
+        assert "DIM arr_X(6)" in program
+
+    def test_optimize_default_off_preserves_behavior(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+        )
+        assert "DIM A" not in program.upper().replace("DISPLAY", "")
+        assert "A := 0.0" in program
+        assert "A := 5.0" in program
 
     def test_basic_assignment(self) -> None:
         var = elements.BasicVar("HW")
@@ -291,7 +466,7 @@ class TestB09(unittest.TestCase):
     def test_parse_string_expression(self) -> None:
         self.generic_test_parse(
             '10 PRINT STRING$(32, "*")',
-            '10 run ecb_string(32.0, "*", tmp_1$) \\ PRINT tmp_1$',
+            '10 run ecb_string(32, "*", tmp_1$) \\ PRINT tmp_1$',
         )
 
     def test_parse_multi_expression(self) -> None:
@@ -375,7 +550,8 @@ class TestB09(unittest.TestCase):
 
     def test_sound(self) -> None:
         self.generic_test_parse(
-            "11 SOUND 100, A+B", "11 RUN ecb_sound(100.0, A + B, 31.0, FIX(play.octo))"
+            "11 SOUND 100, A+B",
+            "11 RUN ecb_sound(100, fix(A + B), 31, FIX(play.octo))",
         )
 
     def test_poke(self) -> None:
@@ -390,7 +566,7 @@ class TestB09(unittest.TestCase):
     def test_cls(self) -> None:
         self.generic_test_parse(
             "11 CLS A+B\n12 CLS",
-            "11 RUN ecb_cls(A + B, display)\n12 RUN ecb_cls(1.0, display)",
+            "11 RUN ecb_cls(fix(A + B), display)\n12 RUN ecb_cls(1, display)",
         )
 
     def test_funcs(self) -> None:
@@ -482,7 +658,7 @@ class TestB09(unittest.TestCase):
     def test_print_at(self) -> None:
         self.generic_test_parse(
             '11PRINT@32,"HELLO WORLD"',
-            '11 RUN ecb_at(32.0) \\ PRINT "HELLO WORLD"',
+            '11 RUN ecb_at(32) \\ PRINT "HELLO WORLD"',
         )
 
     def test_for(self) -> None:
@@ -505,7 +681,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '10 REM Hello World\n20 CLS 5.0\n30 PRINT "HELLO"\n40 B = 2.0',
             "10 (* Hello World *)\n"
-            "20 RUN ecb_cls(5.0, display)\n"
+            "20 RUN ecb_cls(5, display)\n"
             '30 PRINT "HELLO"\n'
             "40 B := 2.0",
         )
@@ -563,7 +739,7 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "11 PRINT JOYSTK(1)",
             "dim joy0x, joy0y, joy1x, joy0y: integer\n"
-            "11 RUN ecb_joystk(1.0, tmp_1) \\ run ecb_str(tmp_1, tmp_1$) \\ "
+            "11 RUN ecb_joystk(1, tmp_1) \\ run ecb_str(tmp_1, tmp_1$) \\ "
             "PRINT tmp_1$",
         )
 
@@ -824,10 +1000,10 @@ class TestB09(unittest.TestCase):
         )
 
     def test_filter_line_zero(self) -> None:
-        self.generic_test_parse("0 CLS\n", "RUN ecb_cls(1.0, display)")
+        self.generic_test_parse("0 CLS\n", "RUN ecb_cls(1, display)")
 
     def test_does_not_filter_line_zero(self) -> None:
-        self.generic_test_parse("0 CLS:GOTO 0\n", "0 RUN ecb_cls(1.0, display)\nGOTO 0")
+        self.generic_test_parse("0 CLS:GOTO 0\n", "0 RUN ecb_cls(1, display)\nGOTO 0")
 
     def test_handles_empty_next(self) -> None:
         self.generic_test_parse(
@@ -858,22 +1034,22 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             '130 PRINT@64,"COLOR (1-8)";: INPUT CO\n'
             '140 IF (CO<1 OR CO>8) THEN PRINT@64," ": GOTO 130\n',
-            '130 RUN ecb_at(64.0) \\ PRINT "COLOR (1-8)";\n'
+            '130 RUN ecb_at(64) \\ PRINT "COLOR (1-8)";\n'
             'RUN _ecb_input_prefix \\ INPUT "? ", CO \\ '
             "RUN _ecb_input_suffix\n"
             "140 IF (CO < 1.0 OR CO > 8.0) THEN\n"
-            '  RUN ecb_at(64.0) \\ PRINT " "\n'
+            '  RUN ecb_at(64) \\ PRINT " "\n'
             "  GOTO 130\n"
             "ENDIF",
         )
 
     def test_empty_print_at(self) -> None:
-        self.generic_test_parse("130 PRINT@64", "130 RUN ecb_at(64.0)")
+        self.generic_test_parse("130 PRINT@64", "130 RUN ecb_at(64)")
 
     def test_print_char(self) -> None:
         self.generic_test_parse(
             '130 PRINT@170,"*  "+CHR$(191)+"  " +CHR$(191)+ "  *"',
-            '130 RUN ecb_at(170.0) \\ PRINT "*  " + CHR$(191.0) + "  " + '
+            '130 RUN ecb_at(170) \\ PRINT "*  " + CHR$(191.0) + "  " + '
             'CHR$(191.0) + "  *"',
         )
 
@@ -892,13 +1068,13 @@ class TestB09(unittest.TestCase):
     def test_instr(self) -> None:
         self.generic_test_parse(
             '10 A = INSTR(10,"HELLO","LL")\n',
-            '10 run ecb_instr(10.0, "HELLO", "LL", A)',
+            '10 run ecb_instr(10, "HELLO", "LL", A)',
         )
 
     def test_string(self) -> None:
         self.generic_test_parse(
             '10 A$ = STRING$(10,"HELLO")\n',
-            '10 run ecb_string(10.0, "HELLO", A$)',
+            '10 run ecb_string(10, "HELLO", A$)',
         )
 
     def test_width(self) -> None:
@@ -910,37 +1086,37 @@ class TestB09(unittest.TestCase):
     def test_locate(self) -> None:
         self.generic_test_parse(
             "10 LOCATE 10, 5\n",
-            "10 run ecb_locate(10.0, 5.0)",
+            "10 run ecb_locate(10, 5)",
         )
 
     def test_attr(self) -> None:
         self.generic_test_parse(
             "10 ATTR 2, 3\n",
-            "10 run ecb_attr(2.0, 3.0, 0.0, 0.0, display)",
+            "10 run ecb_attr(2, 3, 0, 0, display)",
         )
 
     def test_attr_b(self) -> None:
         self.generic_test_parse(
             "10 ATTR 2, 3, B\n",
-            "10 run ecb_attr(2.0, 3.0, 1.0, 0.0, display)",
+            "10 run ecb_attr(2, 3, 1, 0, display)",
         )
 
     def test_attr_u(self) -> None:
         self.generic_test_parse(
             "10 ATTR 2, 3, U\n",
-            "10 run ecb_attr(2.0, 3.0, 0.0, 1.0, display)",
+            "10 run ecb_attr(2, 3, 0, 1, display)",
         )
 
     def test_attr_ub(self) -> None:
         self.generic_test_parse(
             "10 ATTR 2, 3, U, B\n",
-            "10 run ecb_attr(2.0, 3.0, 1.0, 1.0, display)",
+            "10 run ecb_attr(2, 3, 1, 1, display)",
         )
 
     def test_attr_ububu(self) -> None:
         self.generic_test_parse(
             "10 ATTR 2, 3, U, B, U, B, U\n",
-            "10 run ecb_attr(2.0, 3.0, 1.0, 1.0, display)",
+            "10 run ecb_attr(2, 3, 1, 1, display)",
         )
 
     def test_rgb(self) -> None:
@@ -970,7 +1146,7 @@ class TestB09(unittest.TestCase):
     def test_pal(self) -> None:
         self.generic_test_parse(
             "10 PALETTE 1, 2\n",
-            "10 run ecb_set_palette(1.0, 2.0, display)",
+            "10 run ecb_set_palette(1, 2, display)",
         )
 
     def test_hscreen(self) -> None:
@@ -982,7 +1158,7 @@ class TestB09(unittest.TestCase):
     def test_hscreen_n(self) -> None:
         self.generic_test_parse(
             "10 HSCREEN 2\n",
-            "10 run ecb_hscreen(2.0, display)",
+            "10 run ecb_hscreen(2, display)",
         )
 
     def test_hcls(self) -> None:
@@ -994,49 +1170,49 @@ class TestB09(unittest.TestCase):
     def test_hcls_n(self) -> None:
         self.generic_test_parse(
             "10 HCLS 2\n",
-            "10 run ecb_hcls(2.0, display)",
+            "10 run ecb_hcls(2, display)",
         )
 
     def test_hcircle(self) -> None:
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), 1.0, display)",
+            "10 run ecb_hcircle(159, 95, 20, display.hfore, 1.0, display)",
         )
 
     def test_hcircle_with_color(self) -> None:
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20, 4\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, 4.0, 1.0, display)",
+            "10 run ecb_hcircle(159, 95, 20, 4, 1.0, display)",
         )
 
     def test_hcircle_without_color_with_ratio(self) -> None:
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20, , 4\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, float(display.hfore), 4.0, display)",
+            "10 run ecb_hcircle(159, 95, 20, display.hfore, 4.0, display)",
         )
 
     def test_hcircle_with_color_and_ratio(self) -> None:
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20, 3, 4\n",
-            "10 run ecb_hcircle(159.0, 95.0, 20.0, 3.0, 4.0, display)",
+            "10 run ecb_hcircle(159, 95, 20, 3, 4.0, display)",
         )
 
     def test_harc(self) -> None:
         self.generic_test_parse(
             "10 HCIRCLE(159, 95), 20, 3, 4, .2, .9\n",
-            "10 run ecb_harc(159.0, 95.0, 20.0, 3.0, 4.0, 0.2, 0.9, display)",
+            "10 run ecb_harc(159, 95, 20, 3, 4.0, 0.2, 0.9, display)",
         )
 
     def test_hprint(self) -> None:
         self.generic_test_parse(
             '10 HPRINT(10, 20), "HELLO WORLD"',
-            '10 run ecb_hprint(10.0, 20.0, "HELLO WORLD", display)',
+            '10 run ecb_hprint(10, 20, "HELLO WORLD", display)',
         )
 
     def test_hprint_num(self) -> None:
         self.generic_test_parse(
             "10 HPRINT(10, 20), 3.0",
-            "10 run ecb_str(3.0, tmp_1) \\ run ecb_hprint(10.0, 20.0, tmp_1, display)",
+            "10 run ecb_str(3.0, tmp_1) \\ run ecb_hprint(10, 20, tmp_1, display)",
         )
 
     def test_on_brk(self) -> None:
@@ -1092,55 +1268,55 @@ class TestB09(unittest.TestCase):
     def test_hcolor(self) -> None:
         self.generic_test_parse(
             "10 HCOLOR 2, 3",
-            "10 run ecb_hcolor(2.0, 3.0, display)",
+            "10 run ecb_hcolor(2, 3, display)",
         )
 
     def test_hcolor1(self) -> None:
         self.generic_test_parse(
             "10 HCOLOR 5",
-            "10 run ecb_hcolor(5.0, -1.0, display)",
+            "10 run ecb_hcolor(5, -1, display)",
         )
 
     def test_hline(self) -> None:
         self.generic_test_parse(
             "10 HLINE (123, 25) - (50, 30), PSET",
-            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "L", display)',
+            '10 run ecb_hline("d", 123, 25, 50, 30, "PSET", "L", display)',
         )
 
     def test_hline_relative(self) -> None:
         self.generic_test_parse(
             "10 HLINE-(50, 30),PRESET",
-            '10 run ecb_hline("r", 0.0, 0.0, 50.0, 30.0, "PRESET", "L", display)',
+            '10 run ecb_hline("r", 0, 0, 50, 30, "PRESET", "L", display)',
         )
 
     def test_hbox(self) -> None:
         self.generic_test_parse(
             "10 HLINE (123, 25) - (50, 30), PSET, B",
-            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "B", display)',
+            '10 run ecb_hline("d", 123, 25, 50, 30, "PSET", "B", display)',
         )
 
     def test_hbar(self) -> None:
         self.generic_test_parse(
             "10 HLINE (123, 25) - (50, 30), PSET, BF",
-            '10 run ecb_hline("d", 123.0, 25.0, 50.0, 30.0, "PSET", "BF", display)',
+            '10 run ecb_hline("d", 123, 25, 50, 30, "PSET", "BF", display)',
         )
 
     def test_hreset(self) -> None:
         self.generic_test_parse(
             "10 HRESET(20, 30)",
-            "10 run ecb_hreset(20.0, 30.0, display)",
+            "10 run ecb_hreset(20, 30, display)",
         )
 
     def test_hset(self) -> None:
         self.generic_test_parse(
             "10 HSET(20, 30)",
-            "10 run ecb_hset(20.0, 30.0, display)",
+            "10 run ecb_hset(20, 30, display)",
         )
 
     def test_hset3(self) -> None:
         self.generic_test_parse(
             "10 HSET(20, 30, 5)",
-            "10 run ecb_hset3(20.0, 30.0, 5.0, display)",
+            "10 run ecb_hset3(20, 30, 5, display)",
         )
 
     def test_erno(self) -> None:
@@ -1217,25 +1393,30 @@ class TestB09(unittest.TestCase):
     def test_hpaint_statement(self) -> None:
         self.generic_test_parse(
             "10 HPAINT(123, 45), 10, 5",
-            "10 run ecb_hpaint(123.0, 45.0, 10.0, 5.0, display)",
+            "10 run ecb_hpaint(123, 45, 10, 5.0, display)",
         )
 
     def test_hpaint_statement_no_color(self) -> None:
+        # ecb_hpaint's c is now INTEGER, so the float() wrapper
+        # added by HPaintStatement around display.hfore is
+        # unwrapped by CoerceIntegerArgsVisitor and passed
+        # directly. The c0 (background) parameter is still REAL
+        # so its float() wrapper is preserved.
         self.generic_test_parse(
             "10 HPAINT(123, 45)",
-            "10 run ecb_hpaint(123.0, 45.0, FLOAT(display.hfore), FLOAT(display.hfore), display)",
+            "10 run ecb_hpaint(123, 45, display.hfore, FLOAT(display.hfore), display)",
         )
 
     def test_hpaint_statement_only_fill_color(self) -> None:
         self.generic_test_parse(
             "10 HPAINT(123, 45), 2",
-            "10 run ecb_hpaint(123.0, 45.0, 2.0, FLOAT(display.hfore), display)",
+            "10 run ecb_hpaint(123, 45, 2, FLOAT(display.hfore), display)",
         )
 
     def test_tolerates_null_char_at_end(self) -> None:
         self.generic_test_parse(
             "10 CLS 0\0",
-            "10 RUN ecb_cls(0.0, display)",
+            "10 RUN ecb_cls(0, display)",
         )
 
     def test_4x_sum(self) -> None:
