@@ -494,9 +494,7 @@ class BasicVisitor(NodeVisitor):
     ) -> List[BasicBinaryExpFragment]:
         return visited_children
 
-    def visit_num_power_sub_exp(
-        self, node, visited_children
-    ) -> AbstractBasicExpression:
+    def visit_num_power_sub_exp(self, node, visited_children) -> BasicBinaryExpFragment:
         op, _, exp, _ = visited_children
         return BasicBinaryExpFragment(op, exp)
 
@@ -865,7 +863,7 @@ class BasicVisitor(NodeVisitor):
         _, _, dim_var_list = visited_children
         return BasicDimStatement(dim_var_list)
 
-    def visit_clear_statement(self, node, visited_children) -> AbstractBasicStatement:
+    def visit_clear_statement(self, node, visited_children) -> AbstractBasicConstruct:
         return BasicComment(f" {node.text.strip()}")
 
     def visit_read_statement(self, _, visited_children) -> AbstractBasicStatement:

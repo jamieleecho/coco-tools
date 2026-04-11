@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from pathlib import Path
-from typing import List
+from typing import IO, List
 
 from coco import b09
 from coco.b09 import error_handler
@@ -50,7 +52,7 @@ def convert(
     *,
     add_standard_prefix: bool = True,
     add_suffix: bool = True,
-    compiler_configs: CompilerConfigs = None,
+    compiler_configs: CompilerConfigs | None = None,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     default_width32: bool = True,
     filter_unused_linenum: bool = False,
@@ -187,8 +189,13 @@ def convert(
     basic_prog.visit(on_err_collector)
     if len(on_err_collector.statements) > 1:
         raise ParseError("At most 1 ON ERR GOTO statement is allowed.")
-    err_line: BasicOnErrGoStatement = (
-        on_err_collector.statements[0].linenum if on_err_collector.statements else None
+    err_statement = (
+        on_err_collector.statements[0] if on_err_collector.statements else None
+    )
+    err_line: int | None = (
+        err_statement.linenum
+        if isinstance(err_statement, BasicOnErrGoStatement)
+        else None
     )
 
     # make sure there are no more than 1 ON BRK statement
@@ -198,8 +205,13 @@ def convert(
     basic_prog.visit(on_brk_collector)
     if len(on_brk_collector.statements) > 1:
         raise ParseError("At most 1 ON BRK GOTO statement is allowed.")
-    brk_line: BasicOnBrkGoStatement = (
-        on_brk_collector.statements[0].linenum if on_brk_collector.statements else None
+    brk_statement = (
+        on_brk_collector.statements[0] if on_brk_collector.statements else None
+    )
+    brk_line: int | None = (
+        brk_statement.linenum
+        if isinstance(brk_statement, BasicOnBrkGoStatement)
+        else None
     )
 
     # try to patch up empty next statements
@@ -243,11 +255,11 @@ def convert(
 
 
 def convert_file(
-    input_program_file: str,
-    output_program_file: str,
+    input_program_file: IO[str],
+    output_program_file: IO[str],
     *,
     add_standard_prefix: bool = True,
-    config_file: str = None,
+    config_file: str | None = None,
     default_width32: bool = True,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     filter_unused_linenum: bool = False,

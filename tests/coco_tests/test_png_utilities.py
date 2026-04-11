@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import filecmp
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -351,8 +353,8 @@ def test_png_to_mvicon(
 
 
 def _are_identical(
-    image1_path: str,
-    image2_path: str,
+    image1_path: str | Path,
+    image2_path: str | Path,
 ) -> bool:
     image1 = Image.open(image1_path)
     image2 = Image.open(image2_path)

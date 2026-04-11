@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Dict, List, Set
 
 from coco import b09
 from coco.b09.configs import StringConfigs
 from coco.b09.elements import (
+    AbstractBasicConstruct,
     AbstractBasicExpression,
     AbstractBasicStatement,
     Basic09CodeStatement,
@@ -25,7 +28,6 @@ from coco.b09.elements import (
     BasicPrintStatement,
     BasicReadStatement,
     BasicRunCall,
-    BasicStatement,
     BasicStatements,
     BasicVar,
 )
@@ -41,7 +43,7 @@ class BasicConstructVisitor:
         """
         pass
 
-    def visit_data_statement(self, for_statement: BasicDataStatement) -> None:
+    def visit_data_statement(self, statement: BasicDataStatement) -> None:
         """
         Invoked when a DATA statement is encountered.
         """
@@ -95,7 +97,9 @@ class BasicConstructVisitor:
         """
         pass
 
-    def visit_print_statement(self, statement: BasicPrintStatement) -> None:
+    def visit_print_statement(
+        self, statement: BasicPrintStatement
+    ) -> AbstractBasicStatement:
         """
         Args:
             statement (BasicPrintStatement): input statement to transform.
@@ -123,7 +127,7 @@ class BasicConstructVisitor:
         """
         return statement
 
-    def visit_statement(self, statement: BasicStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         """
         Invoked when a statement is encountered.
         """
@@ -144,10 +148,10 @@ class ForNextVisitor(BasicConstructVisitor):
     def count(self):
         return self._count
 
-    def visit_for_statement(self, _: BasicForStatement):
+    def visit_for_statement(self, for_statement: BasicForStatement) -> None:
         self._count = self._count + 1
 
-    def visit_next_statement(self, next_statement: BasicNextStatement):
+    def visit_next_statement(self, next_statement: BasicNextStatement) -> None:
         self._count = self._count - len(next_statement.var_list.exp_list)
 
 
@@ -204,17 +208,17 @@ class LineZeroFilterVisitor(BasicConstructVisitor):
 
 class StatementCollectorVisitor(BasicConstructVisitor):
     _statement_type: type
-    _statements: List[BasicStatement]
+    _statements: List[AbstractBasicConstruct]
 
     @property
-    def statements(self) -> List[BasicStatement]:
+    def statements(self) -> List[AbstractBasicConstruct]:
         return self._statements
 
     def __init__(self, statement_type: type):
         self._statements = []
         self._statement_type = statement_type
 
-    def visit_statement(self, statement: BasicStatement):
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if type(statement) is self._statement_type:
             self._statements.append(statement)
         super().visit_statement(statement)
@@ -257,7 +261,7 @@ class VarInitializerVisitor(BasicConstructVisitor):
     def visit_var(self, var) -> None:
         self._vars.add(var.name())
 
-    def visit_statement(self, statement: BasicForStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicDimStatement):
             self._dimmed_var_names.update(
                 [
@@ -318,7 +322,7 @@ class SetDimStringStorageVisitor(BasicConstructVisitor):
             for var, size in string_configs.strname_to_size.items()
         }
 
-    def visit_statement(self, statement: BasicStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicDimStatement):
             statement.default_str_storage = self._default_str_storage
             statement.strname_to_size = self._strname_to_size
@@ -340,7 +344,7 @@ class GetDimmedArraysVisitor(BasicConstructVisitor):
     def __init__(self):
         self._dimmed_var_names = set()
 
-    def visit_statement(self, statement: BasicStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicDimStatement):
             self._dimmed_var_names.update(
                 [
@@ -373,7 +377,7 @@ class DeclareImplicitArraysVisitor(BasicConstructVisitor):
         return self._referenced_var_names - self._dimmed_var_names
 
     @property
-    def dim_statements(self) -> List[BasicStatement]:
+    def dim_statements(self) -> List[BasicDimStatement]:
         return [
             BasicDimStatement(
                 [
@@ -415,7 +419,7 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
     def has_empty_data_elements(self):
         return self._has_empty_data_elements
 
-    def visit_data_statement(self, statement: BasicDataStatement):
+    def visit_data_statement(self, statement: BasicDataStatement) -> None:
         for exp in statement.exp_list.exp_list:
             self._has_empty_data_elements = (
                 self._has_empty_data_elements or exp.literal == ""
@@ -423,13 +427,15 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
 
 
 class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_data_statement(self, statement: BasicDataStatement):
+    def visit_data_statement(self, statement: BasicDataStatement) -> None:
         exp: AbstractBasicExpression
         for exp in statement.exp_list.exp_list:
             if not isinstance(exp.literal, str):
                 exp.literal = str(exp.literal)
 
-    def visit_read_statement(self, statement: BasicReadStatement):
+    def visit_read_statement(
+        self, statement: BasicReadStatement
+    ) -> AbstractBasicStatement:
         """
         Transform the READ statement so that READ statements that read into
         REAL vars properly handle empty strings. This means:
@@ -459,7 +465,9 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
 
 
 class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_input_statement(self, statement: BasicInputStatement):
+    def visit_input_statement(
+        self, statement: BasicInputStatement
+    ) -> AbstractBasicStatement:
         """
         Transform the INPUT statement so that the cursor and full duplex are
         enabled before the statement and disabled after the statement.
@@ -476,7 +484,9 @@ class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
 
 
 class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
-    def visit_print_statement(self, statement: BasicPrintStatement):
+    def visit_print_statement(
+        self, statement: BasicPrintStatement
+    ) -> AbstractBasicStatement:
         """
         Transform the PRINT statement so that non string expressions are
         converted to strings via STR.
@@ -511,17 +521,18 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self._statement = None
 
-    def visit_statement(self, statement: BasicStatement):
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         self._statement = statement
         if isinstance(statement, BasicAssignment) and isinstance(
             statement.exp, BasicFunctionalExpression
         ):
             statement.exp.set_var(statement.var)
 
-    def visit_exp(self, exp):
+    def visit_exp(self, exp) -> None:
         if not isinstance(exp, BasicFunctionalExpression) or exp.var:
             return
-        self._statement.transform_function_to_call(exp)
+        if isinstance(self._statement, AbstractBasicStatement):
+            self._statement.transform_function_to_call(exp)
 
 
 class BasicHbuffPresenceVisitor(BasicConstructVisitor):
@@ -530,7 +541,7 @@ class BasicHbuffPresenceVisitor(BasicConstructVisitor):
     def __init__(self):
         self._hasHbuff = False
 
-    def visit_statement(self, statement: BasicStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicHbuffStatement):
             self._hasHbuff = True
 
@@ -543,6 +554,6 @@ class SetInitializeVisitor(BasicConstructVisitor):
     def __init__(self, initialize_vars: bool):
         self._initialize_vars = initialize_vars
 
-    def visit_statement(self, statement: BasicStatement) -> None:
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicDimStatement):
             statement.initialize_vars = self._initialize_vars

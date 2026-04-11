@@ -35,10 +35,10 @@ class TestMGEToPPM(unittest.TestCase):
 
     def test_converts_mge_to_ppm(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/dragon1.mge"
+            importlib_resources.files(str(__package__)) / "fixtures/dragon1.mge"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/dragon1.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/dragon1.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.mgetoppm.start([str(infilename), self.outfile.name])
@@ -47,7 +47,7 @@ class TestMGEToPPM(unittest.TestCase):
     @unix_only
     def test_too_many_arguments(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/dragon1.mge"
+            importlib_resources.files(str(__package__)) / "fixtures/dragon1.mge"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
@@ -69,11 +69,11 @@ class TestMGEToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_mge_to_ppm_via_stdio(self) -> None:
-        with (importlib_resources.files(__package__) / "fixtures/dragon1.mge").open(
-            "rb"
-        ) as infile:
+        with (
+            importlib_resources.files(str(__package__)) / "fixtures/dragon1.mge"
+        ).open("rb") as infile:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/dragon1.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/dragon1.ppm"
             ) as comparefilename:
                 read, write = os.pipe()
                 os.write(write, infile.read())
@@ -89,10 +89,10 @@ class TestMGEToPPM(unittest.TestCase):
     @unix_only
     def test_converts_mge_to_ppm_via_stdin(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/dragon1.mge"
+            importlib_resources.files(str(__package__)) / "fixtures/dragon1.mge"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/dragon1.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/dragon1.ppm"
             ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/mgetoppm.py", infilename],
