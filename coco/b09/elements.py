@@ -984,6 +984,7 @@ class BasicDimStatement(AbstractBasicStatement):
     _dim_vars: List["BasicArrayRef | BasicVar"]
     _initialize_vars: bool
     _strname_to_size: Dict[str, int]
+    _integer_var_names: "set[str]"
 
     def __init__(
         self,
@@ -1012,6 +1013,20 @@ class BasicDimStatement(AbstractBasicStatement):
         ]
         self._initialize_vars = initialize_vars
         self._strname_to_size = {}
+        self._integer_var_names = set()
+
+    @property
+    def integer_var_names(self) -> "set[str]":
+        """Names of numeric scalars/arrays in this DIM statement
+        that should be emitted as ``INTEGER`` rather than the
+        default real. Array names must use the ``arr_`` prefix
+        (matching :attr:`BasicArrayRef.var`).
+        """
+        return self._integer_var_names
+
+    @integer_var_names.setter
+    def integer_var_names(self, val: "set[str]") -> None:
+        self._integer_var_names = set(val)
 
     @property
     def default_str_storage(self):
@@ -1089,6 +1104,9 @@ class BasicDimStatement(AbstractBasicStatement):
             multi_line=False,
         ).basic09_text(0)
 
+    def _var_name(self, var: "BasicArrayRef | BasicVar") -> str:
+        return var.name() if isinstance(var, BasicVar) else var.var.name()
+
     def basic09_text(self, indent_level: int) -> str:
         str_vars: List[BasicArrayRef | BasicVar] = [
             var
@@ -1132,16 +1150,40 @@ class BasicDimStatement(AbstractBasicStatement):
             for size, list_vars in str_size_to_strs.items()
         ]
 
+        # Split numeric vars into those that should be emitted as
+        # INTEGER (because the integer-optimization pass marked
+        # them) and the default REAL. This keeps the DIM statement
+        # on a single line when possible and preserves the original
+        # ordering within each group.
+        integer_vars: List[BasicArrayRef | BasicVar] = [
+            var
+            for var in non_str_vars
+            if self._var_name(var) in self._integer_var_names
+        ]
+        real_vars: List[BasicArrayRef | BasicVar] = [
+            var
+            for var in non_str_vars
+            if self._var_name(var) not in self._integer_var_names
+        ]
+
+        numeric_vars_text_parts: List[str] = []
+        if integer_vars:
+            numeric_vars_text_parts.append(
+                self._basic09_text(integer_vars, ": INTEGER", indent_level)
+            )
+        if real_vars:
+            numeric_vars_text_parts.append(
+                self._basic09_text(real_vars, "", indent_level)
+            )
+        numeric_vars_text = "\n".join(numeric_vars_text_parts)
+
         str_vars_text = (
-            ("\n".join(str_vars_text_list) + ("\n" if non_str_vars else ""))
+            ("\n".join(str_vars_text_list) + ("\n" if numeric_vars_text else ""))
             if str_vars_text_list
             else ""
         )
-        non_str_vars_text = (
-            self._basic09_text(non_str_vars, "", indent_level) if non_str_vars else ""
-        )
 
-        return str_vars_text + non_str_vars_text
+        return str_vars_text + numeric_vars_text
 
     def _basic09_text(
         self, dim_vars: List["BasicArrayRef | BasicVar"], suffix: str, indent_level: int

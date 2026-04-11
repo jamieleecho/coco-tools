@@ -72,6 +72,171 @@ class TestB09(unittest.TestCase):
         )
         assert "RUN _ecb_start(display, 1)\n" in program
 
+    def test_collect_integer_candidates(self) -> None:
+        prog = (
+            "10 A = 5\n"
+            "20 B = A + 3\n"
+            "30 C = SIN(A)\n"
+            "40 D = A / 2\n"
+            "50 DIM X(10), Y(10)\n"
+            "60 X(3) = 7\n"
+            "70 Y(2) = SIN(1)\n"
+            "80 FOR I = 1 TO 10\n"
+            "90 NEXT I\n"
+        )
+        assert compiler.collect_integer_candidates(prog) == [
+            "A",
+            "B",
+            "I",
+            "X()",
+        ]
+
+    def test_collect_integer_candidates_empty(self) -> None:
+        # A program that does nothing should produce no candidates.
+        assert compiler.collect_integer_candidates("10 END\n") == []
+
+    def test_optimize_emits_dim_integer_for_scalars(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n20 B = A + 3\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM A, B: INTEGER" in program
+        assert "A := 0\n" in program
+        assert "B := 0\n" in program
+        # Literal RHS values should be rewritten to integer form.
+        assert "A := 5\n" in program
+        assert "A := 5.0" not in program
+        assert "B := A + 3\n" in program
+        assert "B := A + 3.0" not in program
+
+    def test_optimize_integer_array_dim_and_assignment(self) -> None:
+        program = compiler.convert(
+            "10 DIM X(10)\n20 X(3) = 7\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM arr_X(11): INTEGER" in program
+        assert "arr_X(3) := 7" in program
+
+    def test_optimize_coerces_integer_args_at_sound(self) -> None:
+        program = compiler.convert(
+            "10 F = 100\n20 D = 10\n30 SOUND F, D\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "RUN ecb_sound(float(F), float(D)," in program
+
+    def test_optimize_coerces_integer_args_at_cls(self) -> None:
+        program = compiler.convert(
+            "10 B = 3\n20 CLS B\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "RUN ecb_cls(float(B), display)" in program
+
+    def test_optimize_excludes_display(self) -> None:
+        # The ``display`` record must never end up in the integer
+        # set — it's a display_t, not a numeric scalar.
+        program = compiler.convert(
+            "10 A = 5\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "display" not in program.split("DIM A")[1].split("\n")[0]
+        assert "dim display: display_t" in program
+
+    def test_optimize_non_integer_vars_stay_real(self) -> None:
+        # C is assigned SIN(1), so it must be REAL.
+        program = compiler.convert(
+            "10 A = 5\n20 C = SIN(1)\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "DIM A: INTEGER" in program
+        assert "C := 0.0" in program
+        assert "C := SIN(1.0)" in program
+
+    def test_optimize_for_loop_bounds_rewritten(self) -> None:
+        program = compiler.convert(
+            "10 FOR I = 1 TO 10\n20 NEXT I\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+        )
+        assert "FOR I = 1 TO 10" in program
+        assert "FOR I = 1.0" not in program
+
+    def test_no_optimize_excludes_scalar(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n20 B = 7\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+            no_optimize_vars={"B"},
+        )
+        # Only A is in the INTEGER DIM.
+        assert "DIM A: INTEGER" in program
+        assert "DIM A, B: INTEGER" not in program
+        assert "B := 0.0" in program
+
+    def test_no_optimize_excludes_array(self) -> None:
+        program = compiler.convert(
+            "10 DIM X(5)\n20 X(2) = 3\n",
+            procname="opt",
+            initialize_vars=False,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+            optimize=True,
+            no_optimize_vars={"X()"},
+        )
+        assert "DIM arr_X(6): INTEGER" not in program
+        assert "DIM arr_X(6)" in program
+
+    def test_optimize_default_off_preserves_behavior(self) -> None:
+        program = compiler.convert(
+            "10 A = 5\n",
+            procname="opt",
+            initialize_vars=True,
+            filter_unused_linenum=True,
+            skip_procedure_headers=True,
+            output_dependencies=False,
+        )
+        assert "DIM A" not in program.upper().replace("DISPLAY", "")
+        assert "A := 0.0" in program
+        assert "A := 5.0" in program
+
     def test_basic_assignment(self) -> None:
         var = elements.BasicVar("HW")
         exp = elements.BasicLiteral(123.0)

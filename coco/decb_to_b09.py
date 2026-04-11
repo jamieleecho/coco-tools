@@ -79,11 +79,47 @@ def start(argv):
         help="Optional compiler configuration file",
         required=False,
     )
+    parser.add_argument(
+        "--list-integer-candidates",
+        action="store_true",
+        help=(
+            "Instead of compiling, write a sorted list of variables "
+            "that could be stored as BASIC09 integers, one per line. "
+            "Array variables are written with a trailing '()'."
+        ),
+    )
+    parser.add_argument(
+        "-O",
+        "--optimize",
+        action="store_true",
+        help=(
+            "Enable real-to-integer optimization: variables and "
+            "arrays that are only ever assigned integer values in "
+            "the range [-32768, 32767] are declared as BASIC09 "
+            "INTEGER instead of the default REAL."
+        ),
+    )
+    parser.add_argument(
+        "--no-optimize",
+        type=str,
+        default="",
+        metavar="A,B,C",
+        help=(
+            "Comma-separated list of variables to exclude from the "
+            "real-to-integer optimization. Use plain names for "
+            "scalars (e.g., A) and a trailing '()' for arrays "
+            "(e.g., Y()). Has no effect unless -O is also set."
+        ),
+    )
 
     args = parser.parse_args(argv)
     procname = os.path.splitext(
         os.path.basename(args.input_decb_text_program_file.name)
     )[0]
+
+    no_optimize_vars = {
+        name.strip() for name in args.no_optimize.split(",") if name.strip()
+    }
 
     convert_file(
         args.input_decb_text_program_file,
@@ -93,6 +129,9 @@ def start(argv):
         default_str_storage=args.default_string_storage,
         filter_unused_linenum=args.filter_unused_linenum,
         initialize_vars=not args.dont_initialize_vars,
+        list_integer_candidates=args.list_integer_candidates,
+        no_optimize_vars=no_optimize_vars,
+        optimize=args.optimize,
         output_dependencies=not args.dont_output_dependencies,
         procname=procname,
     )

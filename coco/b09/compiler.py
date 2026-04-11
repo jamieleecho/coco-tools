@@ -28,15 +28,19 @@ from coco.b09.visitors import (
     BasicNextPatcherVisitor,
     BasicPrintStatementPatcherVisitor,
     BasicReadStatementPatcherVisitor,
+    CoerceIntegerArgsVisitor,
     DeclareImplicitArraysVisitor,
     GetDimmedArraysVisitor,
+    IntegerVarVisitor,
     JoystickVisitor,
     LineNumberCheckerVisitor,
     LineNumberFilterVisitor,
     LineReferenceVisitor,
     LineZeroFilterVisitor,
+    RewriteIntegerLiteralsVisitor,
     SetDimStringStorageVisitor,
     SetInitializeVisitor,
+    SetIntegerDimVisitor,
     StatementCollectorVisitor,
     StrVarAllocatorVisitor,
     VarInitializerVisitor,
@@ -45,6 +49,29 @@ from coco.b09.visitors import (
 
 class ParseError(Exception):
     pass
+
+
+def _normalized_no_optimize_vars(names: "set[str] | list[str]") -> "set[str]":
+    """Normalize a user-supplied ``--no-optimize`` list to the
+    internal naming convention used by :class:`IntegerVarVisitor`.
+
+    Users provide uppercase BASIC names such as ``A``, ``X1``, or
+    ``Y()`` (matching the ``--list-integer-candidates`` output).
+    Arrays are stored internally with an ``arr_`` prefix, so
+    ``Y()`` maps to ``arr_Y``. Names are uppercased before matching
+    because BASIC is case-insensitive and the rest of the pipeline
+    uppercases identifiers.
+    """
+    normalized: set[str] = set()
+    for raw in names:
+        name = raw.strip().upper()
+        if not name:
+            continue
+        if name.endswith("()"):
+            normalized.add(f"arr_{name[:-2]}")
+        else:
+            normalized.add(name)
+    return normalized
 
 
 def convert(
@@ -57,6 +84,8 @@ def convert(
     default_width32: bool = True,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
+    no_optimize_vars: "set[str] | None" = None,
+    optimize: bool = False,
     output_dependencies: bool = False,
     procname: str = "",
     skip_procedure_headers: bool = False,
@@ -154,9 +183,61 @@ def convert(
     basic_prog.visit(str_var_allocator)
     basic_prog.extend_prefix_lines(str_var_allocator.allocation_lines)
 
+    # Real-to-integer optimization. Determine which numeric
+    # variables can be represented as Basic09 INTEGER, apply the
+    # optional --no-optimize exclusion set, and then:
+    #   1. tag existing BasicDimStatement nodes so their INTEGER
+    #      vars are emitted as ``DIM ... : INTEGER``,
+    #   2. emit a new prefix ``DIM ... : INTEGER`` for integer
+    #      scalars that were never covered by an explicit DIM, and
+    #   3. coerce integer arguments wrapped in ``float(...)`` at
+    #      every call site whose declared parameter is REAL.
+    integer_var_names: set[str] = set()
+    if optimize:
+        procedure_bank_for_opt = ProcedureBank()
+        procedure_bank_for_opt.add_from_resource("ecb.b09")
+        int_visitor = IntegerVarVisitor(
+            signatures=procedure_bank_for_opt.signatures,
+        )
+        basic_prog.visit(int_visitor)
+        excluded: set[str] = _normalized_no_optimize_vars(no_optimize_vars or set())
+        integer_var_names = int_visitor.integer_vars - excluded
+
+    if integer_var_names:
+        set_integer_dim = SetIntegerDimVisitor(integer_var_names)
+        basic_prog.visit(set_integer_dim)
+
+        # Any integer scalar not already covered by a DIM needs a
+        # fresh ``DIM <names>: INTEGER`` line in the prefix.
+        scalar_integer_names = sorted(
+            name
+            for name in integer_var_names
+            if not name.startswith("arr_")
+            and name not in set_integer_dim.dimmed_integer_var_names
+        )
+        if scalar_integer_names:
+            basic_prog.extend_prefix_lines(
+                [
+                    BasicLine(
+                        None,
+                        Basic09CodeStatement(
+                            f"DIM {', '.join(scalar_integer_names)}: INTEGER"
+                        ),
+                    )
+                ]
+            )
+
+        basic_prog.visit(
+            CoerceIntegerArgsVisitor(
+                integer_var_names=integer_var_names,
+                signatures=procedure_bank_for_opt.signatures,
+            )
+        )
+        basic_prog.visit(RewriteIntegerLiteralsVisitor(integer_var_names))
+
     # initialize variables
     if initialize_vars:
-        var_initializer = VarInitializerVisitor()
+        var_initializer = VarInitializerVisitor(integer_var_names=integer_var_names)
         basic_prog.visit(var_initializer)
         basic_prog.extend_prefix_lines(var_initializer.assignment_lines)
     set_init_visitor = SetInitializeVisitor(initialize_vars)
@@ -254,6 +335,35 @@ def convert(
     return program + "\n"
 
 
+def collect_integer_candidates(progin: str) -> List[str]:
+    """Return the sorted list of scalar and array names in ``progin``
+    that could legally be stored as Basic09 ``INTEGER`` values.
+
+    Call sites of the procedures defined in ``ecb.b09`` are analyzed
+    against their parsed signatures so that variables passed as
+    ``REAL`` output parameters are excluded from the candidate set.
+
+    Array names are emitted with a trailing ``()`` (e.g., ``X()``) to
+    distinguish them from a scalar of the same name.
+    """
+    tree = grammar.parse(progin)
+    basic_prog: BasicProg = BasicVisitor().visit(tree)
+    basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
+
+    procedure_bank = ProcedureBank()
+    procedure_bank.add_from_resource("ecb.b09")
+    visitor = IntegerVarVisitor(signatures=procedure_bank.signatures)
+    basic_prog.visit(visitor)
+
+    formatted: List[str] = []
+    for name in visitor.integer_vars:
+        if name.startswith("arr_"):
+            formatted.append(f"{name[4:]}()")
+        else:
+            formatted.append(name)
+    return sorted(formatted)
+
+
 def convert_file(
     input_program_file: IO[str],
     output_program_file: IO[str],
@@ -264,10 +374,21 @@ def convert_file(
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
+    list_integer_candidates: bool = False,
+    no_optimize_vars: "set[str] | None" = None,
+    optimize: bool = False,
     output_dependencies: bool = False,
     procname: str = "",
 ) -> None:
     progin = input_program_file.read()
+
+    if list_integer_candidates:
+        candidates = collect_integer_candidates(progin)
+        output_program_file.write("\n".join(candidates))
+        if candidates:
+            output_program_file.write("\n")
+        return
+
     compiler_configs = (
         CompilerConfigs.load(Path(config_file)) if config_file else CompilerConfigs()
     )
@@ -279,6 +400,8 @@ def convert_file(
         default_width32=default_width32,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
+        no_optimize_vars=no_optimize_vars,
+        optimize=optimize,
         output_dependencies=output_dependencies,
         procname=procname,
     )

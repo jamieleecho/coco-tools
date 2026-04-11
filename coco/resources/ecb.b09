@@ -6,6 +6,7 @@ run ecb_locate(float(land(location, 31)), location / 32.0)
 procedure ecb_attr
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param f, b, bk, undr: real
+(* Out *)
 param display: display_t
 dim fi, bi: integer
 fi = f
@@ -31,6 +32,7 @@ endif
 
 procedure ecb_button
 param button: real
+(* Out *)
 param retval: real
 dim joystk, fire, x, y: integer
 
@@ -43,6 +45,7 @@ if land(button, 1) = 1 then \ retval = land(fire, 2) / 2  \ endif
 procedure ecb_cls
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param color: real
+(* Out *)
 param display: display_t
 dim a, b, ii: integer
 dim c: byte
@@ -145,6 +148,7 @@ endif
 procedure ecb_hcolor
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param f, b: real
+(* Out *)
 param display: display_t
 dim fi, bi: integer
 
@@ -165,6 +169,7 @@ display.hbck = bi
 PROCEDURE ecb_hdraw
 TYPE display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 PARAM s: STRING<<>>
+(* Out *)
 PARAM d: display_t
 DIM b, n, a, hc, dd: BOOLEAN
 DIM c, cc: BYTE
@@ -180,7 +185,7 @@ WHILE ii < LEN(s) DO
     xx := 0
     yy := 0
     dd := FALSE
-    
+
     LOOP
         EXITIF ii > LEN(s) THEN
         ENDEXIT
@@ -254,7 +259,7 @@ WHILE ii < LEN(s) DO
 
         EXITIF c = 59 THEN
         ENDEXIT
-        
+
         IF ii <= LEN(s) THEN
             cc := ASC(MID$(s, ii, 1))
             IF cc < 48 OR cc > 57 THEN
@@ -408,6 +413,7 @@ ENDWHILE
 
 procedure ecb_hex
 param v: real
+(* Out *)
 param str: string
 dim ival: integer
 dim t: string
@@ -446,8 +452,8 @@ type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr,
 param rd: string
 param x0, y0, x1, y1: real
 param m, t: string
+(* Out *)
 param display: display_t
-
 dim f: string[5]
 dim xx0, yy0, xx1, yy1: integer
 if t = "B" then
@@ -512,7 +518,7 @@ else
 endif
 if xi < 0 then
     xi = 0
-else 
+else
     if xi >= mx then
         xi = mx
     endif
@@ -526,6 +532,7 @@ print #display.hpth, t;
 procedure ecb_hscreen
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param n: real
+(* Out *)
 param display: display_t
 base 0
 
@@ -562,7 +569,7 @@ else
     display.hpy := 95
     if ni = 1 then
         mode = 6
-    else 
+    else
         if ni = 2 then
             mode := 8
         else
@@ -642,7 +649,7 @@ ELSE
         ENDIF
     ENDIF
 ENDIF
-        
+
 
 
 procedure ecb_hreset
@@ -674,6 +681,7 @@ procedure ecb_instr
 param index: real
 param str0: string
 param str1: string
+(* Out *)
 param outindex: real
 dim ii: integer
 
@@ -685,7 +693,9 @@ next ii
 
 
 procedure ecb_int
-param v, retval: real
+param v: real
+(* Out *)
+param retval: real
 if v >= 0 then
     retval = int(v)
 else
@@ -694,7 +704,9 @@ endif
 
 
 procedure ecb_joystk
-param joystk, joy0x, joy0y, joy1x, joy1y, retval: real
+param joystk: real
+(* Out *)
+param joy0x, joy0y, joy1x, joy1y, retval: real
 dim fire: integer
 
 if joystk = 0 then
@@ -721,8 +733,8 @@ put #1, tmp_buffer
 PROCEDURE ecb_play
 TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE
 PARAM s:STRING<<>>
+(* Out *)
 PARAM p:play_t
-
 DIM ii, l, d, v, f: INTEGER
 DIM c, cc: BYTE
 DIM f1, f2, f3: REAL
@@ -844,11 +856,11 @@ NEXT ii
 procedure ecb_set_palette
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param pr, cc: real
+(* Out *)
 param display: display_t
-
 dim pri, cci: integer
 pri = fix(pr)
-cci = fix(cc)    
+cci = fix(cc)
 run gfx2("palette", pri, cci)
 if (display.vpth <> $ff) then
     run gfx2(display.vpth, "palette", pri, cci)
@@ -864,6 +876,7 @@ display.pal(pri + 1) = cci
 
 procedure ecb_set_palette_cmp
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+(* Out *)
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -875,6 +888,7 @@ data 18, 54, 9, 36, 63, 27, 45, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
 procedure ecb_set_palette_rgb
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+(* Out *)
 param display: display_t
 dim ii, cc: integer
 for ii = 0 to 15
@@ -885,7 +899,9 @@ data 18, 36, 11, 7, 63, 31, 9, 38, 0, 18, 0, 63, 0, 18, 0, 38
 
 
 procedure ecb_point
-param x, y, c0: real
+param x, y: real
+(* Out *)
+param c0: real
 dim address, c, cc: integer
 run _ecb_get_point_info(x, y, address, c, cc)
 if address = -1 then
@@ -904,6 +920,7 @@ endif
 
 procedure ecb_read_filter
 param inval: string
+(* Out *)
 param outval: real
 if inval = "" then
     outval = 0.0
@@ -976,6 +993,7 @@ run gfx2("tone", fint, dint, vint)
 
 procedure ecb_str
 param valin: real
+(* Out *)
 param valout: string
 valout = str$(valin)
 if mid$(valout, len(valout), 1) = "." then
@@ -992,6 +1010,7 @@ endif
 procedure ecb_string
 param count: real
 param str: string<<>>
+(* Out *)
 param strout: string<<>>
 dim ii: integer
 
@@ -1007,6 +1026,7 @@ next ii
 
 PROCEDURE ecb_val
 PARAM str: STRING
+(* Out *)
 PARAM valout: REAL
 valout = 0.0
 ON ERROR GOTO 10
@@ -1023,6 +1043,7 @@ put #1, tmp_buffer
 
 procedure _ecb_devnm
 param inpath: integer
+(* Out *)
 param name: string
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
 dim rregs: rregisters
@@ -1050,7 +1071,9 @@ endif
 
 
 procedure _ecb_dup
-param inpath, outpath: integer
+param inpath: integer
+(* Out *)
+param outpath: integer
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
 dim rregs: rregisters
 dim reqid: byte
@@ -1075,9 +1098,12 @@ FOR ii=1 TO 255
 
 
 PROCEDURE _ecb_get_num
+(* Out *)
 PARAM v: INTEGER
 PARAM s: STRING<<>>
-PARAM ii, min, max: INTEGER
+(* Out *)
+PARAM ii: INTEGER
+PARAM min, max: INTEGER
 DIM c: BYTE
 DIM jj: INTEGER
 
@@ -1103,9 +1129,12 @@ ENDLOOP
 
 
 PROCEDURE _ecb_get_numx
+(* Out *)
 PARAM v: INTEGER
 PARAM s: STRING<<>>
-PARAM ii, min, max, cur: INTEGER
+(* Out *)
+PARAM ii: INTEGER
+PARAM min, max, cur: INTEGER
 DIM c: BYTE
 
 IF (ii <= LEN(s)) THEN
@@ -1138,6 +1167,7 @@ ENDIF
 
 procedure _ecb_get_point_info
 param x, y: real
+(* Out *)
 param address, mask, c0: integer
 if x < 0 or x > 63 or y < 0 or y > 31 then
     error 52
@@ -1161,6 +1191,7 @@ RUN GFX2(d.hpth, "DEFBUFF", pid, FIX(b), FIX(s) + 20)
 
 procedure _ecb_hex_digit
 param v: real
+(* Out *)
 param s: string
 if v < 10 then
     s = chr$(v + asc("0"))
@@ -1170,6 +1201,7 @@ endif
 
 
 PROCEDURE _ecb_init_hbuff
+(* Out *)
 PARAM pid: INTEGER
 DIM ii, path: INTEGER
 RUN _ecb_pid(pid)
@@ -1192,7 +1224,9 @@ SHELL("tmode eko=0")
 
 
 PROCEDURE _ecb_max
-PARAM x2, x0, x1: INTEGER
+(* Out *)
+PARAM x2: INTEGER
+PARAM x0, x1: INTEGER
 IF x0 > x1 THEN
     x2 := x0
 ELSE
@@ -1201,7 +1235,9 @@ ENDIF
 
 
 PROCEDURE _ecb_min
-PARAM x2, x0, x1: INTEGER
+(* Out *)
+PARAM x2: INTEGER
+PARAM x0, x1: INTEGER
 IF x0 < x1 THEN
     x2 := x0
 ELSE
@@ -1210,6 +1246,7 @@ ENDIF
 
 
 procedure _ecb_palette
+(* Out *)
 param address: integer
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
 dim rregs: rregisters
@@ -1229,6 +1266,7 @@ endif
 
 PROCEDURE _ecb_pid
 TYPE rregisters = cc, a, b, dp:BYTE; x, y, u:INTEGER
+(* Out *)
 PARAM pid: INTEGER
 DIM rregs: rregisters
 DIM reqid: BYTE
@@ -1241,6 +1279,7 @@ pid = rregs.a
 procedure _ecb_start
 base 0
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
+(* Out *)
 param display: display_t
 param w: integer
 display.tpth := $ff
@@ -1274,6 +1313,7 @@ data $00, $12, $00, $3f, $00, $12, $00, $26
 
 
 procedure _ecb_text_address
+(* Out *)
 param address: integer
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
 dim rregs: rregisters
@@ -1295,6 +1335,7 @@ procedure _ecb_width
 base 0
 type display_t = tpth, vpth, wpth, hpth, pal(16), blnk, undrln, bck, fore, brdr, hbck, hfore, hscl, hpy, hagl, hdsc: byte; hpx: integer
 param width: real
+(* Out *)
 param display: display_t
 dim path, path0, ii, c, o: integer
 dim buff2(2): byte
@@ -1404,7 +1445,9 @@ data $00, $00
 
 
 procedure _ecb_wintype
-param inpath, wintype: integer
+param inpath: integer
+(* Out *)
+param wintype: integer
 type rregisters = cc, a, b, dp:byte; x, y, u:integer
 dim rregs: rregisters
 dim reqid: byte

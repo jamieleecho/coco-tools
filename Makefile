@@ -131,10 +131,10 @@ $(EXAMPLE_OUTPUT_DIR):
 $(EXAMPLE_OUTPUT_DIR)/%.b09: $(EXAMPLE_INPUT_DIR)/%.bas $(EXAMPLE_OUTPUT_DIR) $(RESOURCES)
 	@if [ -f "`dirname $<`/`basename -a -s.bas $<`.yaml" ]; then \
 		echo compiling $< with options; \
-		decb-to-b09 -s$(STR_BUFFER_BYTES) -c "`dirname $<`/`basename -a -s.bas $<`.yaml" -w $< $@; \
+		uv run decb-to-b09 -O -s$(STR_BUFFER_BYTES) -c "`dirname $<`/`basename -a -s.bas $<`.yaml" -w $< $@; \
 	else \
 		echo compiling $<; \
-		decb-to-b09 -s$(STR_BUFFER_BYTES) -w $< $@; \
+		uv run decb-to-b09 -O -s$(STR_BUFFER_BYTES) -w $< $@; \
 	fi
 
 run :
