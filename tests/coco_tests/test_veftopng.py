@@ -35,10 +35,10 @@ class TestVEFToPNG(unittest.TestCase):
 
     def test_converts_320x200x16_vef_to_png(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/trekies.vef"
+            importlib_resources.files(str(__package__)) / "fixtures/trekies.vef"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/trekies.png"
+                importlib_resources.files(str(__package__)) / "fixtures/trekies.png"
             ) as comparefilename:
                 self.outfile.close()
                 coco.veftopng.start([str(infilename), self.outfile.name])
@@ -47,10 +47,10 @@ class TestVEFToPNG(unittest.TestCase):
 
     def test_converts_640x200x4_vef_to_png(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/owlcasl.vef"
+            importlib_resources.files(str(__package__)) / "fixtures/owlcasl.vef"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/owlcasl.png"
+                importlib_resources.files(str(__package__)) / "fixtures/owlcasl.png"
             ) as comparefilename:
                 self.outfile.close()
                 coco.veftopng.start([str(infilename), self.outfile.name])
@@ -61,7 +61,7 @@ class TestVEFToPNG(unittest.TestCase):
     @unix_only
     def test_too_many_arguments(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/trekies.vef"
+            importlib_resources.files(str(__package__)) / "fixtures/trekies.vef"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
@@ -106,7 +106,7 @@ class TestVEFToPNG(unittest.TestCase):
     @unix_only
     def test_unknown_argument(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/trekies.vef"
+            importlib_resources.files(str(__package__)) / "fixtures/trekies.vef"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(

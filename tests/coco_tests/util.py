@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import platform
+from pathlib import Path
 
 import imagehash
 import pytest
@@ -11,7 +14,10 @@ unix_only = pytest.mark.skipif(
 
 # From google ai
 def compare_images_imagehash(
-    image_path1: str, image_path2: str, hash_size: int = 8, similarity_cutoff: int = 5
+    image_path1: str | Path,
+    image_path2: str | Path,
+    hash_size: int = 8,
+    similarity_cutoff: int = 5,
 ) -> bool:
     img1 = Image.open(image_path1)
     img2 = Image.open(image_path2)

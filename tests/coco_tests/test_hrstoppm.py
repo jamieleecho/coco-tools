@@ -43,10 +43,10 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_converts_hrs_to_ppm(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/monalisa.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.hrstoppm.start([str(infilename), self.outfile.name])
@@ -54,10 +54,11 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_converts_hrs_to_ppm_with_height(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa_r97.ppm"
+                importlib_resources.files(str(__package__))
+                / "fixtures/monalisa_r97.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.hrstoppm.start(["-r", "97", str(infilename), self.outfile.name])
@@ -65,10 +66,11 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_converts_hrs_to_ppm_with_width(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa_w160.ppm"
+                importlib_resources.files(str(__package__))
+                / "fixtures/monalisa_w160.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.hrstoppm.start(["-w", "160", str(infilename), self.outfile.name])
@@ -76,10 +78,10 @@ class TestHRSToPPM(unittest.TestCase):
 
     def test_skipping_bytes(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa_s7.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa_s7.hrs"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/monalisa.ppm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.hrstoppm.start(["-s", "7", str(infilename), self.outfile.name])
@@ -88,7 +90,7 @@ class TestHRSToPPM(unittest.TestCase):
     @unix_only
     def test_too_many_arguments(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
@@ -110,11 +112,11 @@ class TestHRSToPPM(unittest.TestCase):
 
     @unix_only
     def test_converts_hrs_to_ppm_via_stdio(self) -> None:
-        with (importlib_resources.files(__package__) / "fixtures/monalisa.hrs").open(
-            "rb"
-        ) as infile:
+        with (
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
+        ).open("rb") as infile:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/monalisa.ppm"
             ) as comparefilename:
                 read, write = os.pipe()
                 os.write(write, infile.read())
@@ -130,10 +132,10 @@ class TestHRSToPPM(unittest.TestCase):
     @unix_only
     def test_converts_hrs_to_ppm_via_stdin(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/monalisa.hrs"
+            importlib_resources.files(str(__package__)) / "fixtures/monalisa.hrs"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/monalisa.ppm"
+                importlib_resources.files(str(__package__)) / "fixtures/monalisa.ppm"
             ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/hrstoppm.py", str(infilename)],

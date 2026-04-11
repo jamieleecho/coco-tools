@@ -35,10 +35,10 @@ class TestPixToPGM(unittest.TestCase):
 
     def test_converts_pix_to_pgm(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/sue.pix"
+            importlib_resources.files(str(__package__)) / "fixtures/sue.pix"
         ) as infilename:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/sue.pgm"
+                importlib_resources.files(str(__package__)) / "fixtures/sue.pgm"
             ) as comparefilename:
                 self.outfile.close()
                 coco.pixtopgm.start([str(infilename), self.outfile.name])
@@ -47,7 +47,7 @@ class TestPixToPGM(unittest.TestCase):
     @unix_only
     def test_too_many_arguments(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/sue.pix"
+            importlib_resources.files(str(__package__)) / "fixtures/sue.pix"
         ) as infilename:
             with self.assertRaises(subprocess.CalledProcessError) as context:
                 subprocess.check_output(
@@ -70,10 +70,10 @@ class TestPixToPGM(unittest.TestCase):
     @unix_only
     def test_converts_pix_to_pgm_via_stdout(self) -> None:
         with importlib_resources.as_file(
-            importlib_resources.files(__package__) / "fixtures/sue.pix"
+            importlib_resources.files(str(__package__)) / "fixtures/sue.pix"
         ) as infile:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/sue.pgm"
+                importlib_resources.files(str(__package__)) / "fixtures/sue.pgm"
             ) as comparefilename:
                 subprocess.check_call(
                     [sys.executable, "coco/pixtopgm.py", infile],
@@ -108,7 +108,7 @@ class TestPixToPGM(unittest.TestCase):
     def test_unknown_argument(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError) as context:
             with importlib_resources.as_file(
-                importlib_resources.files(__package__) / "fixtures/sue.pix"
+                importlib_resources.files(str(__package__)) / "fixtures/sue.pix"
             ) as infile:
                 subprocess.check_output(
                     [sys.executable, "coco/pixtopgm.py", infile, "--oops"],

@@ -21,7 +21,7 @@ from coco.b09.visitors import (
 
 def parse_program(resource_name: str) -> BasicProg:
     with importlib_resources.as_file(
-        importlib_resources.files(__package__) / f"fixtures/{resource_name}"
+        importlib_resources.files(str(__package__)) / f"fixtures/{resource_name}"
     ) as path:
         prog: str
         with open(path) as f:

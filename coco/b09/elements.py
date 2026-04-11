@@ -1,12 +1,15 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Iterable
 from itertools import chain
 from typing import TYPE_CHECKING, Dict, List, Literal, Union
 
 from coco.b09 import DEFAULT_STR_STORAGE
 
 if TYPE_CHECKING:
-    from visitors import BasicConstructVisitor
+    from coco.b09.visitors import BasicConstructVisitor
 
 
 class AbstractBasicConstruct(ABC):
@@ -77,8 +80,8 @@ class AbstractBasicStatement(AbstractBasicConstruct):
             + (r" \ " if self._pre_assignment_statements else "")
         )
 
-    def visit(self, vistor: "BasicConstructVisitor") -> None:
-        return vistor.visit_statement(self)
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
 
 
 class BasicArrayRef(AbstractBasicExpression):
@@ -109,15 +112,18 @@ class BasicArrayRef(AbstractBasicExpression):
 
 class BasicAssignment(AbstractBasicStatement):
     def __init__(
-        self, var: "BasicVar", exp: AbstractBasicExpression, let_kw: bool = False
+        self,
+        var: AbstractBasicExpression,
+        exp: AbstractBasicExpression,
+        let_kw: bool = False,
     ):
         super().__init__()
         self._let_kw: bool = let_kw
         self._var: AbstractBasicExpression = var
-        self._exp: BasicVar = exp
+        self._exp: AbstractBasicExpression = exp
 
     @property
-    def var(self) -> "BasicVar":
+    def var(self) -> AbstractBasicExpression:
         return self._var
 
     @property
@@ -200,13 +206,13 @@ class BasicBinaryExp(AbstractBasicExpression):
     def __init__(
         self,
         exp1: AbstractBasicExpression,
-        op: "BasicOperator",
+        op: str | BasicOperator,
         exp2: AbstractBasicExpression,
         is_str_expr: bool = False,
     ):
         super().__init__(is_str_expr=True)
         self._exp1: AbstractBasicExpression = exp1
-        self._op: BasicOperator = op
+        self._op: str | BasicOperator = op
         self._exp2: AbstractBasicExpression = exp2
 
     def basic09_text(self, indent_level: int) -> str:
@@ -380,7 +386,7 @@ class BasicIf(AbstractBasicStatement):
     ):
         super().__init__()
         self._exp: AbstractBasicExpression = exp
-        self._statements: BasicStatements = statements
+        self._statements: BasicStatementsOrBasicGoto = statements
 
     def basic09_text(self, indent_level: int) -> str:
         if isinstance(self._statements, BasicGoto) and self._statements.implicit:
@@ -407,13 +413,13 @@ class BasicIf(AbstractBasicStatement):
         return self._exp
 
     @property
-    def statements(self) -> AbstractBasicExpression:
+    def statements(self) -> BasicStatementsOrBasicGoto:
         return self._statements
 
 
 class BasicIfElse(BasicIf):
     _else_if_statements: List[BasicIf]
-    _else_statements: BasicStatementsOrBasicGoto
+    _else_statements: BasicStatementsOrBasicGoto | None
 
     def __init__(
         self,
@@ -475,9 +481,9 @@ class BasicIfElse(BasicIf):
 
 
 class BasicLine(AbstractBasicConstruct):
-    def __init__(self, num: Union[int, None], statements: "BasicStatement"):
-        self._num: Union[int, None] = num
-        self._statements: BasicStatement = statements
+    def __init__(self, num: int | None, statements: AbstractBasicStatement):
+        self._num: int | None = num
+        self._statements: AbstractBasicStatement = statements
         self._is_referenced: bool = True
 
     @property
@@ -565,8 +571,9 @@ class BasicOperator(AbstractBasicConstruct):
         return self._operator
 
 
-class BasicOpExp(AbstractBasicConstruct):
+class BasicOpExp(AbstractBasicExpression):
     def __init__(self, operator, exp):
+        super().__init__()
         self._operator = operator
         self._exp = exp
 
@@ -642,16 +649,18 @@ class Basic09CodeStatement(AbstractBasicStatement):
 
 
 class BasicStatements(AbstractBasicStatement):
-    def __init__(self, statements: List[BasicStatement], multi_line: bool = True):
+    def __init__(
+        self, statements: Iterable[AbstractBasicStatement], multi_line: bool = True
+    ):
         super().__init__()
-        self._statements = list(statements)
+        self._statements: list[AbstractBasicStatement] = list(statements)
         self._multi_line: bool = multi_line
 
     @property
-    def statements(self) -> List[BasicStatement]:
+    def statements(self) -> list[AbstractBasicStatement]:
         return self._statements
 
-    def set_statements(self, statements: List[BasicStatement]) -> None:
+    def set_statements(self, statements: list[AbstractBasicStatement]) -> None:
         self._statements = statements
 
     def basic09_text(self, indent_level: int, pre_indent: bool = True) -> str:
@@ -787,12 +796,15 @@ class BasicSound(Basic2ParamStatement):
 
 class BasicPoke(Basic2ParamStatement):
     def basic09_text(self, indent_level: int) -> str:
-        known_loc: bool = isinstance(self._exp1, BasicLiteral) or isinstance(
-            self._exp1, HexLiteral
-        )
-        if known_loc and self._exp1.literal == 65496:
+        if (
+            isinstance(self._exp1, (BasicLiteral, HexLiteral))
+            and self._exp1.literal == 65496
+        ):
             return f"{super().basic09_text(indent_level)}play.octo := 0"
-        elif known_loc and self._exp1.literal == 65497:
+        elif (
+            isinstance(self._exp1, (BasicLiteral, HexLiteral))
+            and self._exp1.literal == 65497
+        ):
             return f"{super().basic09_text(indent_level)}play.octo := 1"
         else:
             return (
@@ -947,7 +959,7 @@ class BasicFunctionalExpression(AbstractBasicExpression):
         return self._var.basic09_text(indent_level) if self._var else ""
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
-        if self._var:
+        if self._var and self._statement:
             self._statement.visit(visitor)
             self._var.visit(visitor)
         else:
@@ -1229,7 +1241,7 @@ class BasicCircleStatement(BasicRunCall):
     _expr_x: AbstractBasicExpression
     _expr_y: AbstractBasicExpression
     _expr_r: AbstractBasicExpression
-    _expr_color: AbstractBasicExpression
+    _expr_color: AbstractBasicExpression | None
     _hires: bool
 
     def __init__(
@@ -1238,7 +1250,7 @@ class BasicCircleStatement(BasicRunCall):
         expr_y: AbstractBasicExpression,
         expr_r: AbstractBasicExpression,
         *,
-        expr_color: AbstractBasicConstruct = None,
+        expr_color: AbstractBasicExpression | None = None,
         hires: bool = True,
     ):
         super().__init__(
@@ -1281,7 +1293,7 @@ class BasicCircleStatement(BasicRunCall):
         return self._expr_r
 
     @property
-    def expr_color(self) -> AbstractBasicExpression:
+    def expr_color(self) -> AbstractBasicExpression | None:
         return self._expr_color
 
 
@@ -1412,7 +1424,7 @@ class HLineStatement(BasicRunCall):
     def __init__(
         self,
         *,
-        source: Coordinates,
+        source: Coordinates | None,
         destination: Coordinates,
         mode: PsetOrPreset,
         line_type: LineType,

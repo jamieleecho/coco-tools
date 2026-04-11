@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 import argparse
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from io import BufferedWriter
-from typing import Optional
+from pathlib import Path
+from typing import Any, Optional, cast
 
 import numpy as np
 from colormath.color_conversions import convert_color
@@ -50,7 +53,7 @@ class LCHEntry:
         return cls(luminence=lch.lch_l, chroma=lch.lch_c, hue=lch.lch_h)
 
 
-def _parse_input_palette(palette_path: str) -> Mapping[int, PaletteEntry]:
+def _parse_input_palette(palette_path: str | Path) -> Mapping[int, PaletteEntry]:
     with open(palette_path, "r") as file:
         env_file_contents = file.readlines()
     for line in env_file_contents:
@@ -126,10 +129,10 @@ def _truncate_palette_to_bits_per_pixel(
 
 
 def _load_png_image_as_2darray(
-    image_path: str,
+    image_path: str | Path,
 ) -> list[list[tuple[int, int, int, int]]]:
     image = Image.open(image_path).convert("RGBA")
-    pixel_data = list(image.getdata())
+    pixel_data: list[tuple[int, int, int, int]] = list(cast(Any, image.getdata()))
     width, height = image.size
     pixel_2d_array = [pixel_data[i * width : (i + 1) * width] for i in range(height)]
     return pixel_2d_array
@@ -253,8 +256,8 @@ def _create_mvicon_arg_parser() -> argparse.ArgumentParser:
 
 def _reduce_image_colors(
     *,
-    input_png_path: str,
-    input_palette_path: str,
+    input_png_path: str | Path,
+    input_palette_path: str | Path,
     bits_per_pixel: int,
 ) -> IndexedImage:
     rgb_palette = _parse_input_palette(input_palette_path)
@@ -274,8 +277,8 @@ def _reduce_image_colors(
 
 def convert_png_to_mvicon(
     *,
-    input_png_path: str,
-    input_palette_path: str,
+    input_png_path: str | Path,
+    input_palette_path: str | Path,
     output_icon_path: str,
     bits_per_pixel: int,
 ) -> None:
@@ -302,7 +305,7 @@ def png_to_mvicon(args: Optional[Sequence[str]] = None) -> None:
     )
 
 
-def indexed_image_to_image(indexed_image: IndexedImage) -> Image:
+def indexed_image_to_image(indexed_image: IndexedImage) -> Image.Image:
     def two_to_8_bit(b: int):
         return b * 85
 
@@ -323,8 +326,8 @@ def indexed_image_to_image(indexed_image: IndexedImage) -> Image:
 
 def convert_png_to_coco_png(
     *,
-    input_png_path: str,
-    input_palette_path: str,
+    input_png_path: str | Path,
+    input_palette_path: str | Path,
     output_png_path: str,
     bits_per_pixel: int,
 ) -> None:
@@ -363,7 +366,7 @@ def _mask_for_indexed_image(
 
 def _write_os9_image_file(
     *,
-    output_os9_image_path: str,
+    output_os9_image_path: str | Path,
     png_palette_indices_2d_array: list[list[int]],
     bits_per_pixel: int,  # 1, 2 or 4
 ) -> None:
@@ -393,9 +396,9 @@ def _write_os9_image_file(
 
 def convert_png_to_os9_image(
     *,
-    input_png_path: str,
-    input_palette_path: str,
-    output_os9_image_path: str,
+    input_png_path: str | Path,
+    input_palette_path: str | Path,
+    output_os9_image_path: str | Path,
     bits_per_pixel: int,
     create_mask: bool,
     mask_index: int = -1,
