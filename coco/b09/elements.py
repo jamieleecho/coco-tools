@@ -790,7 +790,7 @@ class BasicSound(Basic2ParamStatement):
         return (
             f"{super().basic09_text(indent_level)}"
             f"RUN ecb_sound({self._exp1.basic09_text(indent_level)}, "
-            f"{self._exp2.basic09_text(indent_level)}, 31.0, FIX(play.octo))"
+            f"{self._exp2.basic09_text(indent_level)}, 31, FIX(play.octo))"
         )
 
 
@@ -823,7 +823,7 @@ class BasicCls(AbstractBasicStatement):
         return super().basic09_text(indent_level) + (
             f"RUN ecb_cls({self._exp.basic09_text(indent_level)}, display)"
             if self._exp
-            else "RUN ecb_cls(1.0, display)"
+            else "RUN ecb_cls(1, display)"
         )
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
@@ -840,6 +840,12 @@ class BasicFunctionCall(AbstractBasicExpression):
 
     def basic09_text(self, indent_level: int) -> str:
         return f"{self._func}{self._args.basic09_text(indent_level)}"
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        # Descend into the arguments so that visitors which collect
+        # variables (e.g. VarInitializerVisitor) still see vars
+        # that have been wrapped in fix() / float() coercion calls.
+        self._args.visit(visitor)
 
 
 class BasicDataStatement(AbstractBasicStatement):
@@ -965,8 +971,12 @@ class BasicFunctionalExpression(AbstractBasicExpression):
         else:
             for arg in self._args.exp_list:
                 arg.visit(visitor)
-
-            visitor.visit_exp(self)
+        # ``visit_exp`` is called regardless of whether the
+        # functional expression has been patched into a synthetic
+        # ``run <proc>(args..., var)`` form. Visitors that need to
+        # inspect the call site (e.g. for type-aware tainting)
+        # rely on getting the patched form, not just the raw args.
+        visitor.visit_exp(self)
 
 
 class BasicJoystkExpression(BasicFunctionalExpression):

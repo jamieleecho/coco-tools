@@ -183,22 +183,22 @@ def convert(
     basic_prog.visit(str_var_allocator)
     basic_prog.extend_prefix_lines(str_var_allocator.allocation_lines)
 
-    # Real-to-integer optimization. Determine which numeric
-    # variables can be represented as Basic09 INTEGER, apply the
-    # optional --no-optimize exclusion set, and then:
-    #   1. tag existing BasicDimStatement nodes so their INTEGER
-    #      vars are emitted as ``DIM ... : INTEGER``,
-    #   2. emit a new prefix ``DIM ... : INTEGER`` for integer
-    #      scalars that were never covered by an explicit DIM, and
-    #   3. coerce integer arguments wrapped in ``float(...)`` at
-    #      every call site whose declared parameter is REAL.
+    # Signature-aware call-site coercion.
+    #
+    # Many ``ecb_*`` procedures take ``INTEGER`` parameters
+    # (sound, locate, hcircle, ...). Real expressions emitted by
+    # the transpiler must be coerced with ``fix(...)``, and — when
+    # the real-to-integer optimization is enabled — integer
+    # variables passed as arguments to ``REAL`` parameters must be
+    # coerced with ``float(...)``. ``CoerceIntegerArgsVisitor``
+    # handles both directions and runs unconditionally so that
+    # even non-``-O`` builds produce well-typed call sites.
+    signature_bank = ProcedureBank()
+    signature_bank.add_from_resource("ecb.b09")
+
     integer_var_names: set[str] = set()
     if optimize:
-        procedure_bank_for_opt = ProcedureBank()
-        procedure_bank_for_opt.add_from_resource("ecb.b09")
-        int_visitor = IntegerVarVisitor(
-            signatures=procedure_bank_for_opt.signatures,
-        )
+        int_visitor = IntegerVarVisitor(signatures=signature_bank.signatures)
         basic_prog.visit(int_visitor)
         excluded: set[str] = _normalized_no_optimize_vars(no_optimize_vars or set())
         integer_var_names = int_visitor.integer_vars - excluded
@@ -227,12 +227,13 @@ def convert(
                 ]
             )
 
-        basic_prog.visit(
-            CoerceIntegerArgsVisitor(
-                integer_var_names=integer_var_names,
-                signatures=procedure_bank_for_opt.signatures,
-            )
+    basic_prog.visit(
+        CoerceIntegerArgsVisitor(
+            integer_var_names=integer_var_names,
+            signatures=signature_bank.signatures,
         )
+    )
+    if integer_var_names:
         basic_prog.visit(RewriteIntegerLiteralsVisitor(integer_var_names))
 
     # initialize variables

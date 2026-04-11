@@ -43,7 +43,7 @@ from coco.b09.elements import (
 )
 
 if TYPE_CHECKING:
-    from coco.b09.procbank import ProcedureSignature
+    from coco.b09.procbank import ProcedureParam, ProcedureSignature
     from coco.b09.prog import BasicProg
 
 
@@ -687,22 +687,43 @@ class RewriteIntegerLiteralsVisitor(BasicConstructVisitor):
 
 
 class CoerceIntegerArgsVisitor(BasicConstructVisitor):
-    """Wraps integer-optimized variables with ``float(...)`` when
-    they appear as arguments to ``REAL`` parameters of a known
-    procedure.
+    """Coerces ``REAL`` arguments to ``INTEGER`` parameters of
+    known procedures.
 
-    BASIC09 is strict about parameter types at call sites: an
-    ``INTEGER`` variable cannot be passed where a ``REAL`` is
-    expected. Input parameters can be safely coerced with
-    ``float(...)``; this visitor walks ``BasicRunCall`` statements
-    and assignment-like ``BasicFunctionalExpression`` nodes and
-    rewrites their arguments accordingly.
+    BASIC09 implicitly widens an ``INTEGER`` argument to a ``REAL``
+    parameter at a call site (the conversion is lossless), but it
+    will *not* implicitly truncate a ``REAL`` to an ``INTEGER``.
+    This visitor performs that explicit truncation by either
+    rewriting integer-valued ``BasicLiteral`` floats to genuine
+    integer literals in place, or wrapping the argument with
+    ``fix(...)``.
 
-    Variables passed as output parameters are never wrapped —
-    the :class:`IntegerVarVisitor` has already excluded them from
-    the integer set when the output parameter is ``REAL``, so by
-    the time this visitor runs there are no such conflicts.
+    The visitor walks ``BasicRunCall``, the patched
+    ``BasicFunctionalExpression`` form (for things like
+    ``A = INT(X)``), and the hand-rolled emitters ``BasicSound``,
+    ``BasicCls``, and ``BasicWidthStatement``.
+
+    Variables passed as output parameters are never coerced — the
+    :class:`IntegerVarVisitor` has already excluded them from the
+    integer set when the output parameter is ``REAL``, and the
+    visitor cannot insert a temporary write-back for the
+    ``INTEGER`` direction.
     """
+
+    # Variables that the transpiler always declares as INTEGER in
+    # the generated prologue. These are referenced by name from
+    # built-in statements (HBUFF, HGET, HPUT, JOYSTK) and so the
+    # visitor must know not to coerce them with ``fix(...)`` when
+    # they appear in an INTEGER parameter slot.
+    _BUILTIN_INTEGER_VAR_NAMES: frozenset = frozenset(
+        {
+            "pid",
+            "joy0x",
+            "joy0y",
+            "joy1x",
+            "joy1y",
+        }
+    )
 
     _integer_var_names: Set[str]
     _signatures: Dict[str, "ProcedureSignature"]
@@ -718,25 +739,35 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
 
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicRunCall):
-            self._rewrite_args(statement._run_invocation, statement._arguments.exp_list)
+            self._rewrite_args(statement._run_invocation, statement._arguments)
             return
         if isinstance(statement, BasicSound):
             # BasicSound hand-emits ``RUN ecb_sound(f, d, 31.0, ...)``
             # without using a ``BasicRunCall``. f and d are the two
-            # REAL input parameters; coerce them directly.
-            statement._exp1 = self._wrap_if_integer(statement._exp1)
-            statement._exp2 = self._wrap_if_integer(statement._exp2)
+            # leading parameters of ecb_sound — coerce them per the
+            # signature so the conversion direction tracks ecb.b09.
+            sig = self._signatures.get("ecb_sound")
+            if sig and len(sig.params) >= 2:
+                statement._exp1 = self._coerce_for_param(statement._exp1, sig.params[0])
+                statement._exp2 = self._coerce_for_param(statement._exp2, sig.params[1])
             return
         if isinstance(statement, BasicCls):
-            # BasicCls hand-emits ``RUN ecb_cls(color, display)``
-            # — color is a REAL input.
+            # BasicCls hand-emits ``RUN ecb_cls(color, display)``.
+            # ``color`` is the first parameter of ecb_cls.
             if statement._exp is not None:
-                statement._exp = self._wrap_if_integer(statement._exp)
+                sig = self._signatures.get("ecb_cls")
+                if sig and len(sig.params) >= 1:
+                    statement._exp = self._coerce_for_param(
+                        statement._exp, sig.params[0]
+                    )
             return
         if isinstance(statement, BasicWidthStatement):
             # BasicWidthStatement hand-emits ``run _ecb_width(w,
-            # display)``. _ecb_width's width parameter is REAL.
-            statement._expr = self._wrap_if_integer(statement._expr)
+            # display)``. ``w`` is the first parameter of
+            # _ecb_width.
+            sig = self._signatures.get("_ecb_width")
+            if sig and len(sig.params) >= 1:
+                statement._expr = self._coerce_for_param(statement._expr, sig.params[0])
             return
         if isinstance(statement, BasicAssignment) and isinstance(
             statement.exp, BasicFunctionalExpression
@@ -744,16 +775,28 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             exp = statement.exp
             # Functional expressions that have been patched carry
             # their full ``run <proc>(...args..., target)`` form in
-            # ``exp._statement``. We rewrite the arguments in place
-            # on ``exp._args.exp_list`` because
-            # :meth:`BasicFunctionalExpression.set_var` passes that
-            # same list through to the synthesized function call,
-            # so mutating it keeps the two representations in
-            # sync.
-            self._rewrite_args(exp._func, exp._args.exp_list)
+            # ``exp._statement``. The patcher creates a *new*
+            # argument list (``self._args.exp_list + [var]``), so
+            # we have to rewrite the args on the synthesized
+            # ``BasicFunctionCall`` for the change to actually
+            # appear in the emitted source.
+            if exp._statement is not None:
+                self._rewrite_args(exp._func, exp._statement._args)
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        # Some functional expressions never appear as the RHS of
+        # an explicit assignment — for instance,
+        # ``PRINT JOYSTK(0)`` patches into a synthetic call whose
+        # output goes to a transpiler-allocated temp. Coerce that
+        # call's arguments here too so the input literals match
+        # the procedure's declared parameter types.
+        if isinstance(exp, BasicFunctionalExpression) and exp._statement is not None:
+            self._rewrite_args(exp._func, exp._statement._args)
 
     def _rewrite_args(
-        self, invocation: str, args: "list[AbstractBasicExpression]"
+        self,
+        invocation: str,
+        exp_list: "BasicExpressionList",
     ) -> None:
         match = _RUN_INVOCATION_REGEX.match(invocation or "")
         if not match:
@@ -761,23 +804,104 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
         signature = self._signatures.get(match.group(1))
         if signature is None:
             return
+        # Always normalize to a list — parser-built expression
+        # lists are tuples, which can't be mutated in place. Storing
+        # the rewritten list back on the container ensures both
+        # views (raw exp_list and the BasicExpressionList wrapper)
+        # see the coercions.
+        args = list(exp_list.exp_list)
         for idx in range(min(len(args), len(signature.params))):
-            param = signature.params[idx]
-            if param.is_output or not param.is_real:
-                continue
-            args[idx] = self._wrap_if_integer(args[idx])
+            args[idx] = self._coerce_for_param(args[idx], signature.params[idx])
+        exp_list._exp_list = args
 
-    def _wrap_if_integer(self, arg: AbstractBasicExpression) -> AbstractBasicExpression:
-        if self._is_integer_arg(arg):
-            return BasicFunctionCall("float", BasicExpressionList([arg]))
+    def _coerce_for_param(
+        self, arg: AbstractBasicExpression, param: "ProcedureParam"
+    ) -> AbstractBasicExpression:
+        """Return ``arg`` adapted to match ``param``'s declared
+        type. Output parameters are returned unchanged because the
+        visitor cannot synthesize a temporary buffer; ``REAL``
+        input parameters are returned unchanged because Basic09
+        implicitly widens integers to reals at call sites.
+        """
+        if param.is_output:
+            return arg
+        if param.is_integer:
+            return self._coerce_to_integer(arg)
         return arg
 
+    def _coerce_to_integer(
+        self, arg: AbstractBasicExpression
+    ) -> AbstractBasicExpression:
+        if self._is_integer_arg(arg):
+            return arg
+        # Unwrap a redundant ``float(x)``: we are about to coerce
+        # back to integer, so the round-trip is silly. After
+        # unwrapping, retry coercion on the inner expression — it
+        # may already be integer-typed (a record byte field, for
+        # example), in which case we end up with no wrapping at
+        # all.
+        unwrapped = self._unwrap_float(arg)
+        if unwrapped is not arg:
+            return self._coerce_to_integer(unwrapped)
+        if (
+            isinstance(arg, BasicLiteral)
+            and not arg.is_str_expr
+            and isinstance(arg.literal, float)
+            and arg.literal.is_integer()
+        ):
+            return BasicLiteral(int(arg.literal))
+        return BasicFunctionCall("fix", BasicExpressionList([arg]))
+
     def _is_integer_arg(self, arg: AbstractBasicExpression) -> bool:
+        """True if ``arg`` is statically known to be of an integer
+        family type (``INTEGER`` or ``BYTE``) in the emitted
+        Basic09 source — meaning Basic09 will accept it in an
+        ``INTEGER`` parameter slot without an explicit ``fix()``.
+
+        We deliberately treat record-member accesses (anything
+        with a dot in the name) as integer-compatible: every byte
+        field of the ``display_t`` and ``play_t`` records auto-
+        promotes to ``INTEGER`` in Basic09, and the rare ``REAL``
+        field would already need an explicit conversion in the
+        original source.
+        """
         if isinstance(arg, BasicVar) and not arg.is_str_expr:
-            return arg.name() in self._integer_var_names
+            name = arg.name()
+            if "." in name:
+                return True
+            return (
+                name in self._integer_var_names
+                or name in self._BUILTIN_INTEGER_VAR_NAMES
+            )
         if isinstance(arg, BasicArrayRef) and not arg.is_str_expr:
             return arg.var.name() in self._integer_var_names
+        if isinstance(arg, BasicLiteral):
+            return isinstance(arg.literal, int) and not isinstance(arg.literal, bool)
+        if isinstance(arg, HexLiteral):
+            return not arg._is_float
+        if isinstance(arg, BasicFunctionCall):
+            return arg._func.strip().lower() == "fix"
         return False
+
+    def _unwrap_float(self, arg: AbstractBasicExpression) -> AbstractBasicExpression:
+        """If ``arg`` is a single-argument ``float(x)`` call,
+        return ``x``. Otherwise return ``arg`` unchanged.
+
+        Both :class:`BasicFunctionCall` and :class:`BasicRunCall`
+        are recognized because the transpiler uses both forms in
+        different emitters (e.g., :class:`BasicCircleStatement`
+        builds ``BasicRunCall("float", ...)``).
+        """
+        if isinstance(arg, BasicFunctionCall):
+            if arg._func.strip().lower() == "float" and len(arg._args.exp_list) == 1:
+                return arg._args.exp_list[0]
+        if isinstance(arg, BasicRunCall):
+            if (
+                arg._run_invocation.strip().lower() == "float"
+                and len(arg._arguments.exp_list) == 1
+            ):
+                return arg._arguments.exp_list[0]
+        return arg
 
 
 class IntegerVarVisitor(BasicConstructVisitor):
@@ -901,12 +1025,24 @@ class IntegerVarVisitor(BasicConstructVisitor):
         return candidates
 
     def visit_var(self, var: BasicVar) -> None:
-        if not var.is_str_expr:
-            self._numeric_vars.add(var.name())
+        if var.is_str_expr:
+            return
+        name = var.name()
+        # Skip record-member accesses (e.g. ``display.hfore``,
+        # ``play.octo``). These are typed by their containing
+        # record definition, not by the optimization, so they
+        # must never end up in the integer candidate set.
+        if "." in name:
+            return
+        self._numeric_vars.add(name)
 
     def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
-        if not array_ref.is_str_expr:
-            self._numeric_vars.add(array_ref.var.name())
+        if array_ref.is_str_expr:
+            return
+        name = array_ref.var.name()
+        if "." in name:
+            return
+        self._numeric_vars.add(name)
 
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicRunCall):
@@ -951,6 +1087,19 @@ class IntegerVarVisitor(BasicConstructVisitor):
         self._assignments[name].append(for_statement._start_exp)
         if for_statement._step_exp is not None:
             self._assignments[name].append(for_statement._step_exp)
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        # When a BasicFunctionalExpression has been patched into
+        # its synthetic ``run <proc>(args..., temp)`` form, the
+        # temp does not appear as the LHS of any explicit
+        # BasicAssignment in the tree — it is added by
+        # ``transform_function_to_call``. We still need to taint
+        # the temp if the underlying procedure's output parameter
+        # is REAL, otherwise the optimizer would think the temp
+        # is integer and DIM it as INTEGER.
+        if isinstance(exp, BasicFunctionalExpression) and exp._var is not None:
+            args = list(exp._args.exp_list) + [exp._var]
+            self._analyze_call_site(exp._func, args)
 
     def visit_read_statement(
         self, statement: BasicReadStatement
