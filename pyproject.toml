@@ -20,7 +20,7 @@ keywords = [
   "trs-80",
   "tandy",
 ]
-requires-python = ">=3.9.19"
+requires-python = ">=3.10"
 dependencies = [
   "colormath>=3.0.0",
   "parsimonious>=0.10.0",
