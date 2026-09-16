@@ -16,6 +16,7 @@ from coco.b09.elements import (
     BasicRunCall,
     BasicVar,
 )
+from coco.b09.errors import ParseError
 from coco.b09.grammar import PROCNAME_REGEX, grammar
 from coco.b09.parser import BasicVisitor
 from coco.b09.procbank import ProcedureBank
@@ -45,10 +46,6 @@ from coco.b09.visitors import (
     StrVarAllocatorVisitor,
     VarInitializerVisitor,
 )
-
-
-class ParseError(Exception):
-    pass
 
 
 def _normalized_no_optimize_vars(names: "set[str] | list[str]") -> "set[str]":
