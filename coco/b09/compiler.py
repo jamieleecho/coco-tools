@@ -173,7 +173,12 @@ def convert(
         initialize_vars=initialize_vars,
     )
     basic_prog.visit(declare_array_visitor)
-    basic_prog.insert_lines_at_beginning(declare_array_visitor.dim_statements)
+    basic_prog.insert_lines_at_beginning(
+        [
+            BasicLine(None, statement)
+            for statement in declare_array_visitor.dim_statements
+        ]
+    )
 
     # allocate sufficient string storage
     str_var_allocator: StrVarAllocatorVisitor = StrVarAllocatorVisitor(
