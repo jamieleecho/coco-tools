@@ -1,5 +1,11 @@
+import io
+import os
+import sys
+import tempfile
 import unittest
+from unittest import mock
 
+from coco import decb_to_b09
 from coco.b09 import DEFAULT_STR_STORAGE, compiler, elements, grammar
 from coco.b09.compiler import ParseError
 from coco.b09.configs import CompilerConfigs, StringConfigs
@@ -49,6 +55,120 @@ class TestB09(unittest.TestCase):
         assert "RUN _ecb_start" in program
         assert "RUN ecb_cls(fix(B), display)" in program
         assert "procedure _ecb_cursor_color\n" in program
+
+    def test_base_0_precedes_implicit_array_dims(self) -> None:
+        program = compiler.convert(
+            '10 A(3) = 5\n20 A$(2) = "HI"\n',
+            initialize_vars=True,
+            add_standard_prefix=True,
+        )
+        assert program.startswith("base 0\n")
+        assert program.index("base 0\n") < program.index("DIM arr_A(")
+        assert program.index("base 0\n") < program.index("DIM arr_A$(")
+
+    def test_base_0_precedes_prefix_lines(self) -> None:
+        program = compiler.convert(
+            '10 X = JOYSTK(0)\n20 A$ = "HI"\n',
+            initialize_vars=True,
+            add_standard_prefix=True,
+        )
+        assert program.startswith("base 0\n")
+        assert program.index("base 0\n") < program.index("dim joy0x")
+
+    def test_terminal_skips_ecb_start(self) -> None:
+        program = compiler.convert(
+            "10 CLS",
+            initialize_vars=True,
+            add_standard_prefix=True,
+            terminal=True,
+        )
+        assert "_ecb_start" not in program
+        # The rest of the standard prefix is untouched -- ``display``
+        # is still declared and still passed to the ecb procedures.
+        assert program.startswith("base 0\n")
+        assert "dim display: display_t\n" in program
+        assert "RUN ecb_cls(1, display)" in program
+
+    def test_terminal_omits_ecb_start_dependency(self) -> None:
+        program = compiler.convert(
+            "10 CLS",
+            procname="do_cls",
+            initialize_vars=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+            terminal=True,
+        )
+        assert "procedure _ecb_start\n" not in program
+        assert "procedure do_cls\n" in program
+
+    def test_no_terminal_keeps_ecb_start(self) -> None:
+        program = compiler.convert(
+            "10 CLS",
+            initialize_vars=True,
+            add_standard_prefix=True,
+        )
+        assert "RUN _ecb_start(display, 1)\n" in program
+
+    def test_sanitize_procname(self) -> None:
+        assert grammar.sanitize_procname("sinewave") == "sinewave"
+        assert grammar.sanitize_procname("do_cls") == "do_cls"
+        assert grammar.sanitize_procname("_ecb_start") == "_ecb_start"
+        # A - reads as subtraction and a . as a record member, so
+        # neither can appear in a procedure name.
+        assert grammar.sanitize_procname("hi-lo") == "hi_lo"
+        assert grammar.sanitize_procname("checkers.annotated") == "checkers_annotated"
+        # A name cannot begin with a digit.
+        assert grammar.sanitize_procname("3dplot") == "_3dplot"
+        assert grammar.sanitize_procname("") == "program"
+
+    def test_convert_sanitizes_procname(self) -> None:
+        # Before sanitizing, "procedure hi-lo" was emitted and the
+        # procedure bank could not find it again by name, so the
+        # conversion silently produced an empty program.
+        program = compiler.convert(
+            "10 CLS",
+            procname="hi-lo",
+            initialize_vars=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "procedure hi_lo\n" in program
+        assert "procedure _ecb_cursor_color\n" in program
+        assert "RUN ecb_cls(1, display)" in program
+
+    def test_convert_sanitizes_procname_with_leading_digit(self) -> None:
+        program = compiler.convert(
+            "10 CLS",
+            procname="3dplot",
+            initialize_vars=True,
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "procedure _3dplot\n" in program
+
+    def test_cli_uses_default_procname_for_stdin(self) -> None:
+        # stdin has no file name to derive a procedure name from --
+        # its .name is "<stdin>", which must not be sanitized into a
+        # procedure called _stdin_.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out = os.path.join(tmpdir, "out.b09")
+            with mock.patch.object(sys, "stdin", io.StringIO("10 CLS\n")):
+                decb_to_b09.start(["-", out])
+            with open(out) as f:
+                program = f.read().replace("\r", "\n")
+        assert "procedure program\n" in program
+        assert "_stdin_" not in program
+
+    def test_cli_derives_procname_from_file_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = os.path.join(tmpdir, "hi-lo.bas")
+            out = os.path.join(tmpdir, "hi-lo.b09")
+            with open(src, "w") as f:
+                f.write("10 CLS\n")
+            decb_to_b09.start([src, out])
+            with open(out) as f:
+                program = f.read().replace("\r", "\n")
+        assert "procedure hi_lo\n" in program
 
     def test_convert_no_default_width32(self) -> None:
         program = compiler.convert(
@@ -605,10 +725,51 @@ class TestB09(unittest.TestCase):
 
     def test_num_str_funcs(self) -> None:
         for ecb_func, b09_func in grammar.NUM_STR_FUNCTIONS.items():
+            # TAB renumbers its argument -- see the TAB tests below.
+            if ecb_func == "TAB":
+                continue
             self.generic_test_parse(
                 f"11X$={ecb_func}(1)",
                 f"11 X$ := {b09_func}(1.0)",
             )
+
+    def test_tab_is_renumbered_for_basic09(self) -> None:
+        # Color BASIC numbers the leftmost column 0, Basic09 numbers
+        # it 1, so every column shifts by one.
+        self.generic_test_parse(
+            '11 PRINT TAB(30);"SINE WAVE"',
+            '11 PRINT TAB(31.0); "SINE WAVE"',
+        )
+        self.generic_test_parse(
+            '11 PRINT TAB(0);"X"',
+            '11 PRINT TAB(1.0); "X"',
+        )
+
+    def test_tab_renumbers_expressions(self) -> None:
+        self.generic_test_parse(
+            '11 PRINT TAB(A);"X"',
+            '11 PRINT TAB(A + 1.0); "X"',
+        )
+        self.generic_test_parse(
+            '11 PRINT TAB(AA(2));"X"',
+            'DIM arr_AA(11)\n11 PRINT TAB(arr_AA(2.0) + 1.0); "X"',
+        )
+        # A binary expression is parenthesized so that the added 1
+        # cannot bind more tightly than the expression itself.
+        self.generic_test_parse(
+            '11 PRINT TAB(A*2);"X"',
+            '11 PRINT TAB((A * 2.0) + 1.0); "X"',
+        )
+        self.generic_test_parse(
+            '11 PRINT TAB(A>B);"X"',
+            '11 PRINT TAB((A > B) + 1.0); "X"',
+        )
+
+    def test_tab_renumbers_hex_literals(self) -> None:
+        self.generic_test_parse(
+            '11 PRINT TAB(&H10);"X"',
+            '11 PRINT TAB(float($11)); "X"',
+        )
 
     def test_builtin_statements(self) -> None:
         for ecb_func, b09_func in grammar.STATEMENTS2.items():
@@ -738,9 +899,21 @@ class TestB09(unittest.TestCase):
     def test_joystk(self) -> None:
         self.generic_test_parse(
             "11 PRINT JOYSTK(1)",
-            "dim joy0x, joy0y, joy1x, joy0y: integer\n"
-            "11 RUN ecb_joystk(1, tmp_1) \\ run ecb_str(tmp_1, tmp_1$) \\ "
+            "dim joy0x, joy0y, joy1x, joy1y: integer\n"
+            "11 RUN ecb_joystk(1, joy0x, joy0y, joy1x, joy1y, tmp_1) \\ "
+            "run ecb_str(tmp_1, tmp_1$) \\ "
             "PRINT tmp_1$",
+        )
+
+    def test_joystk_retains_values_across_calls(self) -> None:
+        # ecb_joystk only samples the hardware for axis 0, so every
+        # call site has to pass the caller's retained joystick
+        # variables along with the result variable.
+        self.generic_test_parse(
+            "11 A = JOYSTK(0)\n12 B = JOYSTK(3)",
+            "dim joy0x, joy0y, joy1x, joy1y: integer\n"
+            "11 RUN ecb_joystk(0, joy0x, joy0y, joy1x, joy1y, A)\n"
+            "12 RUN ecb_joystk(3, joy0x, joy0y, joy1x, joy1y, B)",
         )
 
     def test_hex(self) -> None:
@@ -1622,6 +1795,38 @@ class TestB09(unittest.TestCase):
             "DIM BB$: STRING[456]\n"
             'BB$ := ""\n'
         )
+
+    def test_implicit_string_array_uses_default_str_storage(self) -> None:
+        program = compiler.convert(
+            '10 A$(3) = "HI"',
+            add_standard_prefix=False,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert (
+            program == "DIM arr_A$(11): STRING[123]\n"
+            'FOR tmp_1 = 0 TO 10 \\ arr_A$(tmp_1) := "" \\ NEXT tmp_1\n'
+            '10 arr_A$(3.0) := "HI"\n'
+        )
+
+    def test_implicit_string_array_uses_str_options(self) -> None:
+        string_configs = StringConfigs()
+        compiler_configs = CompilerConfigs(string_configs=string_configs)
+        string_configs.strname_to_size["A$()"] = 321
+        program = compiler.convert(
+            '10 A$(3) = "HI"',
+            add_standard_prefix=False,
+            compiler_configs=compiler_configs,
+            default_str_storage=123,
+            initialize_vars=True,
+            output_dependencies=True,
+            procname="test",
+            skip_procedure_headers=True,
+        )
+        assert program.startswith("DIM arr_A$(11): STRING[321]\n")
 
     def test_only_initializes_string_arrays_with_str_options(self) -> None:
         string_configs = StringConfigs()

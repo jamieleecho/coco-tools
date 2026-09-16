@@ -49,6 +49,7 @@ from coco.b09.elements import (
     BasicSound,
     BasicStatements,
     BasicStatementsOrBasicGoto,
+    BasicTabCall,
     BasicVar,
     BasicVarptrExpression,
     BasicWidthStatement,
@@ -406,6 +407,10 @@ class BasicVisitor(NodeVisitor):
 
     def visit_num_str_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
+        # TAB needs its column renumbered for Basic09; see
+        # BasicTabCall.
+        if func.text == "TAB":
+            return BasicTabCall(exp)
         return BasicFunctionCall(
             NUM_STR_FUNCTIONS[func.text],
             BasicExpressionList([exp]),

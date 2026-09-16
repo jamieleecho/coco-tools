@@ -99,6 +99,9 @@ NEXT BB
   unnecessary switching.
 * `PRINT @` will not result in an error on 40 or 80 columns screens but will
   pretend that the screen is 32x16.
+* `PRINT TAB` columns are renumbered. Color BASIC counts the leftmost column
+  as 0 and BASIC09 counts it as 1, so `TAB(30)` is converted to `TAB(31.0)` and
+  `TAB(A)` to `TAB(A + 1.0)`.
 * `PEEK` and `POKE` are supported ... but with great power comes great
   responsibility.
 * `POKE 65497, 0` tells `PLAY` and `SOUND` to play an octave higher.
@@ -192,6 +195,35 @@ string_configs:
     A$(): 200
     BC$: 300
 ```
+
+## Running on a plain console (`-t`)
+
+The generated program normally starts by calling `_ecb_start`, which sets up
+a CoCo text screen: it programs the 16 color palette through `gfx2`, switches
+to 32 columns and sets the cursor color. On an ordinary OS-9 console none of
+that applies, and the escape sequences it writes turn into junk on screen.
+
+Passing `--terminal` (`-t`) leaves the `_ecb_start` call out of the output, so
+the program starts straight into its own code. `_ecb_start` then drops out of
+the emitted dependencies as well, making the output smaller.
+
+Everything else in the prologue is unchanged: `display` is still declared and
+still passed to the `ecb_*` procedures.
+
+Two things to know before reaching for it:
+
+* The `display` record is left at BASIC09's zero initialization rather than the
+  values `_ecb_start` would have written. Its path fields mean "no path open"
+  when they hold `$ff`, and zero is a valid path number, so any statement that
+  tests them acts on path 0 -- the program's own standard input. That covers
+  the graphics statements (`HSCREEN`, `HCLS`, `HPUT`, ...), `PALETTE`, and also
+  `WIDTH`, which is otherwise a text-mode statement. Programs that use any of
+  them should be converted without `-t`.
+* `_ecb_start` also runs `shell("tmode pau=0 eko=0 upc=0")`, which is terminal
+  setup rather than screen setup, and `-t` skips that too. The console keeps
+  whatever the shell had set, so output pauses at each screenful if `pau` is on,
+  and keys read by `INKEY$` echo until the first `INPUT` turns `eko` off. Run
+  `tmode pau=0 eko=0 upc=0` yourself before the program if that matters.
 
 ## Real-to-integer optimization (`-O`)
 
