@@ -155,7 +155,7 @@ def convert(
     basic_prog.set_procname(procname)
 
     # Patch INPUT statements
-    basic_prog.visit(BasicInputStatementPatcherVisitor())
+    basic_prog.visit(BasicInputStatementPatcherVisitor(terminal))
 
     # Patch up READ statements to handle empty DATA elements
     empty_data_elements_visitor = BasicEmptyDataElementVisitor()

@@ -110,6 +110,48 @@ class TestB09(unittest.TestCase):
         )
         assert "RUN _ecb_start(display, 1)\n" in program
 
+    def test_terminal_input_skips_cursor_color(self) -> None:
+        program = compiler.convert(
+            "10 INPUT A$",
+            terminal=True,
+        )
+        assert "RUN _ecb_input_prefix_t" in program
+        assert "RUN _ecb_input_suffix_t" in program
+
+    def test_no_terminal_input_keeps_cursor_color(self) -> None:
+        program = compiler.convert("10 INPUT A$")
+        assert "RUN _ecb_input_prefix \\" in program
+        assert "RUN _ecb_input_suffix" in program
+        assert "_ecb_input_prefix_t" not in program
+
+    def test_terminal_omits_cursor_color_dependency(self) -> None:
+        """_ecb_cursor_color writes raw bytes through PUT #1 that an
+        ordinary terminal renders as a stray "!" or space, and that
+        Basic09's PRINT column accounting does not see -- so the
+        first TAB after an INPUT lands one column too far right.
+        Terminal mode must not pull the procedure in at all.
+        """
+        program = compiler.convert(
+            "10 INPUT A$",
+            procname="do_input",
+            skip_procedure_headers=False,
+            output_dependencies=True,
+            terminal=True,
+        )
+        assert "procedure _ecb_cursor_color\n" not in program
+        assert "procedure _ecb_input_prefix_t\n" in program
+        assert "procedure do_input\n" in program
+
+    def test_no_terminal_keeps_cursor_color_dependency(self) -> None:
+        program = compiler.convert(
+            "10 INPUT A$",
+            procname="do_input",
+            skip_procedure_headers=False,
+            output_dependencies=True,
+        )
+        assert "procedure _ecb_cursor_color\n" in program
+        assert "procedure _ecb_input_prefix\n" in program
+
     def test_sanitize_procname(self) -> None:
         assert grammar.sanitize_procname("sinewave") == "sinewave"
         assert grammar.sanitize_procname("do_cls") == "do_cls"

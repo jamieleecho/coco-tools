@@ -1212,6 +1212,16 @@ run _ecb_cursor_color(0)
 SHELL("tmode eko=0")
 
 
+procedure _ecb_input_prefix_t
+(* Terminal mode: like _ecb_input_prefix without the cursor color *)
+SHELL("tmode eko=1")
+
+
+procedure _ecb_input_suffix_t
+(* Terminal mode: like _ecb_input_suffix without the cursor color *)
+SHELL("tmode eko=0")
+
+
 PROCEDURE _ecb_max
 (* Out *)
 PARAM x2: INTEGER

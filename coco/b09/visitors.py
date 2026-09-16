@@ -537,6 +537,21 @@ class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
 
 
 class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
+    """Wrap INPUT so the cursor and full duplex are set around it.
+
+    In terminal mode the ``_t`` variants are used instead. Those
+    drop the ``_ecb_cursor_color`` call, which writes the two raw
+    bytes ``$05, $20 + v`` that set the CoCo cursor color. An
+    ordinary terminal swallows the ``$05`` and prints the second
+    byte, so every INPUT leaves a stray ``!`` (prefix) or space
+    (suffix) on screen. Worse, those bytes go out through ``PUT
+    #1``, which Basic09's PRINT column accounting does not see, so
+    the first ``TAB`` after an INPUT lands one column too far right.
+    """
+
+    def __init__(self, terminal: bool = False):
+        self._suffix = "_t" if terminal else ""
+
     def visit_input_statement(
         self, statement: BasicInputStatement
     ) -> AbstractBasicStatement:
@@ -547,9 +562,13 @@ class BasicInputStatementPatcherVisitor(BasicConstructVisitor):
 
         # Create statements for reading into the REAL vars
         filter_statements = [
-            BasicRunCall("RUN _ecb_input_prefix", BasicExpressionList([])),
+            BasicRunCall(
+                f"RUN _ecb_input_prefix{self._suffix}", BasicExpressionList([])
+            ),
             statement,
-            BasicRunCall("RUN _ecb_input_suffix", BasicExpressionList([])),
+            BasicRunCall(
+                f"RUN _ecb_input_suffix{self._suffix}", BasicExpressionList([])
+            ),
         ]
 
         return BasicStatements(filter_statements, multi_line=False)
