@@ -3,7 +3,36 @@ from itertools import chain
 
 from parsimonious.grammar import Grammar
 
-PROCNAME_REGEX = re.compile(r"[a-zA-Z0-9_-]+")
+# A Basic09 procedure name: a letter or underscore followed by
+# letters, digits and underscores. Anchored, because a name that
+# merely starts with something legal is not a legal name -- the
+# procedure bank looks procedures up by their whole name.
+PROCNAME_REGEX = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*\Z")
+
+DEFAULT_PROCNAME = "program"
+
+
+def sanitize_procname(procname: str) -> str:
+    """Return ``procname`` reshaped into a legal Basic09 procedure
+    name.
+
+    Procedure names are usually derived from a file name, which can
+    hold characters Basic09 will not accept -- ``hi-lo.bas`` would
+    yield ``procedure hi-lo``, whose ``-`` reads as subtraction.
+    Every such character becomes an underscore, and a name that does
+    not start with a letter or underscore gets one prepended.
+    An empty name falls back to :data:`DEFAULT_PROCNAME`.
+    """
+    if PROCNAME_REGEX.match(procname):
+        return procname
+    if not procname:
+        return DEFAULT_PROCNAME
+    sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", procname)
+    if not PROCNAME_REGEX.match(sanitized):
+        # Only a leading digit can be left at this point.
+        sanitized = f"_{sanitized}"
+    return sanitized
+
 
 SINGLE_KEYWORD_STATEMENTS = {
     "END": "END",

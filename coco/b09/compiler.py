@@ -16,8 +16,9 @@ from coco.b09.elements import (
     BasicRunCall,
     BasicVar,
 )
+
 from coco.b09.errors import ParseError
-from coco.b09.grammar import PROCNAME_REGEX, grammar
+from coco.b09.grammar import PROCNAME_REGEX, grammar, sanitize_procname
 from coco.b09.parser import BasicVisitor
 from coco.b09.procbank import ProcedureBank
 from coco.b09.prog import BasicProg
@@ -86,6 +87,7 @@ def convert(
     output_dependencies: bool = False,
     procname: str = "",
     skip_procedure_headers: bool = False,
+    terminal: bool = False,
 ) -> str:
     compiler_configs = compiler_configs or CompilerConfigs()
     tree = grammar.parse(progin)
@@ -93,8 +95,14 @@ def convert(
     basic_prog: BasicProg = bv.visit(tree)
 
     if add_standard_prefix:
+        # ``BASE 0`` has to come before every DIM in the procedure --
+        # including the DIMs generated later for implicitly declared
+        # arrays -- so it is emitted as a header line rather than as
+        # part of the standard prefix.
+        basic_prog.extend_header_lines(
+            [BasicLine(None, Basic09CodeStatement("base 0"))]
+        )
         prefix_lines = [
-            BasicLine(None, Basic09CodeStatement("base 0")),
             BasicLine(
                 None,
                 Basic09CodeStatement(
@@ -105,18 +113,29 @@ def convert(
             BasicLine(None, Basic09CodeStatement("dim display: display_t")),
             BasicLine(None, Basic09CodeStatement("dim erno: real")),
             BasicLine(None, Basic09CodeStatement("erno := -1")),
-            BasicLine(
-                None,
-                BasicRunCall(
-                    "RUN _ecb_start",
-                    BasicExpressionList(
-                        [
-                            BasicVar("display"),
-                            BasicLiteral(1 if default_width32 else 0),
-                        ]
+        ]
+
+        # ``_ecb_start`` sets up the CoCo text screen: it programs the
+        # palette through ``gfx2``, switches to 32 columns and sets the
+        # cursor color. None of that belongs on an ordinary console, so
+        # terminal mode leaves the call out entirely.
+        if not terminal:
+            prefix_lines.append(
+                BasicLine(
+                    None,
+                    BasicRunCall(
+                        "RUN _ecb_start",
+                        BasicExpressionList(
+                            [
+                                BasicVar("display"),
+                                BasicLiteral(1 if default_width32 else 0),
+                            ]
+                        ),
                     ),
-                ),
-            ),
+                )
+            )
+
+        prefix_lines += [
             BasicLine(
                 None, Basic09CodeStatement("TYPE play_t=oct,octo,lnt,tne,vol,dot:BYTE")
             ),
@@ -133,7 +152,7 @@ def convert(
     if skip_procedure_headers := skip_procedure_headers or not output_dependencies:
         procname = ""
     else:
-        procname = procname if PROCNAME_REGEX.match(procname) else "program"
+        procname = sanitize_procname(procname)
     basic_prog.set_procname(procname)
 
     # Patch INPUT statements
@@ -168,6 +187,8 @@ def convert(
     declare_array_visitor = DeclareImplicitArraysVisitor(
         dimmed_var_names=dimmed_array_visitor.dimmed_var_names,
         initialize_vars=initialize_vars,
+        default_str_storage=set_string_storage_vistor.default_str_storage,
+        strname_to_size=set_string_storage_vistor.strname_to_size,
     )
     basic_prog.visit(declare_array_visitor)
     basic_prog.insert_lines_at_beginning(
@@ -382,6 +403,7 @@ def convert_file(
     optimize: bool = False,
     output_dependencies: bool = False,
     procname: str = "",
+    terminal: bool = False,
 ) -> None:
     progin = input_program_file.read()
 
@@ -407,6 +429,7 @@ def convert_file(
         optimize=optimize,
         output_dependencies=output_dependencies,
         procname=procname,
+        terminal=terminal,
     )
     progout = progout.replace("\n", "\r")
     output_program_file.write(progout)

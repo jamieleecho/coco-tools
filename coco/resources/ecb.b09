@@ -695,8 +695,11 @@ endif
 
 procedure ecb_joystk
 param joystk: integer
+(* Retained between calls by the caller - only axis 0 samples *)
 (* Out *)
-param joy0x, joy0y, joy1x, joy1y, retval: real
+param joy0x, joy0y, joy1x, joy1y: integer
+(* Out *)
+param retval: real
 dim fire: integer
 
 if joystk = 0 then

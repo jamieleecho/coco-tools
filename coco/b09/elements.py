@@ -1002,10 +1002,67 @@ class BasicFunctionalExpression(AbstractBasicExpression):
         visitor.visit_exp(self)
 
 
+class BasicTabCall(BasicFunctionCall):
+    """``TAB(n)`` with the column renumbered for Basic09.
+
+    Color BASIC counts the leftmost column as 0; Basic09 counts it
+    as 1, so its ``TAB(1)`` and ``TAB(0)`` both leave the cursor at
+    the left margin. Emitting the Color BASIC column unchanged puts
+    every tabbed item one column too far left, so 1 is added here.
+    """
+
+    # Expressions that can carry a trailing ``+ 1`` without the
+    # addition binding more tightly than the expression itself.
+    # Anything else -- a binary operation, a unary NOT -- is
+    # parenthesized first.
+    _ATOMIC_EXP_TYPES: tuple = (
+        BasicLiteral,
+        HexLiteral,
+        BasicVar,
+        BasicArrayRef,
+        BasicParenExp,
+        BasicFunctionCall,
+        BasicFunctionalExpression,
+    )
+
+    def __init__(self, exp: AbstractBasicExpression):
+        super().__init__(
+            "TAB",
+            BasicExpressionList([self._to_basic09_column(exp)]),
+            is_str_expr=True,
+        )
+
+    @classmethod
+    def _to_basic09_column(
+        cls, exp: AbstractBasicExpression
+    ) -> AbstractBasicExpression:
+        if isinstance(exp, BasicLiteral) and isinstance(exp.literal, (int, float)):
+            return BasicLiteral(exp.literal + 1)
+        if isinstance(exp, HexLiteral):
+            return HexLiteral(hex(exp.literal + 1)[2:], is_float=exp._is_float)
+        if not isinstance(exp, cls._ATOMIC_EXP_TYPES):
+            exp = BasicParenExp(exp)
+        return BasicBinaryExp(exp, "+", BasicLiteral(1.0))
+
+
 class BasicJoystkExpression(BasicFunctionalExpression):
+    """``JOYSTK(n)`` rewritten as a call to ``ecb_joystk``.
+
+    ``ecb_joystk`` only samples the hardware when it is asked for
+    axis 0; the other three axes are read back from the values
+    retained since that sample. Those four values live in the
+    caller, in the ``joy0x``, ``joy0y``, ``joy1x`` and ``joy1y``
+    variables declared by :class:`JoystickVisitor`, so every call
+    site has to pass them along with the result variable.
+    """
+
+    JOYSTK_VAR_NAMES = ("joy0x", "joy0y", "joy1x", "joy1y")
+
     def __init__(self, args):
-        super().__init__("RUN ecb_joystk", args)
-        self._args = args
+        joystk_args = BasicExpressionList(
+            args.exp_list + [BasicVar(name) for name in self.JOYSTK_VAR_NAMES]
+        )
+        super().__init__("RUN ecb_joystk", joystk_args)
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
         super().visit(visitor)

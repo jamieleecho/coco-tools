@@ -53,6 +53,22 @@ if TYPE_CHECKING:
 # ``BasicFunctionalExpression._func``.
 _RUN_INVOCATION_REGEX = re.compile(r"(?i)^\s*run\s+(\w+)")
 
+# Variables that the transpiler always declares as INTEGER in the
+# generated prologue. These are referenced by name from built-in
+# statements (HBUFF, HGET, HPUT, JOYSTK) rather than coming from the
+# source program, so the optimization passes must leave them alone:
+# they are never coerced with ``fix(...)`` and never turn up as
+# integer candidates needing a DIM of their own.
+BUILTIN_INTEGER_VAR_NAMES: frozenset = frozenset(
+    {
+        "pid",
+        "joy0x",
+        "joy0y",
+        "joy1x",
+        "joy1y",
+    }
+)
+
 
 class BasicConstructVisitor:
     def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
@@ -361,6 +377,18 @@ class SetDimStringStorageVisitor(BasicConstructVisitor):
     def dimmed_var_names(self) -> Set[str]:
         return self._dimmed_var_names
 
+    @property
+    def default_str_storage(self) -> int:
+        return self._default_str_storage
+
+    @property
+    def strname_to_size(self) -> Dict[str, int]:
+        """Per-variable string sizes, keyed the way
+        :class:`BasicDimStatement` names its variables (arrays carry
+        the ``arr_`` prefix).
+        """
+        return self._strname_to_size
+
 
 class GetDimmedArraysVisitor(BasicConstructVisitor):
     _dimmed_var_names: Set[str]
@@ -384,14 +412,25 @@ class GetDimmedArraysVisitor(BasicConstructVisitor):
 
 
 class DeclareImplicitArraysVisitor(BasicConstructVisitor):
+    _default_str_storage: int
     _dimmed_var_names: Set[str]
     _initialize_vars: bool
     _referenced_var_names: Set[str]
+    _strname_to_size: Dict[str, int]
 
-    def __init__(self, *, dimmed_var_names: Set[str], initialize_vars: bool = False):
+    def __init__(
+        self,
+        *,
+        dimmed_var_names: Set[str],
+        initialize_vars: bool = False,
+        default_str_storage: int = b09.DEFAULT_STR_STORAGE,
+        strname_to_size: Optional[Dict[str, int]] = None,
+    ):
         self._dimmed_var_names = dimmed_var_names
         self._initialize_vars = initialize_vars
         self._referenced_var_names = set()
+        self._default_str_storage = default_str_storage
+        self._strname_to_size = strname_to_size or {}
 
     def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
         self._referenced_var_names.add(array_ref.var.name())
@@ -402,8 +441,15 @@ class DeclareImplicitArraysVisitor(BasicConstructVisitor):
 
     @property
     def dim_statements(self) -> List[BasicDimStatement]:
-        return [
-            BasicDimStatement(
+        """The ``DIM`` statements for arrays used without a ``DIM``.
+
+        String arrays get the same storage treatment as explicitly
+        dimensioned ones, so a ``--default-str-storage`` or a
+        per-variable size from the config file is honored here too.
+        """
+        statements: List[BasicDimStatement] = []
+        for var in self.implicitly_declared_arrays:
+            statement = BasicDimStatement(
                 [
                     BasicArrayRef(
                         BasicVar(var[4:], is_str_expr=var.endswith("$")),
@@ -413,8 +459,10 @@ class DeclareImplicitArraysVisitor(BasicConstructVisitor):
                 ],
                 initialize_vars=self._initialize_vars,
             )
-            for var in self.implicitly_declared_arrays
-        ]
+            statement.default_str_storage = self._default_str_storage
+            statement.strname_to_size = self._strname_to_size
+            statements.append(statement)
+        return statements
 
 
 class JoystickVisitor(BasicConstructVisitor):
@@ -425,7 +473,7 @@ class JoystickVisitor(BasicConstructVisitor):
     def joystk_var_statements(self):
         return (
             [
-                Basic09CodeStatement("dim joy0x, joy0y, joy1x, joy0y: integer"),
+                Basic09CodeStatement("dim joy0x, joy0y, joy1x, joy1y: integer"),
             ]
             if self._uses_joystk
             else []
@@ -711,21 +759,6 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
     ``INTEGER`` direction.
     """
 
-    # Variables that the transpiler always declares as INTEGER in
-    # the generated prologue. These are referenced by name from
-    # built-in statements (HBUFF, HGET, HPUT, JOYSTK) and so the
-    # visitor must know not to coerce them with ``fix(...)`` when
-    # they appear in an INTEGER parameter slot.
-    _BUILTIN_INTEGER_VAR_NAMES: frozenset = frozenset(
-        {
-            "pid",
-            "joy0x",
-            "joy0y",
-            "joy1x",
-            "joy1y",
-        }
-    )
-
     _integer_var_names: Set[str]
     _signatures: Dict[str, "ProcedureSignature"]
 
@@ -870,10 +903,7 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             name = arg.name()
             if "." in name:
                 return True
-            return (
-                name in self._integer_var_names
-                or name in self._BUILTIN_INTEGER_VAR_NAMES
-            )
+            return name in self._integer_var_names or name in BUILTIN_INTEGER_VAR_NAMES
         if isinstance(arg, BasicArrayRef) and not arg.is_str_expr:
             return arg.var.name() in self._integer_var_names
         if isinstance(arg, BasicLiteral):
@@ -1011,7 +1041,9 @@ class IntegerVarVisitor(BasicConstructVisitor):
         transpiler (e.g., the Basic array ``X`` appears as
         ``"arr_X"``).
         """
-        candidates: Set[str] = set(self._numeric_vars) - self._tainted
+        candidates: Set[str] = (
+            set(self._numeric_vars) - self._tainted - BUILTIN_INTEGER_VAR_NAMES
+        )
 
         # Fixpoint: drop any variable whose assignments can't be
         # shown to be integer given the current candidate set.
