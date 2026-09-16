@@ -256,9 +256,10 @@ class BasicVisitor(NodeVisitor):
             # relational operators and BASIC09 would refuse to load the
             # converted program.
             if is_boolean_valued(exp):
+                condition = node.children[2].text.strip()
                 raise ParseError(
-                    "Cannot mix a comparison with numeric operators: "
-                    f"{node.text.strip()}"
+                    "Cannot mix a comparison with numeric operators in an "
+                    f"IF condition: {condition}"
                 )
             exp = BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
         return BasicIf(exp, statements)
