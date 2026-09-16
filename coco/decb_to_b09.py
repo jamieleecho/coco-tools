@@ -73,6 +73,17 @@ def start(argv):
         help="if set don't run the default width 32",
     )
     parser.add_argument(
+        "-t",
+        "--terminal",
+        action="store_true",
+        help=(
+            "Skip the _ecb_start call so the program runs on a "
+            "typical console. _ecb_start programs the CoCo palette, "
+            "switches to 32 columns and sets the cursor color, none "
+            "of which apply to an ordinary terminal."
+        ),
+    )
+    parser.add_argument(
         "-c",
         "--config-file",
         type=str,
@@ -113,9 +124,15 @@ def start(argv):
     )
 
     args = parser.parse_args(argv)
-    procname = os.path.splitext(
-        os.path.basename(args.input_decb_text_program_file.name)
-    )[0]
+    # The procedure name comes from the input file name, which stdin
+    # does not have -- its .name is "<stdin>". Leave it empty there so
+    # the compiler falls back to its default procedure name.
+    input_file = args.input_decb_text_program_file
+    procname = (
+        ""
+        if input_file is sys.stdin
+        else os.path.splitext(os.path.basename(input_file.name))[0]
+    )
 
     no_optimize_vars = {
         name.strip() for name in args.no_optimize.split(",") if name.strip()
@@ -134,6 +151,7 @@ def start(argv):
         optimize=args.optimize,
         output_dependencies=not args.dont_output_dependencies,
         procname=procname,
+        terminal=args.terminal,
     )
     args.input_decb_text_program_file.close()
     args.output_b09_text_program_file.close()
