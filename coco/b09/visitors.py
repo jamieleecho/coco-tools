@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from fractions import Fraction
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 from coco import b09
@@ -15,6 +16,8 @@ from coco.b09.elements import (
     BasicArrayRef,
     BasicAssignment,
     BasicBinaryExp,
+    BasicBooleanBinaryExp,
+    BasicBooleanOpExp,
     BasicCls,
     BasicDataStatement,
     BasicDimStatement,
@@ -32,15 +35,18 @@ from coco.b09.elements import (
     BasicOnGoStatement,
     BasicOpExp,
     BasicParenExp,
+    BasicPoke,
     BasicPrintArgs,
     BasicPrintStatement,
     BasicReadStatement,
     BasicRunCall,
     BasicSound,
     BasicStatements,
+    BasicTabCall,
     BasicVar,
     BasicWidthStatement,
     HexLiteral,
+    numeric_literal_value,
 )
 
 if TYPE_CHECKING:
@@ -596,6 +602,135 @@ class BasicPrintStatementPatcherVisitor(BasicConstructVisitor):
         return BasicPrintStatement(BasicPrintArgs(print_args))
 
 
+class VarReferenceVisitor(BasicConstructVisitor):
+    """Records whether a scalar variable is read."""
+
+    def __init__(self, name: str):
+        self._name = name
+        self._found = False
+
+    @property
+    def found(self) -> bool:
+        return self._found
+
+    def visit_var(self, var: BasicVar) -> None:
+        self._found = self._found or var.name() == self._name
+
+
+class HoistedCallCounterVisitor(BasicConstructVisitor):
+    """Counts the functional expressions hoisted out of an expression."""
+
+    def __init__(self):
+        self._count = 0
+
+    @property
+    def count(self) -> int:
+        return self._count
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        if isinstance(exp, BasicFunctionalExpression) and exp.var is not None:
+            self._count += 1
+
+
+class ForLoopSemanticsVisitor(BasicConstructVisitor):
+    """Chooses between Color BASIC's and Basic09's ``FOR`` semantics.
+
+    See :class:`BasicForStatement`. With ``runs_at_least_once`` set,
+    it also notes which loops compute their bounds from the loop
+    variable, since those need the start assigned before the limit
+    is evaluated.
+    """
+
+    def __init__(self, runs_at_least_once: bool = True):
+        self._runs_at_least_once = runs_at_least_once
+
+    def visit_for_statement(self, for_statement: BasicForStatement) -> None:
+        for_statement.runs_at_least_once = self._runs_at_least_once
+        reference_visitor = VarReferenceVisitor(for_statement.var.name())
+        for exp in (
+            for_statement.start_exp,
+            for_statement.end_exp,
+            for_statement.step_exp,
+        ):
+            if exp is not None:
+                exp.visit(reference_visitor)
+        for_statement.bounds_read_var = reference_visitor.found
+        call_counter = HoistedCallCounterVisitor()
+        for_statement.start_exp.visit(call_counter)
+        for_statement.start_call_count = call_counter.count
+
+
+class TruncateRealArgsVisitor(BasicConstructVisitor):
+    """Truncates the real values Basic09 would otherwise round.
+
+    Wherever Color BASIC needs an integer -- an array subscript, the
+    argument of ``CHR$``, ``LEFT$``, ``MID$``, ``PEEK``, ``RIGHT$`` or
+    ``TAB``, the selector of ``ON ... GOTO``, the operands of ``AND``,
+    ``OR``, ``NOT`` and ``POKE`` -- it drops the fraction, so ``A(1.9)``
+    is ``A(1)``. Basic09 rounds instead and reads ``A(2)``. Expressions
+    that cannot be shown to hold a whole number are wrapped in
+    ``INT``, which truncates in Basic09.
+
+    For negative values Color BASIC rounds down, while ``INT``
+    rounds toward zero. The two differ only for a negative fraction,
+    which is an error in every one of these places except ``AND``,
+    ``OR`` and ``NOT``.
+    """
+
+    # The positions of the integer arguments of each function, or
+    # ``None`` for all of them.
+    _INTEGER_ARG_POSITIONS: Dict[str, Optional[tuple]] = {
+        "CHR$": None,
+        "LEFT$": (1,),
+        "MID$": (1, 2),
+        "PEEK": None,
+        "RIGHT$": (1,),
+    }
+
+    def __init__(self, integral_var_names: Set[str]):
+        self._integral_var_names = integral_var_names
+        self._integral_checker = IntegralVarVisitor()
+
+    def visit_array_ref(self, array_ref: BasicArrayRef) -> None:
+        array_ref.indices._exp_list = [
+            self._truncate(index) for index in array_ref.indices.exp_list
+        ]
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        if isinstance(exp, BasicTabCall):
+            exp.column = self._truncate(exp.column)
+        elif isinstance(exp, BasicFunctionCall):
+            if exp._func in self._INTEGER_ARG_POSITIONS:
+                positions = self._INTEGER_ARG_POSITIONS[exp._func]
+                exp._args._exp_list = [
+                    self._truncate(arg)
+                    if positions is None or position in positions
+                    else arg
+                    for position, arg in enumerate(exp._args.exp_list)
+                ]
+        elif isinstance(exp, BasicBinaryExp) and not isinstance(
+            exp, BasicBooleanBinaryExp
+        ):
+            if exp.operator in {"AND", "OR"}:
+                exp._exp1 = self._truncate(exp.exp1)
+                exp._exp2 = self._truncate(exp.exp2)
+        elif isinstance(exp, BasicOpExp) and not isinstance(exp, BasicBooleanOpExp):
+            if exp.operator == "NOT":
+                exp._exp = self._truncate(exp.exp)
+
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
+        if isinstance(statement, BasicOnGoStatement):
+            statement._exp = self._truncate(statement._exp)
+        elif isinstance(statement, BasicPoke):
+            statement._exp1 = self._truncate(statement._exp1)
+            statement._exp2 = self._truncate(statement._exp2)
+
+    def _truncate(self, exp: AbstractBasicExpression) -> AbstractBasicExpression:
+        if self._integral_checker.is_integral(exp, self._integral_var_names):
+            return exp
+        return BasicFunctionCall("INT", BasicExpressionList([exp]))
+
+
 class BasicNextPatcherVisitor(BasicConstructVisitor):
     def __init__(self):
         self.for_stack = []
@@ -758,13 +893,16 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
     """Coerces ``REAL`` arguments to ``INTEGER`` parameters of
     known procedures.
 
-    BASIC09 implicitly widens an ``INTEGER`` argument to a ``REAL``
-    parameter at a call site (the conversion is lossless), but it
-    will *not* implicitly truncate a ``REAL`` to an ``INTEGER``.
-    This visitor performs that explicit truncation by either
+    BASIC09 converts neither an ``INTEGER`` argument to a ``REAL``
+    parameter nor a ``REAL`` argument to an ``INTEGER`` parameter.
+    For ``INTEGER`` parameters this visitor performs the conversion
+    by either
     rewriting integer-valued ``BasicLiteral`` floats to genuine
     integer literals in place, or wrapping the argument with
-    ``fix(...)``.
+    ``fix(...)``. Because ``fix`` rounds, an argument that is not
+    known to be a whole number (per ``integral_var_names``) is
+    truncated with ``INT`` first: ``fix(INT(...))``. Integer-typed
+    arguments to ``REAL`` parameters are wrapped with ``float(...)``.
 
     The visitor walks ``BasicRunCall``, the patched
     ``BasicFunctionalExpression`` form (for things like
@@ -779,16 +917,30 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
     """
 
     _integer_var_names: Set[str]
+    _integral_var_names: Set[str]
     _signatures: Dict[str, "ProcedureSignature"]
+
+    # Basic09 functions whose result is an INTEGER.
+    _INTEGER_FUNCS: frozenset = frozenset(
+        {"asc", "fix", "land", "len", "lnot", "lor", "peek", "sgn"}
+    )
+
+    # Basic09 functions whose result has the type of their arguments.
+    _INTEGER_PASSTHROUGH_FUNCS: frozenset = frozenset({"abs", "mod", "sq"})
 
     def __init__(
         self,
         *,
         integer_var_names: Set[str],
         signatures: Dict[str, "ProcedureSignature"],
+        integral_var_names: Optional[Set[str]] = None,
     ):
         self._integer_var_names = integer_var_names
+        self._integral_var_names = (
+            integer_var_names if integral_var_names is None else integral_var_names
+        )
         self._signatures = signatures
+        self._integral_checker = IntegralVarVisitor()
 
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         if isinstance(statement, BasicRunCall):
@@ -872,14 +1024,21 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
     ) -> AbstractBasicExpression:
         """Return ``arg`` adapted to match ``param``'s declared
         type. Output parameters are returned unchanged because the
-        visitor cannot synthesize a temporary buffer; ``REAL``
-        input parameters are returned unchanged because Basic09
-        implicitly widens integers to reals at call sites.
+        visitor cannot synthesize a temporary buffer.
+
+        Basic09 does not widen an ``INTEGER`` argument to a ``REAL``
+        parameter: the procedure reads the integer's bytes as a real
+        and sees garbage (7 arrives as -.0288), so integer-typed
+        arguments to ``REAL`` parameters are wrapped in ``float``.
         """
         if param.is_output:
             return arg
         if param.is_integer:
             return self._coerce_to_integer(arg)
+        if param.is_real and self._is_integer_arg(arg):
+            if isinstance(arg, BasicLiteral):
+                return BasicLiteral(float(arg.literal))
+            return BasicFunctionCall("float", BasicExpressionList([arg]))
         return arg
 
     def _coerce_to_integer(
@@ -903,6 +1062,10 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             and arg.literal.is_integer()
         ):
             return BasicLiteral(int(arg.literal))
+        # ``fix`` rounds, where Color BASIC drops the fraction, so a
+        # value that may have one is truncated with ``INT`` first.
+        if not self._integral_checker.is_integral(arg, self._integral_var_names):
+            arg = BasicFunctionCall("INT", BasicExpressionList([arg]))
         return BasicFunctionCall("fix", BasicExpressionList([arg]))
 
     def _is_integer_arg(self, arg: AbstractBasicExpression) -> bool:
@@ -929,8 +1092,24 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             return isinstance(arg.literal, int) and not isinstance(arg.literal, bool)
         if isinstance(arg, HexLiteral):
             return not arg._is_float
+        if isinstance(arg, BasicParenExp):
+            return self._is_integer_arg(arg.exp)
+        if isinstance(arg, BasicOpExp):
+            return arg.operator == "NOT" or self._is_integer_arg(arg.exp)
+        if isinstance(arg, BasicBinaryExp):
+            if arg.operator in {"AND", "OR"}:
+                return True
+            return arg.operator in {"+", "-", "*", "/"} and all(
+                self._is_integer_arg(operand) for operand in (arg.exp1, arg.exp2)
+            )
+        if isinstance(arg, BasicFunctionalExpression):
+            return arg.var is not None and self._is_integer_arg(arg.var)
         if isinstance(arg, BasicFunctionCall):
-            return arg._func.strip().lower() == "fix"
+            func = arg._func.strip().lower()
+            if func in self._INTEGER_FUNCS:
+                return True
+            if func in self._INTEGER_PASSTHROUGH_FUNCS:
+                return all(self._is_integer_arg(a) for a in arg._args.exp_list)
         return False
 
     def _unwrap_float(self, arg: AbstractBasicExpression) -> AbstractBasicExpression:
@@ -1320,3 +1499,86 @@ class IntegerVarVisitor(BasicConstructVisitor):
                 return False
             return -32768 <= int(value) <= 32767
         return False
+
+
+class IntegralVarVisitor(IntegerVarVisitor):
+    """Collects the numeric variables and arrays that only ever hold
+    whole numbers, whatever their size.
+
+    This is :class:`IntegerVarVisitor` without the 16-bit range limit:
+    it answers whether a value can have a fraction, not whether it fits
+    in a Basic09 ``INTEGER``.
+    """
+
+    @staticmethod
+    def _is_int16_value(value: object) -> bool:
+        # Any whole number will do, whatever its size.
+        if isinstance(value, bool):
+            return False
+        if isinstance(value, int):
+            return True
+        if isinstance(value, float):
+            return value.is_integer()
+        return False
+
+    def is_integral(
+        self, exp: AbstractBasicExpression, integral_var_names: Set[str]
+    ) -> bool:
+        """Return True iff ``exp`` is statically known to evaluate to a
+        whole number, given that every variable in
+        ``integral_var_names`` holds one."""
+        if isinstance(exp, BasicVar) and "." in exp.name():
+            # Record fields (``display.hfore``) are all BYTEs.
+            return True
+        value = self._constant_value(exp)
+        if value is not None:
+            return value.denominator == 1
+        return self._is_integer_exp(exp, integral_var_names)
+
+    def _is_integer_exp(
+        self,
+        exp: AbstractBasicExpression,
+        candidates: Set[str],
+    ) -> bool:
+        # ``LAND``, ``LOR`` and ``LNOT`` yield whole numbers whatever
+        # their operands hold.
+        if (
+            isinstance(exp, BasicBinaryExp)
+            and not isinstance(exp, BasicBooleanBinaryExp)
+            and exp.operator in {"AND", "OR"}
+        ) or (
+            isinstance(exp, BasicOpExp)
+            and not isinstance(exp, BasicBooleanOpExp)
+            and exp.operator == "NOT"
+        ):
+            return True
+        return super()._is_integer_exp(exp, candidates)
+
+    @classmethod
+    def _constant_value(cls, exp: AbstractBasicExpression) -> Optional[Fraction]:
+        """Return the exact value of an arithmetic expression over
+        numeric literals, or ``None`` if ``exp`` is anything else."""
+        if isinstance(exp, (BasicLiteral, HexLiteral)):
+            value = numeric_literal_value(exp)
+            if value is not None:
+                return Fraction(value)
+        if isinstance(exp, BasicParenExp):
+            return cls._constant_value(exp.exp)
+        if isinstance(exp, BasicOpExp) and exp.operator in {"-", "+"}:
+            inner = cls._constant_value(exp.exp)
+            if inner is None:
+                return None
+            return -inner if exp.operator == "-" else inner
+        if isinstance(exp, BasicBinaryExp) and exp.operator in {"+", "-", "*", "/"}:
+            left = cls._constant_value(exp.exp1)
+            right = cls._constant_value(exp.exp2)
+            if left is None or right is None:
+                return None
+            if exp.operator == "+":
+                return left + right
+            if exp.operator == "-":
+                return left - right
+            if exp.operator == "*":
+                return left * right
+            return left / right if right else None
+        return None

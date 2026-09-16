@@ -110,6 +110,35 @@ NEXT BB
 * `PRINT TAB` columns are renumbered. Color BASIC counts the leftmost column
   as 0 and BASIC09 counts it as 1, so `TAB(30)` is converted to `TAB(31.0)` and
   `TAB(A)` to `TAB(A + 1.0)`.
+* `FOR` loops run at least once, as they do in Color BASIC, which only tests
+  the limit at `NEXT`. BASIC09 tests it before the first pass, so
+  `FOR B = 1 TO 0` would skip the body. A loop whose limit is not a literal
+  gets its limit computed into `tmp_to` (and a variable step into `tmp_step`)
+  and raised or lowered to the start when the start is already past it:
+
+```basic09
+tmp_to := arr_F(U) \ IF 1.0 > tmp_to THEN \ tmp_to := 1.0 \ ENDIF \ FOR B = 1.0 TO tmp_to
+```
+
+  This departs from Color BASIC only if the body of a loop that started past
+  its limit changes the loop variable. Pass `--basic09-for-loops` to emit loops
+  unchanged, with BASIC09's semantics.
+* Fractions are dropped wherever Color BASIC needs a whole number, because
+  BASIC09 rounds in the same places: `A(1.9)` is `A(1)` in Color BASIC and
+  `A(2)` in BASIC09. Array subscripts, the arguments of `CHR$`, `LEFT$`,
+  `MID$`, `PEEK`, `RIGHT$` and `TAB`, the selector of `ON ... GOTO/GOSUB`, the
+  operands of `AND`, `OR`, `NOT` and `POKE`, and the `INTEGER` parameters of
+  the `ecb_*` procedures are wrapped in `INT(...)` (`fix(INT(...))` for the
+  parameters) unless they can be shown to hold a whole number, so `A(I)` in a
+  `FOR I` loop is left alone but `A(X / 2)` becomes `arr_A(INT(X / 2.0))`.
+  `INT` truncates toward zero, while Color BASIC rounds negative values down;
+  that only matters for negative fractions, which are errors everywhere but
+  `AND`, `OR` and `NOT`.
+* `FIX` is converted to BASIC09's `INT`. BASIC09's `FIX` rounds, while its
+  `INT` truncates toward zero like Color BASIC's `FIX`. Color BASIC's `INT`
+  rounds down and is converted to a call to `ecb_int`.
+* `^` is inexact in both Color BASIC and BASIC09 (see
+  [Exact powers](#exact-powers---exact-powers)).
 * `PEEK` and `POKE` are supported ... but with great power comes great
   responsibility.
 * `POKE 65497, 0` tells `PLAY` and `SOUND` to play an octave higher.
@@ -233,6 +262,29 @@ Two things to know before reaching for it:
   and keys read by `INKEY$` echo until the first `INPUT` turns `eko` off. Run
   `tmode pau=0 eko=0 upc=0` yourself before the program if that matters.
 
+## Exact powers (`--exact-powers`)
+
+Color BASIC and BASIC09 both compute `X ^ Y` through logarithms, so the result
+is slightly off even for small whole numbers. In BASIC09 `2 ^ 7` is
+128.0000002 and `2 ^ 9` is 512.000001; in Color BASIC every power from `2 ^ 1`
+to `2 ^ 9` is a little high. The two are wrong in different places, so a program
+that depends on exact powers breaks differently in each. BANNER, for example,
+decodes its letters bit by bit and tests `S(U) = 1` after subtracting `2 ^ K`,
+which never matches, so its letters come out garbled on a CoCo and garbled in
+another way under BASIC09.
+
+`--exact-powers` converts `^` into a call to `ecb_pow`, which multiplies whole
+number exponents out exactly and uses `^` for everything else. Like any
+function the transpiler replaces with a procedure, the call is hoisted in front
+of the statement that uses it:
+
+```basic09
+RUN ecb_pow(2.0, K, tmp_1) \ IF tmp_1 < arr_S(U) THEN 270
+```
+
+This is not what Color BASIC does, so it is off by default. Use it for programs
+that were written for a BASIC with exact powers, such as BANNER.
+
 ## Real-to-integer optimization (`-O`)
 
 By default every numeric variable and array is emitted as a BASIC09 `REAL`,
@@ -267,9 +319,11 @@ procedures: most of them now declare their numeric input parameters as
 `ecb_hex`, where the type is load-bearing). At every call site:
 
 * an integer-valued literal is rewritten in place (`5.0` → `5`),
-* a real-typed variable or expression is wrapped with `fix(...)`,
-* an integer variable passed to a `REAL` slot is left alone — BASIC09
-  implicitly widens `INTEGER` to `REAL` at call sites,
+* a real-typed variable or expression is wrapped with `fix(...)`, or with
+  `fix(INT(...))` if it might hold a fraction, since `fix` rounds,
+* an integer-typed variable or expression passed to a `REAL` slot is wrapped
+  with `float(...)`. BASIC09 does not widen it: the procedure would read the
+  integer's bytes as a real and see garbage,
 * a redundant `float(x)` wrapper is unwrapped before re-coercing back to
   integer, so e.g. `HCIRCLE` emits `display.hfore` directly instead of
   `fix(float(display.hfore))`.

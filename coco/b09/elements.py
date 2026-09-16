@@ -865,6 +865,7 @@ class BasicFunctionCall(AbstractBasicExpression):
         return f"{self._func}{self._args.basic09_text(indent_level)}"
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_exp(self)
         # Descend into the arguments so that visitors which collect
         # variables (e.g. VarInitializerVisitor) still see vars
         # that have been wrapped in fix() / float() coercion calls.
@@ -903,29 +904,146 @@ class BasicKeywordStatement(AbstractBasicStatement):
         visitor.visit_statement(self)
 
 
+def numeric_literal_value(exp: AbstractBasicExpression) -> float | None:
+    """Return the value of ``exp`` if it is a numeric literal, possibly
+    signed, and ``None`` otherwise."""
+    if isinstance(exp, BasicOpExp) and exp.operator in {"-", "+"}:
+        val = numeric_literal_value(exp.exp)
+        if val is None:
+            return None
+        return -val if exp.operator == "-" else val
+    if isinstance(exp, BasicLiteral) and not isinstance(exp.literal, (str, bool)):
+        return float(exp.literal)
+    if isinstance(exp, HexLiteral):
+        return float(exp.literal)
+    return None
+
+
 class BasicForStatement(AbstractBasicStatement):
+    """``FOR`` with Color BASIC's at-least-once semantics.
+
+    Color BASIC tests the limit in ``NEXT``, so the body always runs
+    at least once -- ``FOR B=1 TO 0`` runs it with ``B`` equal to 1.
+    Basic09 tests the limit before the first iteration and skips the
+    body entirely. To keep Color BASIC's behavior, a loop whose start
+    is already past its limit gets the start as its limit, so it runs
+    exactly once. When the bounds are literals this is decided here;
+    otherwise the limit is computed into ``tmp_to`` and adjusted at
+    run time. Basic09 evaluates the limit and step once, when the
+    loop starts, so the temporaries can be reused by later loops.
+
+    Setting :attr:`runs_at_least_once` to ``False`` emits the loop
+    as written, with Basic09's semantics.
+    """
+
+    LIMIT_VAR = "tmp_to"
+    STEP_VAR = "tmp_step"
+
     def __init__(self, var, start_exp, end_exp, step_exp=None):
         super().__init__()
         self._var = var
         self._start_exp = start_exp
         self._end_exp = end_exp
         self._step_exp = step_exp
+        self._runs_at_least_once = True
+        self._bounds_read_var = False
+        self._start_call_count = 0
 
     @property
     def var(self):
         return self._var
 
+    @property
+    def runs_at_least_once(self) -> bool:
+        return self._runs_at_least_once
+
+    @runs_at_least_once.setter
+    def runs_at_least_once(self, val: bool) -> None:
+        self._runs_at_least_once = val
+
+    @property
+    def start_exp(self) -> AbstractBasicExpression:
+        return self._start_exp
+
+    @property
+    def end_exp(self) -> AbstractBasicExpression:
+        return self._end_exp
+
+    @property
+    def step_exp(self) -> AbstractBasicExpression | None:
+        return self._step_exp
+
+    @property
+    def bounds_read_var(self) -> bool:
+        """Whether the start, limit or step expression reads the loop
+        variable, which makes the order they are evaluated in matter."""
+        return self._bounds_read_var
+
+    @bounds_read_var.setter
+    def bounds_read_var(self, val: bool) -> None:
+        self._bounds_read_var = val
+
+    @property
+    def start_call_count(self) -> int:
+        """How many of the calls hoisted in front of the loop come
+        from the start expression. They come first, followed by the
+        ones from the limit and the step."""
+        return self._start_call_count
+
+    @start_call_count.setter
+    def start_call_count(self, val: int) -> None:
+        self._start_call_count = val
+
     def basic09_text(self, indent_level: int) -> str:
-        return (
-            f"{super().basic09_text(indent_level - 1)}FOR "
-            f"{self._var.basic09_text(indent_level)} = "
-            f"{self._start_exp.basic09_text(indent_level)} TO "
-            f"{self._end_exp.basic09_text(indent_level)}"
-            + (
-                f" STEP {self._step_exp.basic09_text(indent_level)}"
-                if self._step_exp
-                else ""
+        start = self._start_exp.basic09_text(indent_level)
+        end = self._end_exp.basic09_text(indent_level)
+        step = self._step_exp.basic09_text(indent_level) if self._step_exp else None
+        statements: List[str] = [
+            statement.basic09_text(0) for statement in self.pre_assignment_statements
+        ]
+
+        if self._runs_at_least_once:
+            start_val = numeric_literal_value(self._start_exp)
+            end_val = numeric_literal_value(self._end_exp)
+            step_val = (
+                1.0 if self._step_exp is None else numeric_literal_value(self._step_exp)
             )
+            if start_val is not None and end_val is not None and step_val is not None:
+                if start_val > end_val if step_val >= 0 else start_val < end_val:
+                    end = start
+            else:
+                var = self._var.basic09_text(indent_level)
+                # Color BASIC assigns the start before it evaluates the
+                # limit and step, and the adjustment below reads the
+                # start again, so anything but a literal or a plain
+                # variable is assigned to the loop variable first.
+                if self._bounds_read_var or not (
+                    start_val is not None or isinstance(self._start_exp, BasicVar)
+                ):
+                    # Calls hoisted out of the limit and step go after
+                    # the assignment, since they may read the variable.
+                    statements.insert(self._start_call_count, f"{var} := {start}")
+                    start = var
+                limit = self.LIMIT_VAR
+                statements.append(f"{limit} := {end}")
+                end = limit
+                if step is not None and step_val is None:
+                    statements.append(f"{self.STEP_VAR} := {step}")
+                    step = self.STEP_VAR
+                    condition = (
+                        f"({step} >= 0.0 AND {start} > {limit}) OR "
+                        f"({step} < 0.0 AND {start} < {limit})"
+                    )
+                else:
+                    assert step_val is not None
+                    condition = f"{start} {'>' if step_val >= 0 else '<'} {limit}"
+                statements.append(f"IF {condition} THEN \\ {limit} := {start} \\ ENDIF")
+
+        return (
+            self.indent_spaces(indent_level - 1)
+            + "".join(f"{statement} \\ " for statement in statements)
+            + f"FOR {self._var.basic09_text(indent_level)} = {start} TO {end}"
+            + (f" STEP {step}" if step is not None else "")
         )
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
@@ -1026,11 +1144,18 @@ class BasicTabCall(BasicFunctionCall):
     )
 
     def __init__(self, exp: AbstractBasicExpression):
-        super().__init__(
-            "TAB",
-            BasicExpressionList([self._to_basic09_column(exp)]),
-            is_str_expr=True,
-        )
+        super().__init__("TAB", BasicExpressionList([]), is_str_expr=True)
+        self.column = exp
+
+    @property
+    def column(self) -> AbstractBasicExpression:
+        """The Color BASIC column, before it is renumbered."""
+        return self._column
+
+    @column.setter
+    def column(self, exp: AbstractBasicExpression) -> None:
+        self._column = exp
+        self._args = BasicExpressionList([self._to_basic09_column(exp)])
 
     @classmethod
     def _to_basic09_column(

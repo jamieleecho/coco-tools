@@ -503,6 +503,7 @@ class TestB09(unittest.TestCase):
         initialize_vars=False,
         output_dependencies=False,
         skip_procedure_headers=True,
+        **kwargs,
     ):
         b09_prog = compiler.convert(
             progin,
@@ -513,6 +514,7 @@ class TestB09(unittest.TestCase):
             initialize_vars=initialize_vars,
             output_dependencies=output_dependencies,
             skip_procedure_headers=skip_procedure_headers,
+            **kwargs,
         )
         assert b09_prog == progout + "\n"
 
@@ -1955,3 +1957,213 @@ class TestB09(unittest.TestCase):
     def test_rejects_comparison_mixed_with_and_in_if(self) -> None:
         with self.assertRaises(ParseError):
             compiler.convert("10 IF A AND B<C THEN 20\n20 END")
+
+    def test_for_that_runs_is_unchanged(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = 10 TO 1 STEP -1\n20 NEXT I",
+            "10 FOR I = 10.0 TO 1.0 STEP -1.0\n20 NEXT I",
+        )
+
+    def test_for_past_its_limit_runs_once(self) -> None:
+        # Color BASIC runs the body of FOR I=10 TO 1 once; Basic09
+        # would skip it.
+        self.generic_test_parse(
+            "10 FOR I = 10 TO 1\n20 NEXT I",
+            "10 FOR I = 10.0 TO 10.0\n20 NEXT I",
+        )
+        self.generic_test_parse(
+            "10 FOR I = 1 TO 10 STEP -1\n20 NEXT I",
+            "10 FOR I = 1.0 TO 1.0 STEP -1.0\n20 NEXT I",
+        )
+
+    def test_for_with_variable_limit_runs_at_least_once(self) -> None:
+        self.generic_test_parse(
+            "10 FOR B = 1 TO F(U)\n20 NEXT B",
+            "DIM arr_F(11)\n"
+            "10 tmp_to := arr_F(U) \\ IF 1.0 > tmp_to THEN \\ tmp_to := 1.0 "
+            "\\ ENDIF \\ FOR B = 1.0 TO tmp_to\n"
+            "20 NEXT B",
+        )
+
+    def test_for_with_negative_step_and_variable_limit(self) -> None:
+        self.generic_test_parse(
+            "10 FOR K = N TO 0 STEP -2\n20 NEXT K",
+            "10 tmp_to := 0.0 \\ IF N < tmp_to THEN \\ tmp_to := N "
+            "\\ ENDIF \\ FOR K = N TO tmp_to STEP -2.0\n"
+            "20 NEXT K",
+        )
+
+    def test_for_with_variable_step(self) -> None:
+        self.generic_test_parse(
+            "10 FOR K = 1 TO 5 STEP S\n20 NEXT K",
+            "10 tmp_to := 5.0 \\ tmp_step := S \\ "
+            "IF (tmp_step >= 0.0 AND 1.0 > tmp_to) OR "
+            "(tmp_step < 0.0 AND 1.0 < tmp_to) THEN \\ tmp_to := 1.0 "
+            "\\ ENDIF \\ FOR K = 1.0 TO tmp_to STEP tmp_step\n"
+            "20 NEXT K",
+        )
+
+    def test_for_assigns_computed_start_first(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = A + 1 TO N\n20 NEXT I",
+            "10 I := A + 1.0 \\ tmp_to := N \\ IF I > tmp_to THEN "
+            "\\ tmp_to := I \\ ENDIF \\ FOR I = I TO tmp_to\n"
+            "20 NEXT I",
+        )
+
+    def test_for_assigns_start_before_limit_that_reads_the_var(self) -> None:
+        # Color BASIC assigns I before it evaluates I + 5.
+        self.generic_test_parse(
+            "10 FOR I = 1 TO I + 5\n20 NEXT I",
+            "10 I := 1.0 \\ tmp_to := I + 5.0 \\ IF I > tmp_to THEN "
+            "\\ tmp_to := I \\ ENDIF \\ FOR I = I TO tmp_to\n"
+            "20 NEXT I",
+        )
+
+    def test_for_assigns_start_before_hoisted_calls_that_read_the_var(self) -> None:
+        # INT(I) must see I after it is set to INT(X), as in Color BASIC.
+        self.generic_test_parse(
+            "10 FOR I = INT(X) TO INT(I) STEP 2 ^ I\n20 NEXT I",
+            "10 RUN ecb_int(X, tmp_1) \\ I := tmp_1 \\ RUN ecb_int(I, tmp_2) \\ "
+            "RUN ecb_pow(2.0, I, tmp_3) \\ tmp_to := tmp_2 \\ "
+            "tmp_step := tmp_3 \\ "
+            "IF (tmp_step >= 0.0 AND I > tmp_to) OR (tmp_step < 0.0 AND I < tmp_to) "
+            "THEN \\ tmp_to := I \\ ENDIF \\ FOR I = I TO tmp_to STEP tmp_step\n"
+            "20 NEXT I",
+            exact_powers=True,
+        )
+
+    def test_for_limit_after_hoisted_function(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = 1 TO INT(N)\n20 NEXT I",
+            "10 RUN ecb_int(N, tmp_1) \\ tmp_to := tmp_1 \\ "
+            "IF 1.0 > tmp_to THEN \\ tmp_to := 1.0 \\ ENDIF \\ "
+            "FOR I = 1.0 TO tmp_to\n"
+            "20 NEXT I",
+        )
+
+    def test_basic09_for_loops(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = 10 TO 1\n20 FOR J = 1 TO N\n30 NEXT J, I",
+            "10 FOR I = 10.0 TO 1.0\n20   FOR J = 1.0 TO N\n30 NEXT J \\ NEXT I",
+            basic09_for_loops=True,
+        )
+
+    def test_cli_basic09_for_loops(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = os.path.join(tmpdir, "loop.bas")
+            with open(src, "w") as f:
+                f.write("10 FOR I = 1 TO N\n20 NEXT I\n")
+            programs = []
+            for flags in ([], ["--basic09-for-loops"]):
+                out = os.path.join(tmpdir, "loop.b09")
+                decb_to_b09.start([*flags, src, out])
+                with open(out) as f:
+                    programs.append(f.read().replace("\r", "\n"))
+        assert "FOR I = 1.0 TO tmp_to" in programs[0]
+        assert "FOR I = 1.0 TO N" in programs[1]
+
+    def test_truncates_array_subscripts(self) -> None:
+        self.generic_test_parse(
+            "10 INPUT X\n20 A(X / 2) = A(4 / 2) + A(3 / 2)",
+            "DIM arr_A(11)\n"
+            '10 RUN _ecb_input_prefix \\ INPUT "? ", X \\ RUN _ecb_input_suffix\n'
+            "20 arr_A(INT(X / 2.0)) := arr_A(4.0 / 2.0) + arr_A(INT(3.0 / 2.0))",
+        )
+
+    def test_leaves_whole_number_subscripts_alone(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = 1 TO 3\n20 A(9 - I) = A(I * 2)\n30 NEXT I",
+            "DIM arr_A(11)\n"
+            "10 FOR I = 1.0 TO 3.0\n"
+            "20   arr_A(9.0 - I) := arr_A(I * 2.0)\n"
+            "30 NEXT I",
+        )
+
+    def test_truncates_string_function_args(self) -> None:
+        self.generic_test_parse(
+            "10 READ X\n"
+            "20 B$ = CHR$(X) + LEFT$(A$, X) + RIGHT$(A$, X) + MID$(A$, X, X)\n"
+            "30 Y = PEEK(X)",
+            "10 READ X\n"
+            "20 B$ := CHR$(INT(X)) + LEFT$(A$, INT(X)) + RIGHT$(A$, INT(X)) "
+            "+ MID$(A$, INT(X), INT(X))\n"
+            "30 Y := PEEK(INT(X))",
+        )
+
+    def test_truncates_computed_string_function_args(self) -> None:
+        self.generic_test_parse(
+            "10 READ X\n20 B$ = CHR$(X + 1) + LEFT$(A$, X / 2)",
+            "10 READ X\n20 B$ := CHR$(INT(X + 1.0)) + LEFT$(A$, INT(X / 2.0))",
+        )
+
+    def test_for_keeps_signed_literal_start(self) -> None:
+        self.generic_test_parse(
+            "10 FOR I = -1 TO N\n20 NEXT I",
+            "10 tmp_to := N \\ IF -1.0 > tmp_to THEN \\ tmp_to := -1.0 "
+            "\\ ENDIF \\ FOR I = -1.0 TO tmp_to\n"
+            "20 NEXT I",
+        )
+
+    def test_truncates_tab_before_renumbering(self) -> None:
+        self.generic_test_parse(
+            '10 PRINT TAB(X / 2);"X"',
+            '10 PRINT TAB(INT(X / 2.0) + 1.0); "X"',
+        )
+
+    def test_truncates_on_goto_poke_and_logical_operands(self) -> None:
+        self.generic_test_parse(
+            "10 READ X\n20 ON X GOTO 10\n30 POKE X, X\n40 Y = (NOT X) OR X AND 3",
+            "10 READ X\n"
+            "20 ON INT(X) GOTO 10\n"
+            "30 POKE INT(X), INT(X)\n"
+            "40 Y := LOR((LNOT(INT(X))), LAND(INT(X), 3.0))",
+        )
+
+    def test_fix_truncates(self) -> None:
+        # Basic09's FIX rounds; its INT truncates toward zero, as
+        # Color BASIC's FIX does.
+        self.generic_test_parse("10 A = FIX(B)", "10 A := INT(B)")
+
+    def test_integer_params_truncate(self) -> None:
+        self.generic_test_parse(
+            "10 READ X\n20 SOUND X, 1",
+            "10 READ X\n20 RUN ecb_sound(fix(INT(X)), 1, 31, FIX(play.octo))",
+        )
+
+    def test_optimize_passes_integers_to_real_params_as_reals(self) -> None:
+        # Basic09 does not widen an INTEGER argument to a REAL
+        # parameter; the procedure would read garbage.
+        program = compiler.convert(
+            "10 FOR I = 1 TO 3\n20 SET(I, I * 2, 1)\n30 NEXT I\n",
+            optimize=True,
+        )
+        # I * 2.0 mixes in a real literal, so it is already a real.
+        assert "RUN ecb_set(float(I), I * 2.0, 1.0)" in program
+
+    def test_exact_powers(self) -> None:
+        self.generic_test_parse(
+            "10 A = 2 ^ K\n20 IF 2 ^ K < S THEN 10",
+            "10 RUN ecb_pow(2.0, K, A)\n"
+            "20 RUN ecb_pow(2.0, K, tmp_1) \\ IF tmp_1 < S THEN 10",
+            exact_powers=True,
+        )
+
+    def test_exact_powers_left_to_right(self) -> None:
+        self.generic_test_parse(
+            "10 A = B ^ C ^ D",
+            "10 RUN ecb_pow(B, C, tmp_1) \\ RUN ecb_pow(tmp_1, D, A)",
+            exact_powers=True,
+        )
+
+    def test_powers_use_operator_by_default(self) -> None:
+        self.generic_test_parse("10 A = 2 ^ K", "10 A := 2.0 ^ K")
+
+    def test_exact_powers_outputs_ecb_pow(self) -> None:
+        program = compiler.convert(
+            "10 A = 2 ^ K",
+            procname="pow",
+            output_dependencies=True,
+            exact_powers=True,
+        )
+        assert "procedure ecb_pow\n" in program

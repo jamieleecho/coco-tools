@@ -111,6 +111,26 @@ def start(argv):
         ),
     )
     parser.add_argument(
+        "--basic09-for-loops",
+        action="store_true",
+        help=(
+            "Emit FOR loops with BASIC09's semantics, which skip the "
+            "body when the start is already past the limit. By "
+            "default loops keep Color BASIC's semantics and run the "
+            "body at least once."
+        ),
+    )
+    parser.add_argument(
+        "--exact-powers",
+        action="store_true",
+        help=(
+            "Compute X^Y exactly when Y is a whole number. Like Color "
+            "BASIC's, BASIC09's ^ is slightly off even for small "
+            "integers (2^7 is 128.0000002), which breaks programs "
+            "that compare powers of 2 for equality."
+        ),
+    )
+    parser.add_argument(
         "--no-optimize",
         type=str,
         default="",
@@ -141,9 +161,11 @@ def start(argv):
     convert_file(
         args.input_decb_text_program_file,
         args.output_b09_text_program_file,
+        basic09_for_loops=args.basic09_for_loops,
         config_file=args.config_file,
         default_width32=not args.dont_run_width_32,
         default_str_storage=args.default_string_storage,
+        exact_powers=args.exact_powers,
         filter_unused_linenum=args.filter_unused_linenum,
         initialize_vars=not args.dont_initialize_vars,
         list_integer_candidates=args.list_integer_candidates,
