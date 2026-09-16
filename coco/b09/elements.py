@@ -461,12 +461,15 @@ class BasicIfElse(BasicIf):
             self._else_statements.visit(visitor)
 
     def basic09_text(self, indent_level: int) -> str:
+        # Each condition is preceded by the calls hoisted out of it, which
+        # ``AbstractBasicStatement.basic09_text`` emits.
         if self._else_if_statements:
             all_if_statements = [self] + self._else_if_statements
 
             exit_statements: str = "\n".join(
                 (
-                    f"{self.indent_spaces(indent_level + 1)}EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
+                    f"{AbstractBasicStatement.basic09_text(ifstmnt, indent_level + 1)}"
+                    f"EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
                     f"{ifstmnt.statements.basic09_text(indent_level + 2)}\n"
                     f"{self.indent_spaces(indent_level + 1)}ENDEXIT"
                     for ifstmnt in all_if_statements
@@ -494,7 +497,8 @@ class BasicIfElse(BasicIf):
         )
         suffix = else_suffix + f"{self.indent_spaces(indent_level)}ENDIF"
         return (
-            f"{self.indent_spaces(indent_level)}IF {self.exp.basic09_text(0)} THEN\n"
+            f"{AbstractBasicStatement.basic09_text(self, indent_level)}"
+            f"IF {self.exp.basic09_text(0)} THEN\n"
             f"{self.statements.basic09_text(indent_level + 1)}\n"
         ) + suffix
 

@@ -1699,7 +1699,8 @@ class TestB09(unittest.TestCase):
     def test_int_lvalue(self) -> None:
         self.generic_test_parse(
             "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
-            "100 IF WW = 1.0 AND tmp_1 > 0.0 THEN\n  GOTO 100\nELSE\n  GOTO 100\nENDIF",
+            "100 RUN ecb_int(WW, tmp_1) \\ IF WW = 1.0 AND tmp_1 > 0.0 THEN\n"
+            "  GOTO 100\nELSE\n  GOTO 100\nENDIF",
         )
 
     def test_partial_str_assign(self) -> None:
@@ -2286,3 +2287,30 @@ class TestB09(unittest.TestCase):
             with self.assertRaises(ParseError) as context:
                 compiler.convert(progin)
             assert str(context.exception) == message
+
+    def test_if_else_conditions_keep_their_hoisted_calls(self) -> None:
+        self.generic_test_parse(
+            "10 IF INT(X) > 1 THEN A = 1 ELSE A = INT(Y)",
+            "10 RUN ecb_int(X, tmp_1) \\ IF tmp_1 > 1.0 THEN\n"
+            "  A := 1.0\n"
+            "ELSE\n"
+            "  RUN ecb_int(Y, A)\n"
+            "ENDIF",
+        )
+        # Each ELSE IF condition is evaluated only once the ones before
+        # it have failed.
+        self.generic_test_parse(
+            "10 IF A = 1 THEN 20 ELSE IF INT(X) > 1 THEN A = 1 ELSE A = 2\n20 END",
+            "10 LOOP\n"
+            "  EXITIF A = 1.0 THEN\n"
+            "    GOTO 20\n"
+            "  ENDEXIT\n"
+            "  RUN ecb_int(X, tmp_1) \\ EXITIF tmp_1 > 1.0 THEN\n"
+            "    A := 1.0\n"
+            "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
+            "    A := 2.0\n"
+            "  ENDEXIT\n"
+            "ENDLOOP\n"
+            "20 END",
+        )
