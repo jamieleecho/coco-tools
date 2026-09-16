@@ -74,7 +74,9 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 * `NOT (A) + 1` is parsed correctly as `NOT((A) + 1)` or `LNOT((A) + 1)`
 * Unary `+` and `-` bind more tightly than every binary operator except `^`,
   matching Color BASIC. So `-A <= B` is parsed as `(-A) <= B` and `-A ^ B` is
-  parsed as `-(A ^ B)`.
+  parsed as `-(A ^ B)`. `NOT` is the exception: it binds too loosely to be a
+  sign's operand at all, so a sign in front of it keeps `NOT`'s wide binding
+  and `-NOT A + B` is parsed as `-(NOT(A + B))`.
 * BASIC09 treats boolean operations differently than Color BASIC which
   largely treats them identically to numeric binary operations.
   Specifically, BASIC09 has keywords for boolean operations (AND, OR, NOT)
