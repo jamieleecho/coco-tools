@@ -31,8 +31,10 @@ from coco.b09.visitors import (
     BasicReadStatementPatcherVisitor,
     CoerceIntegerArgsVisitor,
     DeclareImplicitArraysVisitor,
+    ForLoopSemanticsVisitor,
     GetDimmedArraysVisitor,
     IntegerVarVisitor,
+    IntegralVarVisitor,
     JoystickVisitor,
     LineNumberCheckerVisitor,
     LineNumberFilterVisitor,
@@ -44,6 +46,7 @@ from coco.b09.visitors import (
     SetIntegerDimVisitor,
     StatementCollectorVisitor,
     StrVarAllocatorVisitor,
+    TruncateRealArgsVisitor,
     VarInitializerVisitor,
 )
 
@@ -76,9 +79,11 @@ def convert(
     *,
     add_standard_prefix: bool = True,
     add_suffix: bool = True,
+    basic09_for_loops: bool = False,
     compiler_configs: CompilerConfigs | None = None,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     default_width32: bool = True,
+    exact_powers: bool = False,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
     no_optimize_vars: "set[str] | None" = None,
@@ -90,7 +95,7 @@ def convert(
 ) -> str:
     compiler_configs = compiler_configs or CompilerConfigs()
     tree = grammar.parse(progin)
-    bv = BasicVisitor()
+    bv = BasicVisitor(exact_powers=exact_powers)
     basic_prog: BasicProg = bv.visit(tree)
 
     if add_standard_prefix:
@@ -218,6 +223,13 @@ def convert(
     signature_bank = ProcedureBank()
     signature_bank.add_from_resource("ecb.b09")
 
+    # Which variables only ever hold whole numbers. Values that might
+    # not are truncated wherever Color BASIC would truncate them, since
+    # Basic09 rounds there instead.
+    integral_visitor = IntegralVarVisitor(signatures=signature_bank.signatures)
+    basic_prog.visit(integral_visitor)
+    integral_var_names = integral_visitor.integer_vars
+
     integer_var_names: set[str] = set()
     if optimize:
         int_visitor = IntegerVarVisitor(signatures=signature_bank.signatures)
@@ -252,9 +264,12 @@ def convert(
     basic_prog.visit(
         CoerceIntegerArgsVisitor(
             integer_var_names=integer_var_names,
+            integral_var_names=integral_var_names,
             signatures=signature_bank.signatures,
         )
     )
+    basic_prog.visit(TruncateRealArgsVisitor(integral_var_names))
+    basic_prog.visit(ForLoopSemanticsVisitor(runs_at_least_once=not basic09_for_loops))
     if integer_var_names:
         basic_prog.visit(RewriteIntegerLiteralsVisitor(integer_var_names))
 
@@ -392,9 +407,11 @@ def convert_file(
     output_program_file: IO[str],
     *,
     add_standard_prefix: bool = True,
+    basic09_for_loops: bool = False,
     config_file: str | None = None,
     default_width32: bool = True,
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
+    exact_powers: bool = False,
     filter_unused_linenum: bool = False,
     initialize_vars: bool = False,
     list_integer_candidates: bool = False,
@@ -419,9 +436,11 @@ def convert_file(
     progout = convert(
         progin,
         add_standard_prefix=add_standard_prefix,
+        basic09_for_loops=basic09_for_loops,
         compiler_configs=compiler_configs,
         default_str_storage=default_str_storage,
         default_width32=default_width32,
+        exact_powers=exact_powers,
         filter_unused_linenum=filter_unused_linenum,
         initialize_vars=initialize_vars,
         no_optimize_vars=no_optimize_vars,

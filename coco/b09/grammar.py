@@ -50,7 +50,8 @@ FUNCTIONS = {
     "ATN": "ATN",
     "COS": "COS",
     "EXP": "EXP",
-    "FIX": "FIX",
+    # Basic09's FIX rounds; its INT truncates like Color BASIC's FIX.
+    "FIX": "INT",
     "LEN": "LEN",
     "LOG": "LOG",
     "PEEK": "PEEK",

@@ -112,6 +112,14 @@ class BasicVisitor(NodeVisitor):
     # bury them in a VisitationError full of parse tree dumps.
     unwrapped_exceptions = (ParseError,)
 
+    def __init__(self, *, exact_powers: bool = False):
+        super().__init__()
+        # Replace ``^`` with ``ecb_pow``, which multiplies out whole
+        # number exponents. ``^`` works through logarithms, so even
+        # ``2 ^ 7`` comes out a little over 128, in Basic09 as in
+        # Color BASIC.
+        self._exact_powers = exact_powers
+
     def generic_visit(self, node, visited_children):
         if node.text.strip() == "":
             return ""
@@ -539,7 +547,16 @@ class BasicVisitor(NodeVisitor):
         return BasicBinaryExpFragment(op, exp)
 
     def visit_num_power_exp(self, node, visited_children) -> AbstractBasicExpression:
-        return self.visit_binary_exp(node, visited_children)
+        base, _, fragments = visited_children
+        if not self._exact_powers or not isinstance(fragments, list) or not fragments:
+            return self.visit_binary_exp(node, visited_children)
+        # Color BASIC evaluates ``A ^ B ^ C`` left to right.
+        exp = base
+        for fragment in fragments:
+            exp = BasicFunctionalExpression(
+                "RUN ecb_pow", BasicExpressionList([exp, fragment.exp2])
+            )
+        return exp
 
     def visit_num_power_sub_exps(
         self, node, visited_children
