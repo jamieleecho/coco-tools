@@ -92,3 +92,11 @@ exclude = [
 
 [tool.ruff.lint]
 extend-select = ["I"]
+
+[tool.ty.rules]
+# argparse.FileType is deprecated as of Python 3.14. The command line
+# tools here support 3.10 through 3.13, where it is still the documented
+# way to declare a file argument, and moving off it changes what the
+# tools print for a file that cannot be opened. Revisit when the
+# supported floor reaches 3.14.
+deprecated = "ignore"

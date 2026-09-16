@@ -44,7 +44,7 @@ class TestB09(unittest.TestCase):
             skip_procedure_headers=False,
             output_dependencies=True,
         )
-        assert "B := 0.0\n"
+        assert "B := 0.0\n" in program
         assert "base 0\n" in program
         assert "RUN _ecb_start" in program
         assert "RUN ecb_cls(fix(B), display)" in program
