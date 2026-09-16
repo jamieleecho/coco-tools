@@ -387,7 +387,9 @@ grammar = Grammar(
                     / instr_expr
                     / array_ref_exp
                     / var
-    unop_exp        = unop space* exp
+    unop_exp        = unop space* unop_operand
+    unop_operand    = not_exp / num_power_exp
+    not_exp         = "NOT" space* num_exp space*
     paren_exp       =  "(" space* exp space* ")" space*
     str_exp          = str_simple_exp space* str_exp_elements
     str_exp_elements = str_exp_element*

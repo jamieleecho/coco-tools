@@ -72,6 +72,11 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   result in unexpected memory errors while running the program. Running it
   with less space allocated may resolve the issue.
 * `NOT (A) + 1` is parsed correctly as `NOT((A) + 1)` or `LNOT((A) + 1)`
+* Unary `+` and `-` bind more tightly than every binary operator except `^`,
+  matching Color BASIC. So `-A <= B` is parsed as `(-A) <= B` and `-A ^ B` is
+  parsed as `-(A ^ B)`. `NOT` is the exception: it binds too loosely to be a
+  sign's operand at all, so a sign in front of it keeps `NOT`'s wide binding
+  and `-NOT A + B` is parsed as `-(NOT(A + B))`.
 * BASIC09 treats boolean operations differently than Color BASIC which
   largely treats them identically to numeric binary operations.
   Specifically, BASIC09 has keywords for boolean operations (AND, OR, NOT)
@@ -79,7 +84,10 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   decb-to-b09 will use the former in IF statements and the latter for other
   statements. There are some constructs that mix boolean and numeric
   operations such as `A = (1 < 2) + 1` that decb-to-b09 allows but
-  results in BASIC09 programs with errors.
+  results in BASIC09 programs with errors. Within an `IF` condition the
+  mixing is rejected instead of silently emitting a program that BASIC09
+  refuses to load, so `IF -(A < B) THEN 20` and `IF A AND B < C THEN 20`
+  are reported as errors.
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * When `NEXT` statements do not have an iteration variable specified, the

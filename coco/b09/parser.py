@@ -3,6 +3,7 @@ from typing import List, Union
 from parsimonious import NodeVisitor
 
 from coco.b09.elements import (
+    RELATIONAL_OPERATORS,
     AbstractBasicConstruct,
     AbstractBasicExpression,
     AbstractBasicStatement,
@@ -62,6 +63,7 @@ from coco.b09.elements import (
     PsetOrPreset,
     PutDrawAction,
 )
+from coco.b09.errors import ParseError
 from coco.b09.grammar import (
     FUNCTIONS,
     FUNCTIONS_TO_STATEMENTS,
@@ -78,8 +80,38 @@ from coco.b09.grammar import (
 )
 from coco.b09.prog import BasicProg
 
+BOOLEAN_EXPRESSIONS = (
+    BasicBooleanBinaryExp,
+    BasicBooleanOpExp,
+    BasicBooleanParenExp,
+)
+
+
+def is_boolean_valued(exp: AbstractBasicConstruct) -> bool:
+    """Report whether ``exp`` evaluates to a BASIC09 BOOLEAN.
+
+    A plain :class:`BasicBinaryExp` carrying a relational operator is a
+    comparison that was parsed in a numeric context. Color BASIC hands
+    back -1 or 0 there, but BASIC09 hands back a BOOLEAN, and unary
+    sign, parentheses and the numeric binary operators all propagate
+    that BOOLEAN outwards rather than turning it into a number.
+    """
+    if isinstance(exp, BOOLEAN_EXPRESSIONS):
+        return True
+    if isinstance(exp, BasicBinaryExp):
+        return exp.operator in RELATIONAL_OPERATORS or any(
+            is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2)
+        )
+    if isinstance(exp, (BasicOpExp, BasicParenExp)):
+        return is_boolean_valued(exp.exp)
+    return False
+
 
 class BasicVisitor(NodeVisitor):
+    # Report conversion errors as-is instead of letting parsimonious
+    # bury them in a VisitationError full of parse tree dumps.
+    unwrapped_exceptions = (ParseError,)
+
     def generic_visit(self, node, visited_children):
         if node.text.strip() == "":
             return ""
@@ -216,13 +248,21 @@ class BasicVisitor(NodeVisitor):
             else_statements=else_statements,
         )
 
-    def visit_if_stmnt(self, _, visited_children):
+    def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
-        is_bool = isinstance(
-            exp,
-            (BasicBooleanBinaryExp, BasicBooleanOpExp, BasicBooleanParenExp),
-        )
-        exp = exp if is_bool else BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
+        if not isinstance(exp, BOOLEAN_EXPRESSIONS):
+            # A numeric condition becomes a BASIC09 condition by
+            # comparing it against zero. When the condition already
+            # holds a BOOLEAN, that comparison would chain two
+            # relational operators and BASIC09 would refuse to load the
+            # converted program.
+            if is_boolean_valued(exp):
+                condition = node.children[2].text.strip()
+                raise ParseError(
+                    "Cannot mix a comparison with numeric operators in an "
+                    f"IF condition: {condition}"
+                )
+            exp = BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
         return BasicIf(exp, statements)
 
     def visit_else_if_stmnts(self, _, visited_children: List[BasicIf]) -> List[BasicIf]:
@@ -475,6 +515,13 @@ class BasicVisitor(NodeVisitor):
 
     def visit_unop(self, _, visited_children):
         return visited_children[0]
+
+    def visit_unop_operand(self, _, visited_children) -> AbstractBasicExpression:
+        return visited_children[0]
+
+    def visit_not_exp(self, _, visited_children) -> AbstractBasicExpression:
+        not_keyword, _, exp, _ = visited_children
+        return BasicOpExp(not_keyword.operator, exp)
 
     def visit_paren_exp(self, _, visited_children) -> AbstractBasicExpression:
         return BasicParenExp(visited_children[2])

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set
 from coco import b09
 from coco.b09.configs import StringConfigs
 from coco.b09.elements import (
+    RELATIONAL_OPERATORS,
     AbstractBasicConstruct,
     AbstractBasicExpression,
     AbstractBasicStatement,
@@ -1227,10 +1228,10 @@ class IntegerVarVisitor(BasicConstructVisitor):
             return exp.var.name() in candidates
 
         if isinstance(exp, BasicParenExp):
-            return self._is_integer_exp(exp._exp, candidates)
+            return self._is_integer_exp(exp.exp, candidates)
 
         if isinstance(exp, BasicBinaryExp):
-            op = exp._op if isinstance(exp._op, str) else exp._op.operator
+            op = exp.operator
             # Division and exponentiation can always produce a
             # non-integer / out-of-range result.
             if op in {"/", "^"}:
@@ -1242,11 +1243,11 @@ class IntegerVarVisitor(BasicConstructVisitor):
             # themselves are already bounded to 16 bits.
             if op in {"+", "-", "*", "AND", "OR"}:
                 return self._is_integer_exp(
-                    exp._exp1, candidates
-                ) and self._is_integer_exp(exp._exp2, candidates)
+                    exp.exp1, candidates
+                ) and self._is_integer_exp(exp.exp2, candidates)
             # Comparison operators evaluate to 0 or -1 in Basic09:
             # always integer regardless of operand types.
-            if op in {"=", "<>", "<", ">", "<=", ">=", "=<", "=>"}:
+            if op in RELATIONAL_OPERATORS:
                 return True
             return False
 

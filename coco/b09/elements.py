@@ -12,6 +12,13 @@ if TYPE_CHECKING:
     from coco.b09.visitors import BasicConstructVisitor
 
 
+# Color BASIC relational operators. Each yields -1 (true) or 0 (false),
+# so Color BASIC happily goes on to use the result as a number. BASIC09
+# yields a BOOLEAN instead, which it refuses to combine with numeric
+# operators.
+RELATIONAL_OPERATORS = frozenset({"=", "<>", "<", ">", "<=", ">=", "=<", "=>"})
+
+
 class AbstractBasicConstruct(ABC):
     def indent_spaces(self, indent_level):
         return "  " * indent_level
@@ -214,6 +221,18 @@ class BasicBinaryExp(AbstractBasicExpression):
         self._exp1: AbstractBasicExpression = exp1
         self._op: str | BasicOperator = op
         self._exp2: AbstractBasicExpression = exp2
+
+    @property
+    def exp1(self) -> AbstractBasicExpression:
+        return self._exp1
+
+    @property
+    def exp2(self) -> AbstractBasicExpression:
+        return self._exp2
+
+    @property
+    def operator(self) -> str:
+        return self._op if isinstance(self._op, str) else self._op.operator
 
     def basic09_text(self, indent_level: int) -> str:
         if self._op in {"AND", "OR"}:
@@ -608,6 +627,10 @@ class BasicParenExp(AbstractBasicExpression):
     def __init__(self, exp: AbstractBasicExpression):
         self._exp = exp
         self._is_str_expr = exp.is_str_expr
+
+    @property
+    def exp(self) -> AbstractBasicExpression:
+        return self._exp
 
     def basic09_text(self, indent_level: int) -> str:
         return f"({self._exp.basic09_text(indent_level)})"

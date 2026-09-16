@@ -9,7 +9,8 @@ from coco import decb_to_b09
 from coco.b09 import DEFAULT_STR_STORAGE, compiler, elements, grammar
 from coco.b09.compiler import ParseError
 from coco.b09.configs import CompilerConfigs, StringConfigs
-from coco.b09.visitors import LineNumberTooLargeException
+from coco.b09.parser import BasicVisitor
+from coco.b09.visitors import LineNumberTooLargeException, StatementCollectorVisitor
 
 
 class TestB09(unittest.TestCase):
@@ -1848,3 +1849,67 @@ class TestB09(unittest.TestCase):
             "DIM B$: STRING[123]\n"
             'B$ := ""\n'
         )
+
+    def test_unary_minus_binds_tighter_than_comparison(self) -> None:
+        # Color BASIC applies unary minus before the comparison, so the
+        # condition is already a BASIC09 BOOLEAN and must not be
+        # compared against zero a second time. See issue #45.
+        self.generic_test_parse(
+            "612 IF -Z<=P THEN 620\n620 END",
+            "612 IF - Z <= P THEN 620\n620 END",
+        )
+
+    def test_unary_minus_binds_tighter_than_and(self) -> None:
+        self.generic_test_parse(
+            "10 A = -B AND C",
+            "10 A := LAND(- B, C)",
+        )
+
+    def parse_assignment_exp(self, progin: str) -> elements.AbstractBasicExpression:
+        """Return the right hand side of the program's one assignment."""
+        prog = BasicVisitor().visit(grammar.grammar.parse(progin + "\n"))
+        collector = StatementCollectorVisitor(elements.BasicAssignment)
+        prog.visit(collector)
+        (assignment,) = collector.statements
+        assert isinstance(assignment, elements.BasicAssignment)
+        return assignment.exp
+
+    def test_unary_minus_binds_looser_than_power(self) -> None:
+        # ``^`` is the one operator that binds more tightly than a
+        # unary sign, so this is -(B ^ C) rather than (-B) ^ C.
+        exp = self.parse_assignment_exp("10 A = -B ^ C")
+        assert isinstance(exp, elements.BasicOpExp)
+        assert exp.operator == "-"
+        assert isinstance(exp.exp, elements.BasicBinaryExp)
+        assert exp.exp.operator == "^"
+
+    def test_unary_sign_keeps_not_wide(self) -> None:
+        # ``NOT`` binds looser than a unary sign, so it cannot be the
+        # sign's operand under the usual precedence. Color BASIC takes
+        # it anyway and applies NOT to the whole rest of the
+        # expression, and so do we.
+        self.generic_test_parse(
+            "10 A = -NOT B + C",
+            "10 A := - LNOT(B + C)",
+        )
+
+    def test_unary_sign_before_not_in_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF -NOT A THEN 20\n20 END",
+            "10 IF - LNOT(A) <> 0.0 THEN 20\n20 END",
+        )
+
+    def test_unary_minus_binds_tighter_than_sum(self) -> None:
+        exp = self.parse_assignment_exp("10 A = -B + C")
+        assert isinstance(exp, elements.BasicBinaryExp)
+        assert exp.operator == "+"
+        assert isinstance(exp.exp1, elements.BasicOpExp)
+        assert exp.exp1.operator == "-"
+
+    def test_rejects_negated_comparison_in_if(self) -> None:
+        with self.assertRaises(ParseError):
+            compiler.convert("10 IF -(A<B) THEN 20\n20 END")
+
+    def test_rejects_comparison_mixed_with_and_in_if(self) -> None:
+        with self.assertRaises(ParseError):
+            compiler.convert("10 IF A AND B<C THEN 20\n20 END")
