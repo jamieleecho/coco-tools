@@ -1883,6 +1883,22 @@ class TestB09(unittest.TestCase):
         assert isinstance(exp.exp, elements.BasicBinaryExp)
         assert exp.exp.operator == "^"
 
+    def test_unary_sign_keeps_not_wide(self) -> None:
+        # ``NOT`` binds looser than a unary sign, so it cannot be the
+        # sign's operand under the usual precedence. Color BASIC takes
+        # it anyway and applies NOT to the whole rest of the
+        # expression, and so do we.
+        self.generic_test_parse(
+            "10 A = -NOT B + C",
+            "10 A := - LNOT(B + C)",
+        )
+
+    def test_unary_sign_before_not_in_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF -NOT A THEN 20\n20 END",
+            "10 IF - LNOT(A) <> 0.0 THEN 20\n20 END",
+        )
+
     def test_unary_minus_binds_tighter_than_sum(self) -> None:
         exp = self.parse_assignment_exp("10 A = -B + C")
         assert isinstance(exp, elements.BasicBinaryExp)

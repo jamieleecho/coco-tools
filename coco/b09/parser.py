@@ -516,6 +516,13 @@ class BasicVisitor(NodeVisitor):
     def visit_unop(self, _, visited_children):
         return visited_children[0]
 
+    def visit_unop_operand(self, _, visited_children) -> AbstractBasicExpression:
+        return visited_children[0]
+
+    def visit_not_exp(self, _, visited_children) -> AbstractBasicExpression:
+        not_keyword, _, exp, _ = visited_children
+        return BasicOpExp(not_keyword.operator, exp)
+
     def visit_paren_exp(self, _, visited_children) -> AbstractBasicExpression:
         return BasicParenExp(visited_children[2])
 
