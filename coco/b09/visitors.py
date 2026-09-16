@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import re
 from collections import defaultdict
 from fractions import Fraction
@@ -20,8 +21,11 @@ from coco.b09.elements import (
     BasicBooleanOpExp,
     BasicCls,
     BasicDataStatement,
+    BasicDefFnStatement,
     BasicDimStatement,
     BasicExpressionList,
+    BasicFnArgAssignment,
+    BasicFnExpression,
     BasicForStatement,
     BasicFunctionalExpression,
     BasicFunctionCall,
@@ -48,6 +52,7 @@ from coco.b09.elements import (
     HexLiteral,
     numeric_literal_value,
 )
+from coco.b09.errors import ParseError
 
 if TYPE_CHECKING:
     from coco.b09.procbank import ProcedureParam, ProcedureSignature
@@ -104,6 +109,14 @@ class BasicConstructVisitor:
     def visit_go_statement(self, go_statement: BasicGoStatements) -> None:
         """
         Invoked when a [ON] GOTO/GOSUB statement is encountered.
+        """
+        pass
+
+    def visit_inlined_fn(self, exp: BasicFnExpression) -> None:
+        """
+        Invoked when an inlined DEF FN call is encountered, after the
+        assignment of its argument has been visited and before its body
+        is.
         """
         pass
 
@@ -617,19 +630,27 @@ class VarReferenceVisitor(BasicConstructVisitor):
         self._found = self._found or var.name() == self._name
 
 
-class HoistedCallCounterVisitor(BasicConstructVisitor):
-    """Counts the functional expressions hoisted out of an expression."""
+class HoistedStatementCollectorVisitor(BasicConstructVisitor):
+    """Collects the statements hoisted out of an expression: the calls
+    of functional expressions and the argument assignments of inlined
+    DEF FN calls.
+
+    A call that is the whole argument of a DEF FN call is collected
+    too, although it is not hoisted: it assigns the parameter itself.
+    """
 
     def __init__(self):
-        self._count = 0
+        self._statements: List[AbstractBasicConstruct] = []
 
     @property
-    def count(self) -> int:
-        return self._count
+    def statements(self) -> List[AbstractBasicConstruct]:
+        return self._statements
 
     def visit_exp(self, exp: AbstractBasicExpression) -> None:
-        if isinstance(exp, BasicFunctionalExpression) and exp.var is not None:
-            self._count += 1
+        if isinstance(exp, BasicFunctionalExpression) and exp.statement is not None:
+            self._statements.append(exp.statement)
+        elif isinstance(exp, BasicFnExpression) and exp.assignment is not None:
+            self._statements.append(exp.assignment)
 
 
 class ForLoopSemanticsVisitor(BasicConstructVisitor):
@@ -655,9 +676,12 @@ class ForLoopSemanticsVisitor(BasicConstructVisitor):
             if exp is not None:
                 exp.visit(reference_visitor)
         for_statement.bounds_read_var = reference_visitor.found
-        call_counter = HoistedCallCounterVisitor()
-        for_statement.start_exp.visit(call_counter)
-        for_statement.start_call_count = call_counter.count
+        start_statements = HoistedStatementCollectorVisitor()
+        for_statement.start_exp.visit(start_statements)
+        for_statement.start_call_count = sum(
+            any(statement is hoisted for hoisted in start_statements.statements)
+            for statement in for_statement.pre_assignment_statements
+        )
 
 
 class TruncateRealArgsVisitor(BasicConstructVisitor):
@@ -748,7 +772,11 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
         self._statement = None
 
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
-        self._statement = statement
+        # Calls in the argument of a DEF FN call are hoisted in front of
+        # the enclosing statement too, which also gives them temporaries
+        # distinct from the ones it already holds.
+        if not isinstance(statement, BasicFnArgAssignment):
+            self._statement = statement
         if isinstance(statement, BasicAssignment) and isinstance(
             statement.exp, BasicFunctionalExpression
         ):
@@ -759,6 +787,72 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
             return
         if isinstance(self._statement, AbstractBasicStatement):
             self._statement.transform_function_to_call(exp)
+
+    def visit_inlined_fn(self, exp: BasicFnExpression) -> None:
+        # After the calls in the argument and before the ones in the
+        # body, which read the parameter.
+        if isinstance(self._statement, AbstractBasicStatement):
+            self._statement.pre_assignment_statements.append(exp.assignment)
+
+
+class RenameVarVisitor(BasicConstructVisitor):
+    """Renames a numeric scalar variable."""
+
+    def __init__(self, name: str, new_name: str):
+        self._name = name
+        self._new_name = new_name
+
+    def visit_var(self, var: BasicVar) -> None:
+        if var.name() == self._name and not var.is_str_expr:
+            var._name = self._new_name
+
+
+class DefFnInlinerVisitor(BasicConstructVisitor):
+    """Inlines every call to a ``DEF FN`` function; see
+    :class:`BasicFnExpression`.
+
+    Definitions are looked up by name wherever they are in the program,
+    rather than by which ``DEF`` last ran, so a function defined twice
+    is rejected.
+
+    The variable a call assigns its argument to is named after the
+    function and numbered within the line, since two calls in one
+    statement must not share one. Each is read only by the statement it
+    is assigned in front of, so the next line can reuse it.
+    """
+
+    def __init__(self, definitions: List[BasicDefFnStatement]):
+        self._definitions: Dict[str, BasicDefFnStatement] = {}
+        for definition in definitions:
+            if definition.name in self._definitions:
+                raise ParseError(f"FN{definition.name} is defined more than once.")
+            self._definitions[definition.name] = definition
+        self._call_counts: Dict[str, int] = defaultdict(int)
+        self._expanding: List[str] = []
+
+    def visit_line(self, line: BasicLine) -> None:
+        self._call_counts.clear()
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        if not isinstance(exp, BasicFnExpression) or exp.body is not None:
+            return
+        definition = self._definitions.get(exp.name)
+        if definition is None:
+            raise ParseError(f"FN{exp.name} is called but never defined.")
+        if exp.name in self._expanding:
+            raise ParseError(f"FN{exp.name} calls itself.")
+
+        self._call_counts[exp.name] += 1
+        param = BasicVar(f"fn{exp.name}_{self._call_counts[exp.name]}")
+        body = copy.deepcopy(definition.body)
+        body.visit(RenameVarVisitor(definition.param.name(), param.name()))
+        exp.inline(param, body)
+
+        # The calls in the body are inlined now, while it is known which
+        # functions they are being called from.
+        self._expanding.append(exp.name)
+        body.visit(self)
+        self._expanding.pop()
 
 
 class BasicHbuffPresenceVisitor(BasicConstructVisitor):
@@ -878,6 +972,9 @@ class RewriteIntegerLiteralsVisitor(BasicConstructVisitor):
             return exp
         if isinstance(exp, BasicParenExp):
             exp._exp = self._rewrite(exp._exp)
+            return exp
+        if isinstance(exp, BasicFnExpression) and exp.body is not None:
+            exp._body = self._rewrite(exp.body)
             return exp
         if isinstance(exp, BasicOpExp):
             exp._exp = self._rewrite(exp._exp)
@@ -1104,6 +1201,8 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             )
         if isinstance(arg, BasicFunctionalExpression):
             return arg.var is not None and self._is_integer_arg(arg.var)
+        if isinstance(arg, BasicFnExpression):
+            return arg.body is not None and self._is_integer_arg(arg.body)
         if isinstance(arg, BasicFunctionCall):
             func = arg._func.strip().lower()
             if func in self._INTEGER_FUNCS:
@@ -1427,6 +1526,9 @@ class IntegerVarVisitor(BasicConstructVisitor):
 
         if isinstance(exp, BasicParenExp):
             return self._is_integer_exp(exp.exp, candidates)
+
+        if isinstance(exp, BasicFnExpression):
+            return exp.body is not None and self._is_integer_exp(exp.body, candidates)
 
         if isinstance(exp, BasicBinaryExp):
             op = exp.operator

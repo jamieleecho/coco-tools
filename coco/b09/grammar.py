@@ -152,6 +152,7 @@ KEYWORDS = "|".join(
             "CMP",
             "COS",
             "DATA",
+            "DEF",
             "DIM",
             "ELSE",
             "END",
@@ -159,6 +160,7 @@ KEYWORDS = "|".join(
             "ERR",
             "EXP",
             "FIX",
+            "FN",
             "FOR",
             "GOSUB",
             "GOTO",
@@ -277,6 +279,7 @@ grammar = Grammar(
     str_assign      = "LET"? space* str_var space* "=" space* str_exp
     num_assign      = "LET"? space* var space* "=" space* exp
     statement       = if_if_else_stmnt
+                    / def_fn_statement
                     / if_else_stmnt
                     / if_stmnt
                     / print_at_statement
@@ -379,6 +382,7 @@ grammar = Grammar(
                     / paren_exp
                     / unop_exp
                     / func_exp
+                    / fn_exp
                     / func_str_exp
                     / func_to_statements
                     / func_to_statements2
@@ -388,6 +392,9 @@ grammar = Grammar(
                     / instr_expr
                     / array_ref_exp
                     / var
+    def_fn_statement = "DEF" space* "FN" space* fn_name space* "(" space* var space* ")" space* "=" space* exp space*
+    fn_exp          = "FN" space* fn_name space* "(" space* exp space* ")" space*
+    fn_name         = ~r"[A-Z][A-Z0-9]*"
     unop_exp        = unop space* unop_operand
     unop_operand    = not_exp / num_power_exp
     not_exp         = "NOT" space* num_exp space*

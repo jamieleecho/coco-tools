@@ -19,9 +19,11 @@ from coco.b09.elements import (
     BasicCls,
     BasicComment,
     BasicDataStatement,
+    BasicDefFnStatement,
     BasicDimStatement,
     BasicEllipseStatement,
     BasicExpressionList,
+    BasicFnExpression,
     BasicForStatement,
     BasicFunctionalExpression,
     BasicFunctionCall,
@@ -582,6 +584,18 @@ class BasicVisitor(NodeVisitor):
     def visit_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(FUNCTIONS[func.text], BasicExpressionList([exp]))
+
+    def visit_def_fn_statement(self, node, visited_children) -> AbstractBasicStatement:
+        _, _, _, _, name, _, _, _, param, _, _, _, _, _, body, _ = visited_children
+        return BasicDefFnStatement(name, param, body, node.text.strip())
+
+    def visit_fn_exp(self, _, visited_children) -> AbstractBasicExpression:
+        _, _, name, _, _, _, arg, _, _, _ = visited_children
+        return BasicFnExpression(name, arg)
+
+    def visit_fn_name(self, node, _) -> str:
+        # Like variable names, only the first two characters count.
+        return node.text[:2]
 
     def visit_func_str_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children

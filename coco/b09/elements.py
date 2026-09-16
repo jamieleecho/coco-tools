@@ -1194,6 +1194,118 @@ class BasicJoystkExpression(BasicFunctionalExpression):
         visitor.visit_joystk(self)
 
 
+class BasicDefFnStatement(AbstractBasicStatement):
+    """``DEF FN``, which defines a single expression function.
+
+    Basic09 has nothing like it, so every call is inlined instead (see
+    :class:`BasicFnExpression`) and the definition itself is kept only
+    as a comment. The body is not visited: it is only ever used through
+    the copies inlined at the call sites.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        param: "BasicVar",
+        body: AbstractBasicExpression,
+        source: str,
+    ):
+        super().__init__()
+        self._name = name
+        self._param = param
+        self._body = body
+        self._source = source
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def param(self) -> "BasicVar":
+        return self._param
+
+    @property
+    def body(self) -> AbstractBasicExpression:
+        return self._body
+
+    def basic09_text(self, indent_level: int) -> str:
+        # ``*)`` would end the comment early.
+        source = self._source.replace("*)", "* )")
+        return f"{super().basic09_text(indent_level)}(* {source} *)"
+
+
+class BasicFnArgAssignment(BasicAssignment):
+    """The assignment of an inlined DEF FN call's argument to its
+    parameter; see :class:`BasicFnExpression`."""
+
+
+class BasicFnExpression(AbstractBasicExpression):
+    """A call to a ``DEF FN`` function, inlined.
+
+    The parameter of a Color BASIC function shadows the variable of the
+    same name: the call does not change that variable. So the argument is
+    assigned to a variable of its own, which is substituted for the
+    parameter throughout a copy of the body, and the call is replaced by
+    that copy. The assignment is hoisted in front of the statement like
+    the calls of :class:`BasicFunctionalExpression`, which also keeps the
+    argument from being evaluated once for every use of the parameter.
+    """
+
+    # Bodies that need no parentheses to stand in for the call.
+    _ATOMIC_EXP_TYPES: tuple = (
+        BasicVar,
+        BasicArrayRef,
+        BasicParenExp,
+        BasicFunctionCall,
+        BasicFunctionalExpression,
+    )
+
+    def __init__(self, name: str, arg: AbstractBasicExpression):
+        super().__init__()
+        self._name = name
+        self._arg = arg
+        self._assignment: BasicFnArgAssignment | None = None
+        self._body: AbstractBasicExpression | None = None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def assignment(self) -> BasicFnArgAssignment | None:
+        """The assignment of the argument to the parameter, once inlined."""
+        return self._assignment
+
+    @property
+    def body(self) -> AbstractBasicExpression | None:
+        """The body with the parameter substituted, once inlined."""
+        return self._body
+
+    def inline(self, param: "BasicVar", body: AbstractBasicExpression) -> None:
+        self._assignment = BasicFnArgAssignment(param, self._arg)
+        self._body = (
+            body
+            if isinstance(body, (*self._ATOMIC_EXP_TYPES, BasicFnExpression))
+            else BasicParenExp(body)
+        )
+
+    def basic09_text(self, indent_level: int) -> str:
+        if self._body is None:
+            return f"FN{self._name}({self._arg.basic09_text(indent_level)})"
+        return self._body.basic09_text(indent_level)
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        # The call is inlined when it is first visited, so this comes
+        # before looking at what it holds.
+        visitor.visit_exp(self)
+        if self._assignment is None or self._body is None:
+            self._arg.visit(visitor)
+            return
+        self._assignment.visit(visitor)
+        visitor.visit_inlined_fn(self)
+        self._body.visit(visitor)
+
+
 class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
