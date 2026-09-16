@@ -16,9 +16,8 @@ from coco.b09.elements import (
     BasicRunCall,
     BasicVar,
 )
-
 from coco.b09.errors import ParseError
-from coco.b09.grammar import PROCNAME_REGEX, grammar, sanitize_procname
+from coco.b09.grammar import grammar, sanitize_procname
 from coco.b09.parser import BasicVisitor
 from coco.b09.procbank import ProcedureBank
 from coco.b09.prog import BasicProg
