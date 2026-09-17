@@ -180,35 +180,36 @@ def start(argv):
         else os.path.splitext(os.path.basename(input_file.name))[0]
     )
 
-    fixed_array_sizes: dict[str, tuple[int | None, ...]] = {}
-    for name, bounds in args.fix_array_size:
-        if fixed_array_sizes.setdefault(name, bounds) != bounds:
-            parser.error(f"--fix-array-size gives {name} more than one size")
+    # Close the files even when the conversion fails, or Windows cannot
+    # delete the output file that argparse already created.
+    with args.input_decb_text_program_file, args.output_b09_text_program_file:
+        fixed_array_sizes: dict[str, tuple[int | None, ...]] = {}
+        for name, bounds in args.fix_array_size:
+            if fixed_array_sizes.setdefault(name, bounds) != bounds:
+                parser.error(f"--fix-array-size gives {name} more than one size")
 
-    no_optimize_vars = {
-        name.strip() for name in args.no_optimize.split(",") if name.strip()
-    }
+        no_optimize_vars = {
+            name.strip() for name in args.no_optimize.split(",") if name.strip()
+        }
 
-    convert_file(
-        args.input_decb_text_program_file,
-        args.output_b09_text_program_file,
-        basic09_for_loops=args.basic09_for_loops,
-        config_file=args.config_file,
-        default_width32=not args.dont_run_width_32,
-        default_str_storage=args.default_string_storage,
-        exact_powers=args.exact_powers,
-        filter_unused_linenum=args.filter_unused_linenum,
-        fixed_array_sizes=fixed_array_sizes,
-        initialize_vars=not args.dont_initialize_vars,
-        list_integer_candidates=args.list_integer_candidates,
-        no_optimize_vars=no_optimize_vars,
-        optimize=args.optimize,
-        output_dependencies=not args.dont_output_dependencies,
-        procname=procname,
-        terminal=args.terminal,
-    )
-    args.input_decb_text_program_file.close()
-    args.output_b09_text_program_file.close()
+        convert_file(
+            args.input_decb_text_program_file,
+            args.output_b09_text_program_file,
+            basic09_for_loops=args.basic09_for_loops,
+            config_file=args.config_file,
+            default_width32=not args.dont_run_width_32,
+            default_str_storage=args.default_string_storage,
+            exact_powers=args.exact_powers,
+            filter_unused_linenum=args.filter_unused_linenum,
+            fixed_array_sizes=fixed_array_sizes,
+            initialize_vars=not args.dont_initialize_vars,
+            list_integer_candidates=args.list_integer_candidates,
+            no_optimize_vars=no_optimize_vars,
+            optimize=args.optimize,
+            output_dependencies=not args.dont_output_dependencies,
+            procname=procname,
+            terminal=args.terminal,
+        )
 
 
 if __name__ == "__main__":
