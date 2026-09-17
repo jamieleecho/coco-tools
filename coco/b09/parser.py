@@ -1,6 +1,7 @@
 from typing import List, Union
 
 from parsimonious import NodeVisitor
+from parsimonious.nodes import Node
 
 from coco.b09.elements import (
     BOOLEAN_EXPRESSIONS,
@@ -205,7 +206,7 @@ class BasicVisitor(NodeVisitor):
         _, _, statements, _ = visited_children
         return statements
 
-    def visit_if_if_else_stmnt(self, _, visited_children) -> BasicIf:
+    def visit_if_if_else_stmnt(self, node, visited_children) -> BasicIf:
         else_statements: None | BasicStatementsOrBasicGoto
         (
             _,
@@ -220,43 +221,48 @@ class BasicVisitor(NodeVisitor):
             else_statements,
         ) = visited_children
         return BasicIfElse(
-            if_exp=if_exp,
+            if_exp=self._if_condition(if_exp, node.children[2]),
             then_statements=line_or_stmnts,
             else_if_statements=else_if_statements,
             else_statements=else_statements,
         )
 
-    def visit_if_else_stmnt(self, _, visited_children) -> BasicIfElse:
+    def visit_if_else_stmnt(self, node, visited_children) -> BasicIfElse:
         _, _, if_exp, _, _, _, line_or_stmnts, _, else_statements = visited_children
         return BasicIfElse(
-            if_exp=if_exp,
+            if_exp=self._if_condition(if_exp, node.children[2]),
             then_statements=line_or_stmnts,
             else_if_statements=[],
             else_statements=else_statements,
         )
 
+    @staticmethod
+    def _if_condition(
+        exp: AbstractBasicExpression, exp_node: Node
+    ) -> AbstractBasicExpression:
+        if isinstance(exp, BOOLEAN_EXPRESSIONS):
+            return exp
+        # A numeric condition becomes a BASIC09 condition by comparing it
+        # against zero. When the condition already holds a BOOLEAN, that
+        # comparison would chain two relational operators and BASIC09
+        # would refuse to load the converted program. DEF FN calls cannot
+        # be seen into until they are inlined, so InlinedIfConditionVisitor
+        # looks at the condition again then.
+        condition = exp_node.text.strip()
+        if is_boolean_valued(exp):
+            raise ParseError(mixed_condition_message(condition))
+        return BasicNumericCondition(exp, condition)
+
     def visit_if_stmnt(self, node, visited_children):
         _, _, exp, _, _, _, statements = visited_children
-        if not isinstance(exp, BOOLEAN_EXPRESSIONS):
-            # A numeric condition becomes a BASIC09 condition by
-            # comparing it against zero. When the condition already
-            # holds a BOOLEAN, that comparison would chain two
-            # relational operators and BASIC09 would refuse to load the
-            # converted program. DEF FN calls cannot be seen into until
-            # they are inlined, so InlinedIfConditionVisitor looks at
-            # the condition again then.
-            condition = node.children[2].text.strip()
-            if is_boolean_valued(exp):
-                raise ParseError(mixed_condition_message(condition))
-            exp = BasicNumericCondition(exp, condition)
-        return BasicIf(exp, statements)
+        return BasicIf(self._if_condition(exp, node.children[2]), statements)
 
     def visit_else_if_stmnts(self, _, visited_children: List[BasicIf]) -> List[BasicIf]:
         return visited_children
 
-    def visit_else_if_stmnt(self, _, visited_children) -> BasicIf:
+    def visit_else_if_stmnt(self, node, visited_children) -> BasicIf:
         _, _, _, _, if_exp, _, _, _, line_or_stmnts, _ = visited_children
-        return BasicIf(if_exp, line_or_stmnts)
+        return BasicIf(self._if_condition(if_exp, node.children[4]), line_or_stmnts)
 
     def visit_if_exp(self, _, visited_children) -> AbstractBasicExpression:
         return visited_children[0]
