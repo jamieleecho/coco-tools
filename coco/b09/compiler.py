@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import IO, List
 
@@ -33,6 +35,7 @@ from coco.b09.visitors import (
     CoerceIntegerArgsVisitor,
     DeclareImplicitArraysVisitor,
     DefFnInlinerVisitor,
+    FixArraySizesVisitor,
     ForLoopSemanticsVisitor,
     GetDimmedArraysVisitor,
     InlinedIfConditionVisitor,
@@ -77,11 +80,59 @@ def _normalized_no_optimize_vars(names: "set[str] | list[str]") -> "set[str]":
     return normalized
 
 
-def _parse(progin: str, *, exact_powers: bool = False) -> BasicProg:
-    """Parse ``progin`` and inline its ``DEF FN`` calls, which every
-    later pass then sees as ordinary expressions."""
+# BASIC09 sizes each dimension of an array by its number of elements,
+# which has to fit in an INTEGER. How many elements the array can hold
+# in all depends on their type and the memory BASIC09 has, so a size
+# that passes here can still fail with ERROR #73 when BASIC09 loads it.
+MAX_ARRAY_BOUND = 32766
+
+_FIXED_ARRAY_SIZE_REGEX = re.compile(
+    r"\s*([A-Z][A-Z0-9]?\$?)\s*\(\s*([^()]*?)\s*\)\s*", re.IGNORECASE
+)
+
+
+def parse_fixed_array_size(spec: str) -> tuple[str, tuple[int | None, ...]]:
+    """Parse a ``--fix-array-size`` value such as ``A(3,3)`` or
+    ``B$(3,*)`` into the array's name and its bounds, where ``*`` (and
+    so ``None``) keeps the program's bound for that dimension.
+
+    Raises:
+        ValueError: ``spec`` is not a valid array size.
+    """
+    match = _FIXED_ARRAY_SIZE_REGEX.fullmatch(spec)
+    bounds_text = match.group(2).split(",") if match else []
+    if not match or len(bounds_text) > 3:
+        raise ValueError(
+            f'"{spec}" is not an array with 1 to 3 bounds, such as "A(3,3)" or "B$(3,*)".'
+        )
+    bounds: list[int | None] = []
+    for bound in (bound.strip() for bound in bounds_text):
+        if bound == "*":
+            bounds.append(None)
+        elif bound.isdigit() and int(bound) <= MAX_ARRAY_BOUND:
+            bounds.append(int(bound))
+        else:
+            raise ValueError(
+                f'"{bound}" in "{spec}" must be * or a whole number from 0 '
+                f"to {MAX_ARRAY_BOUND}."
+            )
+    return match.group(1).upper(), tuple(bounds)
+
+
+def _parse(
+    progin: str,
+    *,
+    exact_powers: bool = False,
+    fixed_array_sizes: Mapping[str, Sequence[int | None]] | None = None,
+) -> BasicProg:
+    """Parse ``progin``, give its arrays constant sizes and inline its
+    ``DEF FN`` calls, which every later pass then sees as ordinary
+    expressions."""
     tree = grammar.parse(progin)
     basic_prog: BasicProg = BasicVisitor(exact_powers=exact_powers).visit(tree)
+    array_sizes = FixArraySizesVisitor(fixed_array_sizes or {})
+    basic_prog.visit(array_sizes)
+    array_sizes.check()
     definitions = StatementCollectorVisitor(BasicDefFnStatement)
     basic_prog.visit(definitions)
     basic_prog.visit(
@@ -108,6 +159,7 @@ def convert(
     default_width32: bool = True,
     exact_powers: bool = False,
     filter_unused_linenum: bool = False,
+    fixed_array_sizes: Mapping[str, Sequence[int | None]] | None = None,
     initialize_vars: bool = False,
     no_optimize_vars: "set[str] | None" = None,
     optimize: bool = False,
@@ -117,7 +169,9 @@ def convert(
     terminal: bool = False,
 ) -> str:
     compiler_configs = compiler_configs or CompilerConfigs()
-    basic_prog = _parse(progin, exact_powers=exact_powers)
+    basic_prog = _parse(
+        progin, exact_powers=exact_powers, fixed_array_sizes=fixed_array_sizes
+    )
 
     if add_standard_prefix:
         # ``BASE 0`` has to come before every DIM in the procedure --
@@ -394,7 +448,11 @@ def convert(
     return program + "\n"
 
 
-def collect_integer_candidates(progin: str) -> List[str]:
+def collect_integer_candidates(
+    progin: str,
+    *,
+    fixed_array_sizes: Mapping[str, Sequence[int | None]] | None = None,
+) -> List[str]:
     """Return the sorted list of scalar and array names in ``progin``
     that could legally be stored as Basic09 ``INTEGER`` values.
 
@@ -405,7 +463,7 @@ def collect_integer_candidates(progin: str) -> List[str]:
     Array names are emitted with a trailing ``()`` (e.g., ``X()``) to
     distinguish them from a scalar of the same name.
     """
-    basic_prog = _parse(progin)
+    basic_prog = _parse(progin, fixed_array_sizes=fixed_array_sizes)
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
     procedure_bank = ProcedureBank()
@@ -433,6 +491,7 @@ def convert_file(
     default_str_storage: int = b09.DEFAULT_STR_STORAGE,
     exact_powers: bool = False,
     filter_unused_linenum: bool = False,
+    fixed_array_sizes: Mapping[str, Sequence[int | None]] | None = None,
     initialize_vars: bool = False,
     list_integer_candidates: bool = False,
     no_optimize_vars: "set[str] | None" = None,
@@ -444,7 +503,9 @@ def convert_file(
     progin = input_program_file.read()
 
     if list_integer_candidates:
-        candidates = collect_integer_candidates(progin)
+        candidates = collect_integer_candidates(
+            progin, fixed_array_sizes=fixed_array_sizes
+        )
         output_program_file.write("\n".join(candidates))
         if candidates:
             output_program_file.write("\n")
@@ -462,6 +523,7 @@ def convert_file(
         default_width32=default_width32,
         exact_powers=exact_powers,
         filter_unused_linenum=filter_unused_linenum,
+        fixed_array_sizes=fixed_array_sizes,
         initialize_vars=initialize_vars,
         no_optimize_vars=no_optimize_vars,
         optimize=optimize,

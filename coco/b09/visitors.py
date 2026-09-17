@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import re
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from fractions import Fraction
 from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
@@ -797,6 +798,102 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
         # body, which read the parameter.
         if isinstance(self._statement, AbstractBasicStatement):
             self._statement.pre_assignment_statements.append(exp.assignment)
+
+
+class FixArraySizesVisitor(BasicConstructVisitor):
+    """Gives arrays the bounds passed with ``--fix-array-size`` and
+    rejects the ``DIM`` statements whose bounds are still not constants.
+
+    Color BASIC sizes an array when its ``DIM`` runs, so a bound can be
+    any expression. BASIC09 declares an array with a fixed size, so the
+    user has to pick one that is large enough.
+
+    ``fixed_array_sizes`` maps an array's Color BASIC name, such as
+    ``A`` or ``B$``, to its bounds, where ``None`` keeps the program's
+    bound for that dimension. Call :meth:`check` once the whole program
+    has been visited.
+    """
+
+    def __init__(self, fixed_array_sizes: Mapping[str, Sequence[int | None]]):
+        self._fixed_array_sizes = {
+            name.upper(): bounds for name, bounds in fixed_array_sizes.items()
+        }
+        self._fixed_names: Set[str] = set()
+        self._linenum: int | None = None
+        self._unfixed_statements: List[tuple[int | None, BasicDimStatement]] = []
+        self._unfixed_arrays: Dict[str, BasicArrayRef] = {}
+
+    def visit_line(self, line: BasicLine) -> None:
+        self._linenum = line.num
+
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
+        if not isinstance(statement, BasicDimStatement):
+            return
+        is_fixed = True
+        for index, dim_var in enumerate(statement.dim_vars):
+            if not isinstance(dim_var, BasicArrayRef):
+                continue
+            name = dim_var.var.name()[4:]
+            bounds = self._fixed_array_sizes.get(name)
+            if bounds is not None:
+                if len(bounds) != len(dim_var.indices.exp_list):
+                    raise ParseError(
+                        f"--fix-array-size gives {name} {len(bounds)} "
+                        f"bound{'' if len(bounds) == 1 else 's'}, but "
+                        f"{self._line_text()}DIMs it with "
+                        f"{len(dim_var.indices.exp_list)}: {statement.source}"
+                    )
+                statement.fix_array_size(index, bounds)
+                self._fixed_names.add(name)
+                dim_var = statement.dim_vars[index]
+                assert isinstance(dim_var, BasicArrayRef)
+            if not BasicDimStatement.has_constant_sizes(dim_var):
+                is_fixed = False
+                self._unfixed_arrays.setdefault(name, dim_var)
+        if not is_fixed:
+            self._unfixed_statements.append((self._linenum, statement))
+
+    def _line_text(self) -> str:
+        return "" if self._linenum is None else f"line {self._linenum} "
+
+    def _bound_text(self, name: str, index: int, size: AbstractBasicExpression) -> str:
+        bounds = self._fixed_array_sizes.get(name)
+        if bounds and bounds[index] is not None:
+            return str(bounds[index])
+        return "*" if BasicDimStatement.is_constant(size) else "n"
+
+    def check(self) -> None:
+        unused_names = sorted(set(self._fixed_array_sizes) - self._fixed_names)
+        if unused_names:
+            raise ParseError(
+                "--fix-array-size names arrays that no DIM statement "
+                f"declares: {', '.join(unused_names)}."
+            )
+        if not self._unfixed_statements:
+            return
+
+        statements = "\n".join(
+            f"  {'' if linenum is None else f'{linenum} '}{statement.source}"
+            for linenum, statement in self._unfixed_statements
+        )
+        options = " ".join(
+            '--fix-array-size "{}({})"'.format(
+                name,
+                ",".join(
+                    self._bound_text(name, index, size)
+                    for index, size in enumerate(dim_var.indices.exp_list)
+                ),
+            )
+            for name, dim_var in self._unfixed_arrays.items()
+        )
+        raise ParseError(
+            "BASIC09 arrays have a fixed size, but these DIM statements "
+            "size arrays as the program runs:\n"
+            f"{statements}\n"
+            "Replace each n below with the largest subscript the program "
+            "needs in that dimension. A * keeps the program's own bound.\n"
+            f"  {options}"
+        )
 
 
 class RenameVarVisitor(BasicConstructVisitor):

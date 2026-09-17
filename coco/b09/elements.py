@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from itertools import chain
 from typing import TYPE_CHECKING, Dict, List, Literal, Union
 
@@ -1372,6 +1372,7 @@ class BasicDimStatement(AbstractBasicStatement):
         dim_vars: List["BasicArrayRef | BasicVar"],
         *,
         initialize_vars: bool = False,
+        source: str = "",
     ):
         super().__init__()
         self._default_str_storage = DEFAULT_STR_STORAGE
@@ -1381,20 +1382,66 @@ class BasicDimStatement(AbstractBasicStatement):
             else BasicArrayRef(
                 BasicVar(var.var.name()[4:], is_str_expr=var.is_str_expr),
                 BasicExpressionList(
-                    [
-                        BasicLiteral(index.literal + 1)
-                        if isinstance(index, BasicLiteral)
-                        else HexLiteral(hex(index.literal + 1)[2:])
-                        for index in var.indices.exp_list
-                    ]
+                    [self._size_for_bound(index) for index in var.indices.exp_list]
                 ),
                 is_str_expr=var.is_str_expr,
             )
             for var in dim_vars
         ]
         self._initialize_vars = initialize_vars
+        self._source = source
         self._strname_to_size = {}
         self._integer_var_names = set()
+
+    @staticmethod
+    def is_constant(bound: AbstractBasicExpression) -> bool:
+        """Whether ``bound`` (or the size made from it) is a whole
+        number literal. Expressions such as ``-1`` or ``1.5`` can fold
+        into literals too, but they are not valid sizes."""
+        return isinstance(bound, HexLiteral) or (
+            isinstance(bound, BasicLiteral) and type(bound.literal) is int
+        )
+
+    @classmethod
+    def _size_for_bound(cls, bound: AbstractBasicExpression) -> AbstractBasicExpression:
+        """BASIC09 sizes an array by its number of elements rather than
+        its largest subscript. A bound that is not a constant is kept
+        as-is, and must be replaced by :meth:`fix_array_size` before the
+        statement is emitted."""
+        if not cls.is_constant(bound):
+            return bound
+        if isinstance(bound, HexLiteral):
+            return HexLiteral(hex(bound.literal + 1)[2:])
+        assert isinstance(bound, BasicLiteral)
+        return BasicLiteral(bound.literal + 1)
+
+    @classmethod
+    def has_constant_sizes(cls, dim_var: "BasicArrayRef") -> bool:
+        return all(cls.is_constant(size) for size in dim_var.indices.exp_list)
+
+    def fix_array_size(self, index: int, bounds: "Sequence[int | None]") -> None:
+        """Replaces the bounds of the array at ``index`` in
+        :attr:`dim_vars` with ``bounds``, where ``None`` keeps the
+        program's bound for that dimension."""
+        dim_var = self._dim_vars[index]
+        assert isinstance(dim_var, BasicArrayRef)
+        sizes = dim_var.indices.exp_list
+        assert len(bounds) == len(sizes)
+        self._dim_vars[index] = BasicArrayRef(
+            BasicVar(dim_var.var.name()[4:], is_str_expr=dim_var.is_str_expr),
+            BasicExpressionList(
+                [
+                    size if bound is None else BasicLiteral(bound + 1)
+                    for bound, size in zip(bounds, sizes)
+                ]
+            ),
+            is_str_expr=dim_var.is_str_expr,
+        )
+
+    @property
+    def source(self) -> str:
+        """The statement as it appears in the Color BASIC program."""
+        return self._source
 
     @property
     def integer_var_names(self) -> "set[str]":

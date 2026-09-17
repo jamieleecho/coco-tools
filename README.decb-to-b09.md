@@ -55,7 +55,8 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 * By default variables are not DIMensioned and assumed to be STRING or REAL.
   They are initialized to "" or 0 at the beginning of the output program.
 * Arrays are limited to no more than 3 dimensions. The size of each dimension
-  must be specified as a numeric literal.
+  must be a numeric literal, or be given with `--fix-array-size` (see
+  [Arrays sized at run time](#arrays-sized-at-run-time---fix-array-size)).
 * When translated array names are prefixed with arr_.
 * If DIMmed, variables must be DIMmed earlier in the code (lower line number)
   being used.
@@ -287,6 +288,50 @@ Two things to know before reaching for it:
   whatever the shell had set, so output pauses at each screenful if `pau` is on,
   and keys read by `INKEY$` echo until the first `INPUT` turns `eko` off. Run
   `tmode pau=0 eko=0 upc=0` yourself before the program if that matters.
+
+## Arrays sized at run time (`--fix-array-size`)
+
+Color BASIC sizes an array when its `DIM` runs, so a program can ask how big
+to make it:
+
+```basic
+100 INPUT "WHAT ARE YOUR WIDTH AND LENGTH";H,V
+110 DIM W(H,V),V(H,V)
+```
+
+A BASIC09 `DIM` is a declaration with a fixed size, so there is nothing to
+translate this into. decb-to-b09 lists every such `DIM` and the options that
+would fix it:
+
+```
+decb-to-b09: error: BASIC09 arrays have a fixed size, but these DIM statements size arrays as the program runs:
+  110 DIM W(H,V),V(H,V)
+Replace each n below with the largest subscript the program needs in that dimension. A * keeps the program's own bound.
+  --fix-array-size "W(n,n)" --fix-array-size "V(n,n)"
+```
+
+Pass `--fix-array-size` once for each array, with the largest subscript each
+dimension will need. A `*` keeps the bound the program gives that dimension,
+which has to be a constant. For example, `--fix-array-size "A(3,3)"
+--fix-array-size "B$(3,*)"` declares `A` with bounds 3 and 3, and `B$` with a
+first bound of 3 and the second bound from its `DIM`. The option also works on
+arrays whose bounds are already constants, overriding them.
+
+```sh
+decb-to-b09 amazing.bas amazing.b09 --fix-array-size "W(25,25)" --fix-array-size "V(25,25)"
+```
+
+produces
+
+```basic09
+110 DIM arr_W(26, 26), arr_V(26, 26)
+```
+
+The program no longer knows how big the array was meant to be. Values up to
+the size you picked work as before, but a larger one is not caught where the
+array is declared: BASIC09 stops the program with `ERROR #55 Subscript out of
+Range` once it reads or writes past the end. Look at how the program limits
+its input to pick a size that is large enough.
 
 ## Exact powers (`--exact-powers`)
 
