@@ -83,12 +83,20 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   Specifically, BASIC09 has keywords for boolean operations (AND, OR, NOT)
   that are distinct from the numeric operations (LAND, LOR, LNOT).
   decb-to-b09 will use the former in IF statements and the latter for other
-  statements. There are some constructs that mix boolean and numeric
-  operations such as `A = (1 < 2) + 1` that decb-to-b09 allows but
-  results in BASIC09 programs with errors. Within an `IF` condition the
-  mixing is rejected instead of silently emitting a program that BASIC09
-  refuses to load, so `IF -(A < B) THEN 20` and `IF A AND B < C THEN 20`
-  are reported as errors.
+  statements.
+* Color BASIC comparisons yield -1 or 0, which programs go on to use as
+  numbers, as in `A = (B < C) + 1`, `IF A AND B < C THEN 20` or the chained
+  `IF 1 <= 2 <> 0 THEN 20`. BASIC09 comparisons yield a BOOLEAN that cannot
+  be used that way, so each such comparison stores its -1 or 0 in a
+  temporary first:
+
+```basic
+IF B < C THEN tmp_1 := -1.0 \ ELSE tmp_1 := 0.0 \ ENDIF \ A := (tmp_1) + 1.0
+```
+
+  Chained comparisons are made left to right, as in Color BASIC. Comparisons
+  inside `READ`, `INPUT` and `WIDTH` are not converted yet (#61), and a line
+  with many of them can exceed BASIC09's 255 character line limit (#60).
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * When `NEXT` statements do not have an iteration variable specified, the

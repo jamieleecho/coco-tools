@@ -33,12 +33,12 @@ from coco.b09.visitors import (
     BasicPrintStatementPatcherVisitor,
     BasicReadStatementPatcherVisitor,
     CoerceIntegerArgsVisitor,
+    ComparisonConditionVisitor,
     DeclareImplicitArraysVisitor,
     DefFnInlinerVisitor,
     FixArraySizesVisitor,
     ForLoopSemanticsVisitor,
     GetDimmedArraysVisitor,
-    InlinedIfConditionVisitor,
     IntegerVarVisitor,
     IntegralVarVisitor,
     JoystickVisitor,
@@ -144,7 +144,7 @@ def _parse(
             ]
         )
     )
-    basic_prog.visit(InlinedIfConditionVisitor())
+    basic_prog.visit(ComparisonConditionVisitor())
     return basic_prog
 
 

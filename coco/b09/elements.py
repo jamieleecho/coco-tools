@@ -138,7 +138,10 @@ class BasicAssignment(AbstractBasicStatement):
         return self._exp
 
     def basic09_text(self, indent_level) -> str:
-        if isinstance(self._exp, BasicFunctionalExpression):
+        if (
+            isinstance(self._exp, (BasicFunctionalExpression, BasicComparisonValue))
+            and self._exp.statement is not None
+        ):
             return (
                 f"{super().basic09_text(indent_level)}"
                 f"{self._exp.statement.basic09_text(indent_level)}"
@@ -1124,6 +1127,84 @@ class BasicFunctionalExpression(AbstractBasicExpression):
         visitor.visit_exp(self)
 
 
+class BasicComparisonValueAssignment(BasicAssignment):
+    """An assignment of -1 or 0 made by a
+    :class:`BasicComparisonValueStatement`."""
+
+
+class BasicComparisonValueStatement(AbstractBasicStatement):
+    """Stores the -1 or 0 of a comparison in ``var``; see
+    :class:`BasicComparisonValue`."""
+
+    def __init__(self, comparison: BasicBooleanBinaryExp, var: AbstractBasicExpression):
+        super().__init__()
+        self._comparison = comparison
+        self._true_assignment = BasicComparisonValueAssignment(var, BasicLiteral(-1.0))
+        self._false_assignment = BasicComparisonValueAssignment(var, BasicLiteral(0.0))
+
+    def basic09_text(self, indent_level: int) -> str:
+        # The comparison is made before ``var`` is assigned, since it
+        # may read ``var``.
+        return (
+            f"IF {self._comparison.basic09_text(indent_level)} THEN "
+            f"{self._true_assignment.basic09_text(0)} \\ ELSE "
+            f"{self._false_assignment.basic09_text(0)} \\ ENDIF"
+        )
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
+        self._comparison.visit(visitor)
+        self._true_assignment.visit(visitor)
+        self._false_assignment.visit(visitor)
+
+
+class BasicComparisonValue(AbstractBasicExpression):
+    """A comparison whose result is used as a number.
+
+    Color BASIC hands back -1 or 0, which can be added, negated, stored
+    or compared again, as in ``A = (B < C) + 1`` or ``IF A < B < C``.
+    Basic09 hands back a BOOLEAN, which none of those accept. So the
+    comparison is hoisted in front of the statement like the calls of
+    :class:`BasicFunctionalExpression`, where it stores -1 or 0 in a
+    variable that stands in for it.
+    """
+
+    def __init__(self, comparison: BasicBooleanBinaryExp):
+        super().__init__()
+        self._comparison = comparison
+        self._var: AbstractBasicExpression | None = None
+        self._statement: BasicComparisonValueStatement | None = None
+
+    @property
+    def comparison(self) -> BasicBooleanBinaryExp:
+        return self._comparison
+
+    @property
+    def var(self) -> AbstractBasicExpression | None:
+        return self._var
+
+    def set_var(self, var: AbstractBasicExpression) -> None:
+        self._var = var
+        self._statement = BasicComparisonValueStatement(self._comparison, var)
+
+    @property
+    def statement(self) -> BasicComparisonValueStatement | None:
+        return self._statement
+
+    def basic09_text(self, indent_level: int) -> str:
+        return (self._var or self._comparison).basic09_text(indent_level)
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        # The comparisons this one holds are visited, and so hoisted,
+        # before it is.
+        if self._var and self._statement:
+            self._statement.visit(visitor)
+            self._var.visit(visitor)
+        else:
+            self._comparison.visit(visitor)
+        visitor.visit_exp(self)
+
+
 class BasicTabCall(BasicFunctionCall):
     """``TAB(n)`` with the column renumbered for Basic09.
 
@@ -1145,6 +1226,7 @@ class BasicTabCall(BasicFunctionCall):
         BasicParenExp,
         BasicFunctionCall,
         BasicFunctionalExpression,
+        BasicComparisonValue,
     )
 
     def __init__(self, exp: AbstractBasicExpression):
@@ -1262,6 +1344,7 @@ class BasicFnExpression(AbstractBasicExpression):
         BasicParenExp,
         BasicFunctionCall,
         BasicFunctionalExpression,
+        BasicComparisonValue,
     )
 
     def __init__(self, name: str, arg: AbstractBasicExpression):
@@ -1317,47 +1400,12 @@ BOOLEAN_EXPRESSIONS = (
 )
 
 
-def is_boolean_valued(exp: AbstractBasicConstruct) -> bool:
-    """Report whether ``exp`` evaluates to a BASIC09 BOOLEAN.
-
-    A plain :class:`BasicBinaryExp` carrying a relational operator is a
-    comparison that was parsed in a numeric context. Color BASIC hands
-    back -1 or 0 there, but BASIC09 hands back a BOOLEAN, and unary
-    sign, parentheses and the numeric binary operators all propagate
-    that BOOLEAN outwards rather than turning it into a number. So does
-    an inlined DEF FN call whose body is such a comparison.
-    """
-    if isinstance(exp, BOOLEAN_EXPRESSIONS):
-        return True
-    if isinstance(exp, BasicBinaryExp):
-        return exp.operator in RELATIONAL_OPERATORS or any(
-            is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2)
-        )
-    if isinstance(exp, (BasicOpExp, BasicParenExp)):
-        return is_boolean_valued(exp.exp)
-    if isinstance(exp, BasicFnExpression):
-        return exp.body is not None and is_boolean_valued(exp.body)
-    return False
-
-
-def mixed_condition_message(condition: str) -> str:
-    return (
-        "Cannot mix a comparison with numeric operators in an IF condition: "
-        f"{condition}"
-    )
-
-
 class BasicNumericCondition(BasicBooleanBinaryExp):
     """A numeric ``IF`` condition, compared against zero to turn it into
-    a BASIC09 condition. ``source`` is the Color BASIC condition."""
+    a BASIC09 condition."""
 
-    def __init__(self, exp: AbstractBasicExpression, source: str):
+    def __init__(self, exp: AbstractBasicExpression):
         super().__init__(exp, "<>", BasicLiteral(0.0))
-        self._source = source
-
-    @property
-    def source(self) -> str:
-        return self._source
 
 
 class BasicDimStatement(AbstractBasicStatement):
