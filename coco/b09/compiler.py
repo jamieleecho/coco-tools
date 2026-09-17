@@ -35,6 +35,7 @@ from coco.b09.visitors import (
     DefFnInlinerVisitor,
     ForLoopSemanticsVisitor,
     GetDimmedArraysVisitor,
+    InlinedIfConditionVisitor,
     IntegerVarVisitor,
     IntegralVarVisitor,
     JoystickVisitor,
@@ -92,6 +93,7 @@ def _parse(progin: str, *, exact_powers: bool = False) -> BasicProg:
             ]
         )
     )
+    basic_prog.visit(InlinedIfConditionVisitor())
     return basic_prog
 
 

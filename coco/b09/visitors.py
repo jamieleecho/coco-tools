@@ -31,11 +31,13 @@ from coco.b09.elements import (
     BasicFunctionCall,
     BasicGoStatements,
     BasicHbuffStatement,
+    BasicIf,
     BasicInputStatement,
     BasicJoystkExpression,
     BasicLine,
     BasicLiteral,
     BasicNextStatement,
+    BasicNumericCondition,
     BasicOnGoStatement,
     BasicOpExp,
     BasicParenExp,
@@ -50,6 +52,8 @@ from coco.b09.elements import (
     BasicVar,
     BasicWidthStatement,
     HexLiteral,
+    is_boolean_valued,
+    mixed_condition_message,
     numeric_literal_value,
 )
 from coco.b09.errors import ParseError
@@ -845,14 +849,53 @@ class DefFnInlinerVisitor(BasicConstructVisitor):
         self._call_counts[exp.name] += 1
         param = BasicVar(f"fn{exp.name}_{self._call_counts[exp.name]}")
         body = copy.deepcopy(definition.body)
-        body.visit(RenameVarVisitor(definition.param.name(), param.name()))
-        exp.inline(param, body)
-
-        # The calls in the body are inlined now, while it is known which
-        # functions they are being called from.
+        # Color BASIC does not give the parameter a variable of its own.
+        # It saves the variable, assigns it the argument while the body
+        # runs and then restores it, so the functions the body calls see
+        # the parameter too. The calls are therefore inlined before the
+        # parameter is renamed, and the renaming reaches into them. Their
+        # own parameters are renamed by then, so they still shadow it.
         self._expanding.append(exp.name)
         body.visit(self)
         self._expanding.pop()
+        body.visit(RenameVarVisitor(definition.param.name(), param.name()))
+        exp.inline(param, body)
+
+
+class InlinedIfConditionVisitor(BasicConstructVisitor):
+    """Checks the numeric ``IF`` conditions again once DEF FN calls are
+    inlined, since the parser could not see into the calls.
+
+    A function whose body is a comparison holds a BASIC09 BOOLEAN, which
+    cannot be compared against zero. A condition that is only such a call
+    is used as it is, which is what comparing Color BASIC's -1 or 0
+    against zero amounts to. Any other mix is reported, as the parser
+    reports the ones it can see.
+    """
+
+    def visit_statement(self, statement: AbstractBasicConstruct) -> None:
+        if not isinstance(statement, BasicIf) or not isinstance(
+            statement.exp, BasicNumericCondition
+        ):
+            return
+        condition = statement.exp.exp1
+        if not is_boolean_valued(condition):
+            return
+        if not self._is_comparison(condition):
+            raise ParseError(mixed_condition_message(statement.exp.source))
+        statement._exp = condition
+
+    @classmethod
+    def _is_comparison(cls, exp: AbstractBasicExpression) -> bool:
+        if isinstance(exp, BasicParenExp):
+            return cls._is_comparison(exp.exp)
+        if isinstance(exp, BasicFnExpression):
+            return exp.body is not None and cls._is_comparison(exp.body)
+        return (
+            isinstance(exp, BasicBinaryExp)
+            and exp.operator in RELATIONAL_OPERATORS
+            and not any(is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2))
+        )
 
 
 class BasicHbuffPresenceVisitor(BasicConstructVisitor):

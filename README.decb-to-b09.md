@@ -151,9 +151,15 @@ tmp_to := arr_F(U) \ IF 1.0 > tmp_to THEN \ tmp_to := 1.0 \ ENDIF \ FOR B = 1.0 
 ```
 
   The argument is evaluated once, however often the body reads the parameter.
-  Functions are looked up by name wherever they are defined, so one can be
-  called on a line before its `DEF FN`. It is an error to define a function
-  twice, to call one that is never defined, or for a function to call itself.
+  Color BASIC gives the variable the argument's value only while the body
+  runs, so functions called from the body see the parameter too:
+  `DEF FNB(X) = FNA(1)` with `DEF FNA(Y) = X + Y` makes `FNB(5)` 6 whatever
+  `X` holds. Functions are looked up by name wherever they are defined, so one
+  can be called on a line before its `DEF FN`. It is an error to define a
+  function twice, to call one that is never defined, or for a function to
+  call itself. Since every call is written out in full, lines that call
+  functions many times, or call functions that call other functions, can grow
+  past the length BASIC09 accepts.
 * `FIX` is converted to BASIC09's `INT`. BASIC09's `FIX` rounds, while its
   `INT` truncates toward zero like Color BASIC's `FIX`. Color BASIC's `INT`
   rounds down and is converted to a call to `ecb_int`.

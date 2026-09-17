@@ -2217,14 +2217,44 @@ class TestB09(unittest.TestCase):
         )
 
     def test_def_fn_nested_calls(self) -> None:
-        # FNA reads the variable X, not the parameter of FNB.
+        # Color BASIC assigns X the argument of FNB while its body runs,
+        # so the X that FNA reads is the parameter of FNB.
         self.generic_test_parse(
             "10 DEF FNA(Y) = X + Y\n20 DEF FNB(X) = FNA(X + 1) * 2\n30 A = FNB(FNB(Y))",
             "10 (* DEF FNA(Y) = X + Y *)\n20 (* DEF FNB(X) = FNA(X + 1) * 2 *)\n"
             "30 fnB_2 := Y \\ fnA_2 := fnB_2 + 1.0 \\ "
-            "fnB_1 := ((X + fnA_2) * 2.0) \\ fnA_1 := fnB_1 + 1.0 \\ "
-            "A := ((X + fnA_1) * 2.0)",
+            "fnB_1 := ((fnB_2 + fnA_2) * 2.0) \\ fnA_1 := fnB_1 + 1.0 \\ "
+            "A := ((fnB_1 + fnA_1) * 2.0)",
         )
+
+    def test_def_fn_nested_parameter_shadows_outer_one(self) -> None:
+        # In Color BASIC, FND(2) is 23: FNC sees its own Q, FND its own.
+        self.generic_test_parse(
+            "10 DEF FNC(Q) = Q + 1\n20 DEF FND(Q) = FNC(Q * 10) + Q\n30 A = FND(2)",
+            "10 (* DEF FNC(Q) = Q + 1 *)\n20 (* DEF FND(Q) = FNC(Q * 10) + Q *)\n"
+            "30 fnD_1 := 2.0 \\ fnC_1 := fnD_1 * 10.0 \\ "
+            "A := ((fnC_1 + 1.0) + fnD_1)",
+        )
+
+    def test_def_fn_comparison_as_if_condition(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNT(X) = X > 1\n20 IF FNT(2) THEN 10\n30 IF FNA(2) THEN 10\n"
+            "40 DEF FNA(X) = X * 2",
+            "10 (* DEF FNT(X) = X > 1 *)\n"
+            "20 fnT_1 := 2.0 \\ IF (fnT_1 > 1.0) THEN 10\n"
+            "30 fnA_1 := 2.0 \\ IF (fnA_1 * 2.0) <> 0.0 THEN 10\n"
+            "40 (* DEF FNA(X) = X * 2 *)",
+        )
+        for condition in ("FNT(2) AND FNT(3)", "FNT(2) + 1", "FNU(2)"):
+            with self.assertRaises(ParseError) as context:
+                compiler.convert(
+                    "10 DEF FNT(X) = X > 1\n20 DEF FNU(X) = (X > 1) * 2\n"
+                    f"30 IF {condition} THEN 10"
+                )
+            assert str(context.exception) == (
+                "Cannot mix a comparison with numeric operators in an IF "
+                f"condition: {condition}"
+            )
 
     def test_def_fn_in_for_bounds(self) -> None:
         # I is assigned the start before the limit reads it.

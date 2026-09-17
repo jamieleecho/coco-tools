@@ -1310,6 +1310,56 @@ class BasicFnExpression(AbstractBasicExpression):
         self._body.visit(visitor)
 
 
+BOOLEAN_EXPRESSIONS = (
+    BasicBooleanBinaryExp,
+    BasicBooleanOpExp,
+    BasicBooleanParenExp,
+)
+
+
+def is_boolean_valued(exp: AbstractBasicConstruct) -> bool:
+    """Report whether ``exp`` evaluates to a BASIC09 BOOLEAN.
+
+    A plain :class:`BasicBinaryExp` carrying a relational operator is a
+    comparison that was parsed in a numeric context. Color BASIC hands
+    back -1 or 0 there, but BASIC09 hands back a BOOLEAN, and unary
+    sign, parentheses and the numeric binary operators all propagate
+    that BOOLEAN outwards rather than turning it into a number. So does
+    an inlined DEF FN call whose body is such a comparison.
+    """
+    if isinstance(exp, BOOLEAN_EXPRESSIONS):
+        return True
+    if isinstance(exp, BasicBinaryExp):
+        return exp.operator in RELATIONAL_OPERATORS or any(
+            is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2)
+        )
+    if isinstance(exp, (BasicOpExp, BasicParenExp)):
+        return is_boolean_valued(exp.exp)
+    if isinstance(exp, BasicFnExpression):
+        return exp.body is not None and is_boolean_valued(exp.body)
+    return False
+
+
+def mixed_condition_message(condition: str) -> str:
+    return (
+        "Cannot mix a comparison with numeric operators in an IF condition: "
+        f"{condition}"
+    )
+
+
+class BasicNumericCondition(BasicBooleanBinaryExp):
+    """A numeric ``IF`` condition, compared against zero to turn it into
+    a BASIC09 condition. ``source`` is the Color BASIC condition."""
+
+    def __init__(self, exp: AbstractBasicExpression, source: str):
+        super().__init__(exp, "<>", BasicLiteral(0.0))
+        self._source = source
+
+    @property
+    def source(self) -> str:
+        return self._source
+
+
 class BasicDimStatement(AbstractBasicStatement):
     _default_str_storage: int
     _dim_vars: List["BasicArrayRef | BasicVar"]
