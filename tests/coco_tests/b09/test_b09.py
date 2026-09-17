@@ -1,5 +1,4 @@
 import io
-import itertools
 import os
 import sys
 import tempfile
@@ -644,7 +643,89 @@ class TestB09(unittest.TestCase):
     def test_parse_gtle_expression(self) -> None:
         self.generic_test_parse(
             "10 A = 4 < 2\n15 B=4>2\n20C=A<>B",
-            "10 A := 4.0 < 2.0\n15 B := 4.0 > 2.0\n20 C := A <> B",
+            "10 IF 4.0 < 2.0 THEN A := -1.0 \\ ELSE A := 0.0 \\ ENDIF\n"
+            "15 IF 4.0 > 2.0 THEN B := -1.0 \\ ELSE B := 0.0 \\ ENDIF\n"
+            "20 IF A <> B THEN C := -1.0 \\ ELSE C := 0.0 \\ ENDIF",
+        )
+
+    def test_comparison_used_as_number(self) -> None:
+        self.generic_test_parse(
+            "10 A = (B < C) + 1",
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "A := (tmp_1) + 1.0",
+        )
+        # The comparison is made before A is assigned.
+        self.generic_test_parse(
+            "10 A = B < A",
+            "10 IF B < A THEN A := -1.0 \\ ELSE A := 0.0 \\ ENDIF",
+        )
+        self.generic_test_parse(
+            "10 A(B < C) = D < E",
+            "DIM arr_A(11)\n"
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF D < E THEN arr_A(tmp_1) := -1.0 \\ ELSE arr_A(tmp_1) := 0.0 \\ ENDIF",
+        )
+        self.generic_test_parse(
+            "10 PRINT A < B",
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "run ecb_str(tmp_1, tmp_1$) \\ PRINT tmp_1$",
+        )
+        self.generic_test_parse(
+            "10 A = INT(B < C)",
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "RUN ecb_int(tmp_1, A)",
+        )
+
+    def test_comparison_used_as_number_optimized(self) -> None:
+        self.generic_test_parse(
+            "10 A = (B < C) + 1",
+            "DIM A, B, C, tmp_1: INTEGER\n"
+            "10 IF B < C THEN tmp_1 := -1 \\ ELSE tmp_1 := 0 \\ ENDIF \\ "
+            "A := (tmp_1) + 1",
+            optimize=True,
+        )
+
+    def test_chained_comparisons(self) -> None:
+        # Color BASIC compares the -1 or 0 of 1 < 2 against 3.
+        self.generic_test_parse(
+            "10 A = 1 < 2 < 3",
+            "10 IF 1.0 < 2.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF tmp_1 < 3.0 THEN A := -1.0 \\ ELSE A := 0.0 \\ ENDIF",
+        )
+        self.generic_test_parse(
+            "10 A = (B < C) < (D < E)",
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF D < E THEN tmp_2 := -1.0 \\ ELSE tmp_2 := 0.0 \\ ENDIF \\ "
+            "IF (tmp_1) < (tmp_2) THEN A := -1.0 \\ ELSE A := 0.0 \\ ENDIF",
+        )
+
+    def test_chained_comparisons_are_left_associative(self) -> None:
+        exp = self.parse_assignment_exp("10 A = B < C = D")
+        assert isinstance(exp, elements.BasicComparisonValue)
+        assert exp.comparison.operator == "="
+        inner = exp.comparison.exp1
+        assert isinstance(inner, elements.BasicComparisonValue)
+        assert inner.comparison.operator == "<"
+
+    def test_chained_comparisons_in_if(self) -> None:
+        self.generic_test_parse(
+            '10 IF 1<=2<>0 THEN 30\n20 PRINT "NO"\n30 PRINT "YES"',
+            "10 IF 1.0 <= 2.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            'IF tmp_1 <> 0.0 THEN 30\n20 PRINT "NO"\n30 PRINT "YES"',
+        )
+        self.generic_test_parse(
+            "10 IF (A<B<C) THEN 10",
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF (tmp_1 < C) THEN 10",
+        )
+        # A condition that starts out boolean but goes on to chain is
+        # numeric throughout.
+        self.generic_test_parse(
+            "10 IF A<B AND C<D<E THEN 10",
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF C < D THEN tmp_2 := -1.0 \\ ELSE tmp_2 := 0.0 \\ ENDIF \\ "
+            "IF tmp_2 < E THEN tmp_3 := -1.0 \\ ELSE tmp_3 := 0.0 \\ ENDIF \\ "
+            "IF LAND(tmp_1, tmp_3) <> 0.0 THEN 10",
         )
 
     def test_parse_multi_expression2(self) -> None:
@@ -654,9 +735,10 @@ class TestB09(unittest.TestCase):
         )
 
     def test_parse_multi_expression3(self) -> None:
-        # Note that the output is not a legal Basic09 construct
         self.generic_test_parse(
-            "10 A = A + 2 AND 3 < 3", "10 A := LAND(A + 2.0, 3.0 < 3.0)"
+            "10 A = A + 2 AND 3 < 3",
+            "10 IF 3.0 < 3.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "A := LAND(A + 2.0, tmp_1)",
         )
 
     def test_parse_multi_statement(self) -> None:
@@ -701,13 +783,26 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse("11 PRINT A$,,B$", '11 PRINT A$, "", B$')
 
     def test_land(self) -> None:
-        self.generic_test_parse("11 PRINT A=A AND 4", "11 PRINT LAND(A = A, 4.0)")
+        self.generic_test_parse(
+            "11 PRINT A=A AND 4",
+            "11 IF A = A THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "PRINT LAND(tmp_1, 4.0)",
+        )
 
     def test_lor(self) -> None:
-        self.generic_test_parse("11 Z = A=B OR F=Z", "11 Z := LOR(A = B, F = Z)")
+        self.generic_test_parse(
+            "11 Z = A=B OR F=Z",
+            "11 IF A = B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF F = Z THEN tmp_2 := -1.0 \\ ELSE tmp_2 := 0.0 \\ ENDIF \\ "
+            "Z := LOR(tmp_1, tmp_2)",
+        )
 
     def test_lnot(self) -> None:
-        self.generic_test_parse("11 Z = NOT A=B", "11 Z := LNOT(A = B)")
+        self.generic_test_parse(
+            "11 Z = NOT A=B",
+            "11 IF A = B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "Z := LNOT(tmp_1)",
+        )
 
     def test_if_not(self) -> None:
         self.generic_test_parse(
@@ -808,7 +903,8 @@ class TestB09(unittest.TestCase):
         )
         self.generic_test_parse(
             '11 PRINT TAB(A>B);"X"',
-            '11 PRINT TAB((A > B) + 1.0); "X"',
+            "11 IF A > B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            'PRINT TAB(tmp_1 + 1.0); "X"',
         )
 
     def test_tab_renumbers_hex_literals(self) -> None:
@@ -1841,18 +1937,27 @@ class TestB09(unittest.TestCase):
             "ENDLOOP",
         )
 
-    def test_rejects_mixed_conditions_with_else(self) -> None:
-        for program in (
+    def test_mixed_conditions_with_else(self) -> None:
+        self.generic_test_parse(
             '10 IF -(A<B) THEN PRINT"X" ELSE PRINT"Y"',
-            '10 IF -(A<B) THEN PRINT"X" ELSE IF B THEN PRINT"Y"',
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            'IF - (tmp_1) <> 0.0 THEN\n  PRINT "X"\nELSE\n  PRINT "Y"\nENDIF',
+        )
+        self.generic_test_parse(
             '10 IF A THEN PRINT"X" ELSE IF -(A<B) THEN PRINT"Y" ELSE PRINT"Z"',
-        ):
-            with self.assertRaises(ParseError) as context:
-                compiler.convert(program)
-            assert str(context.exception) == (
-                "Cannot mix a comparison with numeric operators in an IF "
-                "condition: -(A<B)"
-            )
+            "10 LOOP\n"
+            "  EXITIF A <> 0.0 THEN\n"
+            '    PRINT "X"\n'
+            "  ENDEXIT\n"
+            "  IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "EXITIF - (tmp_1) <> 0.0 THEN\n"
+            '    PRINT "Y"\n'
+            "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
+            '    PRINT "Z"\n'
+            "  ENDEXIT\n"
+            "ENDLOOP",
+        )
 
     def test_int_lvalue(self) -> None:
         self.generic_test_parse(
@@ -2109,13 +2214,19 @@ class TestB09(unittest.TestCase):
         assert isinstance(exp.exp1, elements.BasicOpExp)
         assert exp.exp1.operator == "-"
 
-    def test_rejects_negated_comparison_in_if(self) -> None:
-        with self.assertRaises(ParseError):
-            compiler.convert("10 IF -(A<B) THEN 20\n20 END")
+    def test_negated_comparison_in_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF -(A<B) THEN 20\n20 END",
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF - (tmp_1) <> 0.0 THEN 20\n20 END",
+        )
 
-    def test_rejects_comparison_mixed_with_and_in_if(self) -> None:
-        with self.assertRaises(ParseError):
-            compiler.convert("10 IF A AND B<C THEN 20\n20 END")
+    def test_comparison_mixed_with_and_in_if(self) -> None:
+        self.generic_test_parse(
+            "10 IF A AND B<C THEN 20\n20 END",
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF LAND(A, tmp_1) <> 0.0 THEN 20\n20 END",
+        )
 
     def test_for_that_runs_is_unchanged(self) -> None:
         self.generic_test_parse(
@@ -2418,23 +2529,32 @@ class TestB09(unittest.TestCase):
             "  ENDEXIT\n"
             "ENDLOOP",
         )
-        for condition, if_stmnt in itertools.product(
-            ("FNT(2) AND FNT(3)", "FNT(2) + 1", "FNU(2)"),
-            (
-                "IF {} THEN 10",
-                "IF {} THEN 10 ELSE 10",
-                "IF A THEN 10 ELSE IF {} THEN 10",
-            ),
-        ):
-            with self.assertRaises(ParseError) as context:
-                compiler.convert(
-                    "10 DEF FNT(X) = X > 1\n20 DEF FNU(X) = (X > 1) * 2\n"
-                    f"30 {if_stmnt.format(condition)}"
-                )
-            assert str(context.exception) == (
-                "Cannot mix a comparison with numeric operators in an IF "
-                f"condition: {condition}"
-            )
+        # A function whose comparison is used as a number.
+        self.generic_test_parse(
+            "10 DEF FNT(X) = X > 1\n20 IF FNT(2) + 1 THEN 10 ELSE 10",
+            "10 (* DEF FNT(X) = X > 1 *)\n"
+            "20 fnT_1 := 2.0 \\ "
+            "IF fnT_1 > 1.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "IF tmp_1 + 1.0 <> 0.0 THEN\n"
+            "  GOTO 10\n"
+            "ELSE\n"
+            "  GOTO 10\n"
+            "ENDIF",
+        )
+        self.generic_test_parse(
+            "10 DEF FNU(X) = (X > 1) * 2\n20 IF A THEN 10 ELSE IF FNU(2) THEN 10",
+            "10 (* DEF FNU(X) = (X > 1) * 2 *)\n"
+            "20 LOOP\n"
+            "  EXITIF A <> 0.0 THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "  fnU_1 := 2.0 \\ "
+            "IF fnU_1 > 1.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "EXITIF ((tmp_1) * 2.0) <> 0.0 THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "ENDLOOP",
+        )
 
     def test_def_fn_in_for_bounds(self) -> None:
         # I is assigned the start before the limit reads it.

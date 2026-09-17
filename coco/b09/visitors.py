@@ -21,6 +21,9 @@ from coco.b09.elements import (
     BasicBooleanBinaryExp,
     BasicBooleanOpExp,
     BasicCls,
+    BasicComparisonValue,
+    BasicComparisonValueAssignment,
+    BasicComparisonValueStatement,
     BasicDataStatement,
     BasicDefFnStatement,
     BasicDimStatement,
@@ -53,8 +56,6 @@ from coco.b09.elements import (
     BasicVar,
     BasicWidthStatement,
     HexLiteral,
-    is_boolean_valued,
-    mixed_condition_message,
     numeric_literal_value,
 )
 from coco.b09.errors import ParseError
@@ -637,8 +638,8 @@ class VarReferenceVisitor(BasicConstructVisitor):
 
 class HoistedStatementCollectorVisitor(BasicConstructVisitor):
     """Collects the statements hoisted out of an expression: the calls
-    of functional expressions and the argument assignments of inlined
-    DEF FN calls.
+    of functional expressions, the comparisons whose results are used as
+    numbers and the argument assignments of inlined DEF FN calls.
 
     A call that is the whole argument of a DEF FN call is collected
     too, although it is not hoisted: it assigns the parameter itself.
@@ -652,7 +653,10 @@ class HoistedStatementCollectorVisitor(BasicConstructVisitor):
         return self._statements
 
     def visit_exp(self, exp: AbstractBasicExpression) -> None:
-        if isinstance(exp, BasicFunctionalExpression) and exp.statement is not None:
+        if (
+            isinstance(exp, (BasicFunctionalExpression, BasicComparisonValue))
+            and exp.statement is not None
+        ):
             self._statements.append(exp.statement)
         elif isinstance(exp, BasicFnExpression) and exp.assignment is not None:
             self._statements.append(exp.assignment)
@@ -779,16 +783,27 @@ class BasicFunctionalExpressionPatcherVisitor(BasicConstructVisitor):
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
         # Calls in the argument of a DEF FN call are hoisted in front of
         # the enclosing statement too, which also gives them temporaries
-        # distinct from the ones it already holds.
-        if not isinstance(statement, BasicFnArgAssignment):
+        # distinct from the ones it already holds. So is everything in a
+        # comparison whose result is used as a number.
+        if not isinstance(
+            statement,
+            (
+                BasicFnArgAssignment,
+                BasicComparisonValueAssignment,
+                BasicComparisonValueStatement,
+            ),
+        ):
             self._statement = statement
         if isinstance(statement, BasicAssignment) and isinstance(
-            statement.exp, BasicFunctionalExpression
+            statement.exp, (BasicFunctionalExpression, BasicComparisonValue)
         ):
             statement.exp.set_var(statement.var)
 
     def visit_exp(self, exp) -> None:
-        if not isinstance(exp, BasicFunctionalExpression) or exp.var:
+        if (
+            not isinstance(exp, (BasicFunctionalExpression, BasicComparisonValue))
+            or exp.var
+        ):
             return
         if isinstance(self._statement, AbstractBasicStatement):
             self._statement.transform_function_to_call(exp)
@@ -959,15 +974,15 @@ class DefFnInlinerVisitor(BasicConstructVisitor):
         exp.inline(param, body)
 
 
-class InlinedIfConditionVisitor(BasicConstructVisitor):
-    """Checks the numeric ``IF`` conditions again once DEF FN calls are
-    inlined, since the parser could not see into the calls.
+class ComparisonConditionVisitor(BasicConstructVisitor):
+    """Uses a numeric ``IF`` condition that is a single comparison as the
+    condition itself.
 
-    A function whose body is a comparison holds a BASIC09 BOOLEAN, which
-    cannot be compared against zero. A condition that is only such a call
-    is used as it is, which is what comparing Color BASIC's -1 or 0
-    against zero amounts to. Any other mix is reported, as the parser
-    reports the ones it can see.
+    Such a condition holds a :class:`BasicComparisonValue`, maybe in
+    parentheses or as the body of an inlined DEF FN call, and comparing
+    its -1 or 0 against zero amounts to making the comparison. DEF FN
+    calls cannot be seen into until they are inlined, so this runs after
+    they are.
     """
 
     def visit_statement(self, statement: AbstractBasicConstruct) -> None:
@@ -975,24 +990,31 @@ class InlinedIfConditionVisitor(BasicConstructVisitor):
             statement.exp, BasicNumericCondition
         ):
             return
-        condition = statement.exp.exp1
-        if not is_boolean_valued(condition):
-            return
-        if not self._is_comparison(condition):
-            raise ParseError(mixed_condition_message(statement.exp.source))
-        statement._exp = condition
+        condition = self._comparison(statement.exp.exp1)
+        if condition is not None:
+            statement._exp = condition
 
     @classmethod
-    def _is_comparison(cls, exp: AbstractBasicExpression) -> bool:
+    def _comparison(
+        cls, exp: AbstractBasicExpression
+    ) -> AbstractBasicExpression | None:
+        """Return ``exp`` with its comparison made directly, or ``None``
+        if ``exp`` is not a single comparison."""
+        if isinstance(exp, BasicComparisonValue):
+            return exp.comparison
         if isinstance(exp, BasicParenExp):
-            return cls._is_comparison(exp.exp)
-        if isinstance(exp, BasicFnExpression):
-            return exp.body is not None and cls._is_comparison(exp.body)
-        return (
-            isinstance(exp, BasicBinaryExp)
-            and exp.operator in RELATIONAL_OPERATORS
-            and not any(is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2))
-        )
+            inner = cls._comparison(exp.exp)
+            if inner is not None:
+                exp._exp = inner
+                return exp
+        if isinstance(exp, BasicFnExpression) and exp.body is not None:
+            body = cls._comparison(exp.body)
+            if body is not None:
+                exp._body = (
+                    body if isinstance(body, BasicParenExp) else BasicParenExp(body)
+                )
+                return exp
+        return None
 
 
 class BasicHbuffPresenceVisitor(BasicConstructVisitor):
@@ -1339,7 +1361,7 @@ class CoerceIntegerArgsVisitor(BasicConstructVisitor):
             return arg.operator in {"+", "-", "*", "/"} and all(
                 self._is_integer_arg(operand) for operand in (arg.exp1, arg.exp2)
             )
-        if isinstance(arg, BasicFunctionalExpression):
+        if isinstance(arg, (BasicFunctionalExpression, BasicComparisonValue)):
             return arg.var is not None and self._is_integer_arg(arg.var)
         if isinstance(arg, BasicFnExpression):
             return arg.body is not None and self._is_integer_arg(arg.body)
@@ -1669,6 +1691,10 @@ class IntegerVarVisitor(BasicConstructVisitor):
 
         if isinstance(exp, BasicFnExpression):
             return exp.body is not None and self._is_integer_exp(exp.body, candidates)
+
+        if isinstance(exp, BasicComparisonValue):
+            # -1 or 0.
+            return True
 
         if isinstance(exp, BasicBinaryExp):
             op = exp.operator

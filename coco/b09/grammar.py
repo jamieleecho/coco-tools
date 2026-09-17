@@ -342,8 +342,9 @@ grammar = Grammar(
     statements_element   = ":" space* statement? space*
     statements_else      = statements
     exp             = "NOT"? space* num_exp space*
-    if_exp          = bool_exp
+    if_exp          = if_bool_exp
                     / num_exp
+    if_bool_exp     = bool_exp &(space* "THEN")
     bool_exp              = "NOT"? space* bool_or_exp
     bool_or_exp           = bool_and_exp space* bool_or_exp_elements
     bool_or_exp_elements  = bool_or_exp_element*
@@ -364,7 +365,7 @@ grammar = Grammar(
     num_and_exp_elements = num_and_exp_element*
     num_and_exp_element  = "AND" space* num_gtle_exp space*
     num_gtle_exp         = num_sum_exp space* num_glte_sub_exps
-    num_glte_sub_exps    = num_glte_sub_exp?
+    num_glte_sub_exps    = num_glte_sub_exp*
     num_glte_sub_exp     = (("<=" / ">=" / "<>" / "<" / ">" / "=>" / "=<" / "=") space* num_sum_exp space*)
     num_sum_exp          = num_prod_exp space* num_sum_sub_exps
     num_sum_sub_exps     = num_sum_sub_exp*
