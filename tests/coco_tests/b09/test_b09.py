@@ -1104,6 +1104,130 @@ class TestB09(unittest.TestCase):
             initialize_vars=True,
         )
 
+    def test_dim_constant_bounds_allow_spaces(self) -> None:
+        self.generic_test_parse(
+            "11 DIM A( 12 ), B(&H10 ,3)",
+            "11 DIM arr_A(13), arr_B($11, 4)",
+        )
+
+    def test_dim_rejects_bounds_that_are_not_constants(self) -> None:
+        with self.assertRaises(ParseError) as context:
+            compiler.convert(
+                "100 INPUT H,V\n"
+                "110 DIM W(H,V),V(H,V)\n"
+                "120 DIM S(10,2), Q$(N+1, &H3)\n"
+                "130 IF H > 1 THEN DIM X(2*H)\n"
+            )
+        assert str(context.exception) == (
+            "BASIC09 arrays have a fixed size, but these DIM statements size "
+            "arrays as the program runs:\n"
+            "  110 DIM W(H,V),V(H,V)\n"
+            "  120 DIM S(10,2), Q$(N+1, &H3)\n"
+            "  130 DIM X(2*H)\n"
+            "Replace each n below with the largest subscript the program needs "
+            "in that dimension. A * keeps the program's own bound.\n"
+            '  --fix-array-size "W(n,n)" --fix-array-size "V(n,n)" '
+            '--fix-array-size "Q$(n,*)" --fix-array-size "X(n)"'
+        )
+
+    def test_dim_bound_expression_is_not_a_constant(self) -> None:
+        # -1 and 1.5 fold into literals, but only whole numbers are sizes.
+        with self.assertRaises(ParseError) as context:
+            compiler.convert("10 DIM A(10+1),B(-1),C(1.5),D(&H10+1)")
+        assert str(context.exception).endswith(
+            '  --fix-array-size "A(n)" --fix-array-size "B(n)" '
+            '--fix-array-size "C(n)" --fix-array-size "D(n)"'
+        )
+
+    def test_fix_array_size(self) -> None:
+        self.generic_test_parse(
+            "100 INPUT H\n110 DIM W(H,10),Q$(H,&H3),S(5)\n120 W(1,2)=3",
+            '100 RUN _ecb_input_prefix \\ INPUT "? ", H \\ RUN _ecb_input_suffix\n'
+            "110 DIM arr_Q$(21, $4)\n"
+            "DIM arr_W(21, 31), arr_S(3)\n"
+            "120 arr_W(1.0, 2.0) := 3.0",
+            fixed_array_sizes={"W": (20, 30), "q$": (20, None), "S": (2,)},
+        )
+
+    def test_fix_array_size_keeps_the_names_it_is_given(self) -> None:
+        with self.assertRaises(ParseError) as context:
+            compiler.convert(
+                "10 DIM W(H,V),V(H,V)", fixed_array_sizes={"W": (3, 3), "V": (3, None)}
+            )
+        assert str(context.exception).endswith('  --fix-array-size "V(3,n)"')
+
+    def test_fix_array_size_errors(self) -> None:
+        for sizes, message in (
+            (
+                {"W": (3,)},
+                "--fix-array-size gives W 1 bound, but line 10 DIMs it with 2: "
+                "DIM W(H,V)",
+            ),
+            (
+                {"W": (3, 3), "Z": (1,), "A$": (1,)},
+                "--fix-array-size names arrays that no DIM statement declares: A$, Z.",
+            ),
+        ):
+            with self.assertRaises(ParseError) as context:
+                compiler.convert("10 DIM W(H,V)\n20 Z = 1", fixed_array_sizes=sizes)
+            assert str(context.exception) == message
+
+    def test_fix_array_size_integer_candidates(self) -> None:
+        assert compiler.collect_integer_candidates(
+            "10 DIM W(N)\n20 W(1) = 2", fixed_array_sizes={"W": (5,)}
+        ) == ["W()"]
+
+    def test_parse_fixed_array_size(self) -> None:
+        assert compiler.parse_fixed_array_size("A(3,3)") == ("A", (3, 3))
+        assert compiler.parse_fixed_array_size(" b1$ ( 3 , * ) ") == ("B1$", (3, None))
+        assert compiler.parse_fixed_array_size("C(0,1,32766)") == ("C", (0, 1, 32766))
+        for spec in ("A", "A(1,2,3,4)", "A(-1)", "A(X)", "A(32767)", "ABC(1)", "A()"):
+            with self.assertRaises(ValueError):
+                compiler.parse_fixed_array_size(spec)
+
+    def test_cli_fix_array_size(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = os.path.join(tmpdir, "dims.bas")
+            out = os.path.join(tmpdir, "dims.b09")
+            with open(src, "w") as f:
+                f.write("10 INPUT N\n20 DIM A(N,N),B$(N,2)\n")
+            decb_to_b09.start(
+                [
+                    "--fix-array-size",
+                    "A(3,3)",
+                    "--fix-array-size",
+                    "B$(3,*)",
+                    src,
+                    out,
+                ]
+            )
+            with open(out) as f:
+                program = f.read().replace("\r", "\n")
+            assert "20 DIM arr_B$(4, 3)\n" in program
+            assert "DIM arr_A(4, 4)\n" in program
+
+            # Repeating a size is harmless.
+            decb_to_b09.start(
+                ["--fix-array-size", "A(3,3)", "--fix-array-size", "a(3,3)"]
+                + ["--fix-array-size", "B$(3,*)", src, out]
+            )
+
+            for flags in (
+                ["--fix-array-size", "A(N)"],
+                ["--fix-array-size", "A(3,3)", "--fix-array-size", "a(4,4)"],
+            ):
+                with mock.patch.object(sys, "stderr", io.StringIO()):
+                    with self.assertRaises(SystemExit) as context:
+                        decb_to_b09.start([*flags, src, out])
+                assert context.exception.code == 2
+
+            with mock.patch.object(sys, "argv", ["decb-to-b09", src, out]):
+                with self.assertRaises(SystemExit) as context:
+                    decb_to_b09.main()
+            assert str(context.exception.code).startswith(
+                "decb-to-b09: error: BASIC09 arrays have a fixed size"
+            )
+
     def test_line_filter(self) -> None:
         self.generic_test_parse(
             "10 GOTO 10\n20 GOSUB 100\n30 GOTO 10\n100 REM\n",

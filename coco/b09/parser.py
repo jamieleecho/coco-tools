@@ -764,6 +764,9 @@ class BasicVisitor(NodeVisitor):
     def visit_dim_element0(self, _, visited_children):
         return visited_children[0]
 
+    def visit_dim_constant(self, _, visited_children):
+        return visited_children[0]
+
     def visit_dim_var(self, _, visited_children):
         return visited_children[0]
 
@@ -918,9 +921,9 @@ class BasicVisitor(NodeVisitor):
         _, _, _, _, exp, _, _, _ = visited_children
         return BasicJoystkExpression(BasicExpressionList([exp]))
 
-    def visit_dim_statement(self, _, visited_children) -> AbstractBasicStatement:
+    def visit_dim_statement(self, node, visited_children) -> AbstractBasicStatement:
         _, _, dim_var_list = visited_children
-        return BasicDimStatement(dim_var_list)
+        return BasicDimStatement(dim_var_list, source=node.text.strip())
 
     def visit_clear_statement(self, node, visited_children) -> AbstractBasicConstruct:
         return BasicComment(f" {node.text.strip()}")

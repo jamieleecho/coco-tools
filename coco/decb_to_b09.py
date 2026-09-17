@@ -9,15 +9,26 @@ import os
 import sys
 
 from coco import __version__
-from coco.b09.compiler import convert_file
+from coco.b09.compiler import convert_file, parse_fixed_array_size
+from coco.b09.errors import ParseError
 
 DESCRIPTION = """Convert a Color BASIC program to a BASIC09 program
 Copyright (c) 2023 by Jamie Cho
 Version: {}""".format(__version__)
 
 
+def _fixed_array_size(spec: str) -> tuple[str, tuple[int | None, ...]]:
+    try:
+        return parse_fixed_array_size(spec)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
 def main():
-    start(sys.argv[1:])
+    try:
+        start(sys.argv[1:])
+    except ParseError as error:
+        sys.exit(f"decb-to-b09: error: {error}")
 
 
 def start(argv):
@@ -131,6 +142,21 @@ def start(argv):
         ),
     )
     parser.add_argument(
+        "--fix-array-size",
+        action="append",
+        default=[],
+        type=_fixed_array_size,
+        metavar="A(n,n)",
+        help=(
+            "Give the array A a fixed size, with the largest subscript "
+            "n in each dimension, or * to keep the bound the program "
+            "DIMs it with. BASIC09 arrays have a fixed size, so this "
+            "is needed for arrays DIMmed with a bound that is not a "
+            "constant, such as DIM A(N). Repeat for each array: "
+            '--fix-array-size "A(3,3)" --fix-array-size "B$(3,*)".'
+        ),
+    )
+    parser.add_argument(
         "--no-optimize",
         type=str,
         default="",
@@ -154,6 +180,11 @@ def start(argv):
         else os.path.splitext(os.path.basename(input_file.name))[0]
     )
 
+    fixed_array_sizes: dict[str, tuple[int | None, ...]] = {}
+    for name, bounds in args.fix_array_size:
+        if fixed_array_sizes.setdefault(name, bounds) != bounds:
+            parser.error(f"--fix-array-size gives {name} more than one size")
+
     no_optimize_vars = {
         name.strip() for name in args.no_optimize.split(",") if name.strip()
     }
@@ -167,6 +198,7 @@ def start(argv):
         default_str_storage=args.default_string_storage,
         exact_powers=args.exact_powers,
         filter_unused_linenum=args.filter_unused_linenum,
+        fixed_array_sizes=fixed_array_sizes,
         initialize_vars=not args.dont_initialize_vars,
         list_integer_candidates=args.list_integer_candidates,
         no_optimize_vars=no_optimize_vars,
