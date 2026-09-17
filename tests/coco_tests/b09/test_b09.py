@@ -1,4 +1,5 @@
 import io
+import itertools
 import os
 import sys
 import tempfile
@@ -1820,6 +1821,39 @@ class TestB09(unittest.TestCase):
             "100 IF WW > 0.0 THEN\n  GOTO 100\nELSE\n  CC := SC / CT\nENDIF",
         )
 
+    def test_numeric_conditions_with_else(self) -> None:
+        self.generic_test_parse(
+            '10 IF A THEN PRINT"X" ELSE PRINT"Y"',
+            '10 IF A <> 0.0 THEN\n  PRINT "X"\nELSE\n  PRINT "Y"\nENDIF',
+        )
+        self.generic_test_parse(
+            '10 IF A THEN PRINT"X" ELSE IF B THEN PRINT"Y" ELSE PRINT"Z"',
+            "10 LOOP\n"
+            "  EXITIF A <> 0.0 THEN\n"
+            '    PRINT "X"\n'
+            "  ENDEXIT\n"
+            "  EXITIF B <> 0.0 THEN\n"
+            '    PRINT "Y"\n'
+            "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
+            '    PRINT "Z"\n'
+            "  ENDEXIT\n"
+            "ENDLOOP",
+        )
+
+    def test_rejects_mixed_conditions_with_else(self) -> None:
+        for program in (
+            '10 IF -(A<B) THEN PRINT"X" ELSE PRINT"Y"',
+            '10 IF -(A<B) THEN PRINT"X" ELSE IF B THEN PRINT"Y"',
+            '10 IF A THEN PRINT"X" ELSE IF -(A<B) THEN PRINT"Y" ELSE PRINT"Z"',
+        ):
+            with self.assertRaises(ParseError) as context:
+                compiler.convert(program)
+            assert str(context.exception) == (
+                "Cannot mix a comparison with numeric operators in an IF "
+                "condition: -(A<B)"
+            )
+
     def test_int_lvalue(self) -> None:
         self.generic_test_parse(
             "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
@@ -2369,11 +2403,33 @@ class TestB09(unittest.TestCase):
             "30 fnA_1 := 2.0 \\ IF (fnA_1 * 2.0) <> 0.0 THEN 10\n"
             "40 (* DEF FNA(X) = X * 2 *)",
         )
-        for condition in ("FNT(2) AND FNT(3)", "FNT(2) + 1", "FNU(2)"):
+        self.generic_test_parse(
+            "10 DEF FNT(X) = X > 1\n20 IF FNT(2) THEN 10 ELSE IF A THEN 10 ELSE 10",
+            "10 (* DEF FNT(X) = X > 1 *)\n"
+            "20 LOOP\n"
+            "  fnT_1 := 2.0 \\ EXITIF (fnT_1 > 1.0) THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "  EXITIF A <> 0.0 THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
+            "    GOTO 10\n"
+            "  ENDEXIT\n"
+            "ENDLOOP",
+        )
+        for condition, if_stmnt in itertools.product(
+            ("FNT(2) AND FNT(3)", "FNT(2) + 1", "FNU(2)"),
+            (
+                "IF {} THEN 10",
+                "IF {} THEN 10 ELSE 10",
+                "IF A THEN 10 ELSE IF {} THEN 10",
+            ),
+        ):
             with self.assertRaises(ParseError) as context:
                 compiler.convert(
                     "10 DEF FNT(X) = X > 1\n20 DEF FNU(X) = (X > 1) * 2\n"
-                    f"30 IF {condition} THEN 10"
+                    f"30 {if_stmnt.format(condition)}"
                 )
             assert str(context.exception) == (
                 "Cannot mix a comparison with numeric operators in an IF "
