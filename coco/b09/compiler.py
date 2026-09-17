@@ -8,6 +8,7 @@ from coco.b09 import error_handler
 from coco.b09.configs import CompilerConfigs
 from coco.b09.elements import (
     Basic09CodeStatement,
+    BasicDefFnStatement,
     BasicExpressionList,
     BasicLine,
     BasicLiteral,
@@ -31,8 +32,10 @@ from coco.b09.visitors import (
     BasicReadStatementPatcherVisitor,
     CoerceIntegerArgsVisitor,
     DeclareImplicitArraysVisitor,
+    DefFnInlinerVisitor,
     ForLoopSemanticsVisitor,
     GetDimmedArraysVisitor,
+    InlinedIfConditionVisitor,
     IntegerVarVisitor,
     IntegralVarVisitor,
     JoystickVisitor,
@@ -74,6 +77,26 @@ def _normalized_no_optimize_vars(names: "set[str] | list[str]") -> "set[str]":
     return normalized
 
 
+def _parse(progin: str, *, exact_powers: bool = False) -> BasicProg:
+    """Parse ``progin`` and inline its ``DEF FN`` calls, which every
+    later pass then sees as ordinary expressions."""
+    tree = grammar.parse(progin)
+    basic_prog: BasicProg = BasicVisitor(exact_powers=exact_powers).visit(tree)
+    definitions = StatementCollectorVisitor(BasicDefFnStatement)
+    basic_prog.visit(definitions)
+    basic_prog.visit(
+        DefFnInlinerVisitor(
+            [
+                statement
+                for statement in definitions.statements
+                if isinstance(statement, BasicDefFnStatement)
+            ]
+        )
+    )
+    basic_prog.visit(InlinedIfConditionVisitor())
+    return basic_prog
+
+
 def convert(
     progin: str,
     *,
@@ -94,9 +117,7 @@ def convert(
     terminal: bool = False,
 ) -> str:
     compiler_configs = compiler_configs or CompilerConfigs()
-    tree = grammar.parse(progin)
-    bv = BasicVisitor(exact_powers=exact_powers)
-    basic_prog: BasicProg = bv.visit(tree)
+    basic_prog = _parse(progin, exact_powers=exact_powers)
 
     if add_standard_prefix:
         # ``BASE 0`` has to come before every DIM in the procedure --
@@ -384,8 +405,7 @@ def collect_integer_candidates(progin: str) -> List[str]:
     Array names are emitted with a trailing ``()`` (e.g., ``X()``) to
     distinguish them from a scalar of the same name.
     """
-    tree = grammar.parse(progin)
-    basic_prog: BasicProg = BasicVisitor().visit(tree)
+    basic_prog = _parse(progin)
     basic_prog.visit(BasicFunctionalExpressionPatcherVisitor())
 
     procedure_bank = ProcedureBank()

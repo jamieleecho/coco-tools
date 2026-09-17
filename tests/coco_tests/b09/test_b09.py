@@ -1699,7 +1699,8 @@ class TestB09(unittest.TestCase):
     def test_int_lvalue(self) -> None:
         self.generic_test_parse(
             "100 IF WW=1 AND INT(WW)>0 THEN 100 ELSE 100",
-            "100 IF WW = 1.0 AND tmp_1 > 0.0 THEN\n  GOTO 100\nELSE\n  GOTO 100\nENDIF",
+            "100 RUN ecb_int(WW, tmp_1) \\ IF WW = 1.0 AND tmp_1 > 0.0 THEN\n"
+            "  GOTO 100\nELSE\n  GOTO 100\nENDIF",
         )
 
     def test_partial_str_assign(self) -> None:
@@ -2167,3 +2168,179 @@ class TestB09(unittest.TestCase):
             exact_powers=True,
         )
         assert "procedure ecb_pow\n" in program
+
+    def test_def_fn_parameter_shadows_variable(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNXX(X) = X + 10\n20 PRINT X; FNXX(10); X",
+            "10 (* DEF FNXX(X) = X + 10 *)\n"
+            "20 run ecb_str(X, tmp_1$) \\ fnXX_1 := 10.0 \\ "
+            "run ecb_str((fnXX_1 + 10.0), tmp_2$) \\ run ecb_str(X, tmp_3$) \\ "
+            "PRINT tmp_1$; tmp_2$; tmp_3$",
+        )
+
+    def test_def_fn_evaluates_argument_once(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNS(X) = X * X\n20 A = FNS(RND(6))",
+            "10 (* DEF FNS(X) = X * X *)\n20 fnS_1 := RND(6.0) \\ A := (fnS_1 * fnS_1)",
+        )
+
+    def test_def_fn_calls_in_a_line_get_their_own_parameters(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X * 2\n20 A = FNA(1) + FNA(2)\n30 B = FNA(3)",
+            "10 (* DEF FNA(X) = X * 2 *)\n"
+            "20 fnA_1 := 1.0 \\ fnA_2 := 2.0 \\ A := (fnA_1 * 2.0) + (fnA_2 * 2.0)\n"
+            "30 fnA_1 := 3.0 \\ B := (fnA_1 * 2.0)",
+        )
+
+    def test_def_fn_can_be_called_before_it_is_defined(self) -> None:
+        self.generic_test_parse(
+            "10 A = FNA(1)\n20 DEF FNA(X) = -X",
+            "10 fnA_1 := 1.0 \\ A := (- fnA_1)\n20 (* DEF FNA(X) = -X *)",
+        )
+
+    def test_def_fn_hoists_calls_around_the_argument(self) -> None:
+        # The calls in the argument come before it is assigned and the
+        # ones in the body after, all with temporaries of the statement.
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X + INT(X)\n20 A = INT(Y) + FNA(INT(Y) + 1)",
+            "10 (* DEF FNA(X) = X + INT(X) *)\n"
+            "20 RUN ecb_int(Y, tmp_1) \\ RUN ecb_int(Y, tmp_2) \\ "
+            "fnA_1 := tmp_2 + 1.0 \\ RUN ecb_int(fnA_1, tmp_3) \\ "
+            "A := tmp_1 + (fnA_1 + tmp_3)",
+        )
+
+    def test_def_fn_argument_call_assigns_parameter(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X + 1\n20 A = FNA(INT(Y))",
+            "10 (* DEF FNA(X) = X + 1 *)\n"
+            "20 RUN ecb_int(Y, fnA_1) \\ A := (fnA_1 + 1.0)",
+        )
+
+    def test_def_fn_nested_calls(self) -> None:
+        # Color BASIC assigns X the argument of FNB while its body runs,
+        # so the X that FNA reads is the parameter of FNB.
+        self.generic_test_parse(
+            "10 DEF FNA(Y) = X + Y\n20 DEF FNB(X) = FNA(X + 1) * 2\n30 A = FNB(FNB(Y))",
+            "10 (* DEF FNA(Y) = X + Y *)\n20 (* DEF FNB(X) = FNA(X + 1) * 2 *)\n"
+            "30 fnB_2 := Y \\ fnA_2 := fnB_2 + 1.0 \\ "
+            "fnB_1 := ((fnB_2 + fnA_2) * 2.0) \\ fnA_1 := fnB_1 + 1.0 \\ "
+            "A := ((fnB_1 + fnA_1) * 2.0)",
+        )
+
+    def test_def_fn_nested_parameter_shadows_outer_one(self) -> None:
+        # In Color BASIC, FND(2) is 23: FNC sees its own Q, FND its own.
+        self.generic_test_parse(
+            "10 DEF FNC(Q) = Q + 1\n20 DEF FND(Q) = FNC(Q * 10) + Q\n30 A = FND(2)",
+            "10 (* DEF FNC(Q) = Q + 1 *)\n20 (* DEF FND(Q) = FNC(Q * 10) + Q *)\n"
+            "30 fnD_1 := 2.0 \\ fnC_1 := fnD_1 * 10.0 \\ "
+            "A := ((fnC_1 + 1.0) + fnD_1)",
+        )
+
+    def test_def_fn_comparison_as_if_condition(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNT(X) = X > 1\n20 IF FNT(2) THEN 10\n30 IF FNA(2) THEN 10\n"
+            "40 DEF FNA(X) = X * 2",
+            "10 (* DEF FNT(X) = X > 1 *)\n"
+            "20 fnT_1 := 2.0 \\ IF (fnT_1 > 1.0) THEN 10\n"
+            "30 fnA_1 := 2.0 \\ IF (fnA_1 * 2.0) <> 0.0 THEN 10\n"
+            "40 (* DEF FNA(X) = X * 2 *)",
+        )
+        for condition in ("FNT(2) AND FNT(3)", "FNT(2) + 1", "FNU(2)"):
+            with self.assertRaises(ParseError) as context:
+                compiler.convert(
+                    "10 DEF FNT(X) = X > 1\n20 DEF FNU(X) = (X > 1) * 2\n"
+                    f"30 IF {condition} THEN 10"
+                )
+            assert str(context.exception) == (
+                "Cannot mix a comparison with numeric operators in an IF "
+                f"condition: {condition}"
+            )
+
+    def test_def_fn_in_for_bounds(self) -> None:
+        # I is assigned the start before the limit reads it.
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X + 1\n20 FOR I = FNA(I) TO FNA(I)\n30 NEXT I",
+            "10 (* DEF FNA(X) = X + 1 *)\n"
+            "20 fnA_1 := I \\ I := (fnA_1 + 1.0) \\ fnA_2 := I \\ "
+            "tmp_to := (fnA_2 + 1.0) \\ IF I > tmp_to THEN \\ tmp_to := I "
+            "\\ ENDIF \\ FOR I = I TO tmp_to\n"
+            "30 NEXT I",
+        )
+
+    def test_def_fn_names_have_two_significant_characters(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FN AB(X) = -X\n20 A = FNABC(2) ^ 2",
+            "10 (* DEF FN AB(X) = -X *)\n20 fnAB_1 := 2.0 \\ A := (- fnAB_1) ^ 2.0",
+        )
+
+    def test_def_fn_leaves_arrays_and_strings_of_the_same_name(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X(X) + LEN(X$)\n20 A = FNA(1)",
+            "DIM arr_X(11)\n"
+            "10 (* DEF FNA(X) = X(X) + LEN(X$) *)\n"
+            "20 fnA_1 := 1.0 \\ A := (arr_X(fnA_1) + LEN(X$))",
+        )
+
+    def test_def_fn_optimize(self) -> None:
+        # Line 30 reuses fnA_1 for a fraction, so neither it nor A can be
+        # an INTEGER.
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X + 1\n20 A = FNA(3)\n30 B = FNA(3.5)",
+            "10 (* DEF FNA(X) = X + 1 *)\n"
+            "20 fnA_1 := 3.0 \\ A := (fnA_1 + 1.0)\n"
+            "30 fnA_1 := 3.5 \\ B := (fnA_1 + 1.0)",
+            optimize=True,
+        )
+        self.generic_test_parse(
+            "10 DEF FNA(X) = X + 1\n20 A = FNA(3)",
+            "DIM A, fnA_1: INTEGER\n"
+            "10 (* DEF FNA(X) = X + 1 *)\n"
+            "20 fnA_1 := 3 \\ A := (fnA_1 + 1)",
+            optimize=True,
+        )
+
+    def test_def_fn_integer_candidates(self) -> None:
+        assert compiler.collect_integer_candidates(
+            "10 DEF FNA(X) = X + 1\n20 A = FNA(3)"
+        ) == ["A", "fnA_1"]
+
+    def test_def_fn_errors(self) -> None:
+        for progin, message in (
+            ("10 A = FNA(1)", "FNA is called but never defined."),
+            ("10 DEF FNA(X) = 1\n20 DEF FNA(Y) = 2", "FNA is defined more than once."),
+            ("10 DEF FNA(X) = FNA(X)\n20 A = FNA(1)", "FNA calls itself."),
+            (
+                "10 DEF FNA(X) = FNB(X)\n20 DEF FNB(X) = FNA(X)\n30 A = FNB(1)",
+                "FNB calls itself.",
+            ),
+        ):
+            with self.assertRaises(ParseError) as context:
+                compiler.convert(progin)
+            assert str(context.exception) == message
+
+    def test_if_else_conditions_keep_their_hoisted_calls(self) -> None:
+        self.generic_test_parse(
+            "10 IF INT(X) > 1 THEN A = 1 ELSE A = INT(Y)",
+            "10 RUN ecb_int(X, tmp_1) \\ IF tmp_1 > 1.0 THEN\n"
+            "  A := 1.0\n"
+            "ELSE\n"
+            "  RUN ecb_int(Y, A)\n"
+            "ENDIF",
+        )
+        # Each ELSE IF condition is evaluated only once the ones before
+        # it have failed.
+        self.generic_test_parse(
+            "10 IF A = 1 THEN 20 ELSE IF INT(X) > 1 THEN A = 1 ELSE A = 2\n20 END",
+            "10 LOOP\n"
+            "  EXITIF A = 1.0 THEN\n"
+            "    GOTO 20\n"
+            "  ENDEXIT\n"
+            "  RUN ecb_int(X, tmp_1) \\ EXITIF tmp_1 > 1.0 THEN\n"
+            "    A := 1.0\n"
+            "  ENDEXIT\n"
+            "  EXITIF TRUE THEN\n"
+            "    A := 2.0\n"
+            "  ENDEXIT\n"
+            "ENDLOOP\n"
+            "20 END",
+        )

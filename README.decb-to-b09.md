@@ -27,11 +27,11 @@ The utility provides a best effort for conversion which means:
 
 Most Color BASIC and some Extended Color BASIC and Super Extended Color BASIC
 features are supported. These include:
-include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FOR, GOSUB, GOTO, >, HBUFF, HCIRCLE, HCLS, HCOLOR, HDRAW, HEX$, HGET, HLINE, HPAINT, HPRINT, HPUT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RGB, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
+include: +, ^, ABS, AND, ASC, ATN, ATTR, BUTTON, CHR$, CLS, COS, DATA, DEF FN, DIM, /, END, ELSE, =, ERNO, EXP, FIX, FN, FOR, GOSUB, GOTO, >, HBUFF, HCIRCLE, HCLS, HCOLOR, HDRAW, HEX$, HGET, HLINE, HPAINT, HPRINT, HPUT, HRESET, HSET, HSCREEN, IF, INKEY$, INPUT, INSTR, INT, JOYSTK, LEFT$, LEN, <, LET, LINE INPUT, LOCATE, LOG, MID$, *, NEXT, NOT, OPEN, OR, PALETTE, PEEK, PLAY, POKE, PRINT, READ, REM, RESET, RESTORE, RETURN, RGB, RIGHT$, RND, SET, SGN, SIN, SOUND, SQR, STEP, STOP, STR$, STRING$, -, TAB, TAN, THEN, TO, TROFF, TRON, WIDTH, VAL, VARPTR
 
 ## Unsupported statements
 
-AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEF FN, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
+AUDIO, CIRCLE, CLOAD, CLOADM, CLOSE, COLOR, CONT, CSAVE, CSAVEM, DEFUSR, DEL, DRAW, EDIT, END, EXEC, GET, HSTAT, INPUT #, LINE, LINE INPUT, LIST, LLIST, LPOKE, MOTOR, NEW, OPEN, PAINT, PCLEAR, PCLS, PCOPY, PMODE, PRINT USING, PSET, PUT, RENUM, RUN, SCREEN, SKIPF, TIMER
 
 ## Unsupported functions
 
@@ -134,6 +134,32 @@ tmp_to := arr_F(U) \ IF 1.0 > tmp_to THEN \ tmp_to := 1.0 \ ENDIF \ FOR B = 1.0 
   `INT` truncates toward zero, while Color BASIC rounds negative values down;
   that only matters for negative fractions, which are errors everywhere but
   `AND`, `OR` and `NOT`.
+* `DEF FN` functions are inlined wherever they are called, since BASIC09 has
+  no single expression functions. As in Color BASIC, the parameter shadows
+  the variable of the same name rather than changing it, so each call assigns
+  its argument to a variable of its own, named after the function, and the
+  body reads that variable instead:
+
+```basic
+10 DEF FNA(Z) = 30 * EXP(-Z * Z / 100)
+20 PRINT FNA(SQR(X * X + Y * Y))
+```
+
+```basic09
+10 (* DEF FNA(Z) = 30 * EXP(-Z * Z / 100) *)
+20 fnA_1 := SQR(X * X + Y * Y) \ run ecb_str((30.0 * EXP(- fnA_1 * fnA_1 / 100.0)), tmp_1$) \ PRINT tmp_1$
+```
+
+  The argument is evaluated once, however often the body reads the parameter.
+  Color BASIC gives the variable the argument's value only while the body
+  runs, so functions called from the body see the parameter too:
+  `DEF FNB(X) = FNA(1)` with `DEF FNA(Y) = X + Y` makes `FNB(5)` 6 whatever
+  `X` holds. Functions are looked up by name wherever they are defined, so one
+  can be called on a line before its `DEF FN`. It is an error to define a
+  function twice, to call one that is never defined, or for a function to
+  call itself. Since every call is written out in full, lines that call
+  functions many times, or call functions that call other functions, can grow
+  past the length BASIC09 accepts.
 * `FIX` is converted to BASIC09's `INT`. BASIC09's `FIX` rounds, while its
   `INT` truncates toward zero like Color BASIC's `FIX`. Color BASIC's `INT`
   rounds down and is converted to a call to `ecb_int`.

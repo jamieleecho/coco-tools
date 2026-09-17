@@ -3,7 +3,7 @@ from typing import List, Union
 from parsimonious import NodeVisitor
 
 from coco.b09.elements import (
-    RELATIONAL_OPERATORS,
+    BOOLEAN_EXPRESSIONS,
     AbstractBasicConstruct,
     AbstractBasicExpression,
     AbstractBasicStatement,
@@ -19,9 +19,11 @@ from coco.b09.elements import (
     BasicCls,
     BasicComment,
     BasicDataStatement,
+    BasicDefFnStatement,
     BasicDimStatement,
     BasicEllipseStatement,
     BasicExpressionList,
+    BasicFnExpression,
     BasicForStatement,
     BasicFunctionalExpression,
     BasicFunctionCall,
@@ -35,6 +37,7 @@ from coco.b09.elements import (
     BasicLine,
     BasicLiteral,
     BasicNextStatement,
+    BasicNumericCondition,
     BasicOnBrkGoStatement,
     BasicOnErrGoStatement,
     BasicOnGoStatement,
@@ -62,6 +65,8 @@ from coco.b09.elements import (
     LineType,
     PsetOrPreset,
     PutDrawAction,
+    is_boolean_valued,
+    mixed_condition_message,
 )
 from coco.b09.errors import ParseError
 from coco.b09.grammar import (
@@ -79,32 +84,6 @@ from coco.b09.grammar import (
     STR_NUM_FUNCTIONS,
 )
 from coco.b09.prog import BasicProg
-
-BOOLEAN_EXPRESSIONS = (
-    BasicBooleanBinaryExp,
-    BasicBooleanOpExp,
-    BasicBooleanParenExp,
-)
-
-
-def is_boolean_valued(exp: AbstractBasicConstruct) -> bool:
-    """Report whether ``exp`` evaluates to a BASIC09 BOOLEAN.
-
-    A plain :class:`BasicBinaryExp` carrying a relational operator is a
-    comparison that was parsed in a numeric context. Color BASIC hands
-    back -1 or 0 there, but BASIC09 hands back a BOOLEAN, and unary
-    sign, parentheses and the numeric binary operators all propagate
-    that BOOLEAN outwards rather than turning it into a number.
-    """
-    if isinstance(exp, BOOLEAN_EXPRESSIONS):
-        return True
-    if isinstance(exp, BasicBinaryExp):
-        return exp.operator in RELATIONAL_OPERATORS or any(
-            is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2)
-        )
-    if isinstance(exp, (BasicOpExp, BasicParenExp)):
-        return is_boolean_valued(exp.exp)
-    return False
 
 
 class BasicVisitor(NodeVisitor):
@@ -263,14 +242,13 @@ class BasicVisitor(NodeVisitor):
             # comparing it against zero. When the condition already
             # holds a BOOLEAN, that comparison would chain two
             # relational operators and BASIC09 would refuse to load the
-            # converted program.
+            # converted program. DEF FN calls cannot be seen into until
+            # they are inlined, so InlinedIfConditionVisitor looks at
+            # the condition again then.
+            condition = node.children[2].text.strip()
             if is_boolean_valued(exp):
-                condition = node.children[2].text.strip()
-                raise ParseError(
-                    "Cannot mix a comparison with numeric operators in an "
-                    f"IF condition: {condition}"
-                )
-            exp = BasicBooleanBinaryExp(exp, "<>", BasicLiteral(0.0))
+                raise ParseError(mixed_condition_message(condition))
+            exp = BasicNumericCondition(exp, condition)
         return BasicIf(exp, statements)
 
     def visit_else_if_stmnts(self, _, visited_children: List[BasicIf]) -> List[BasicIf]:
@@ -582,6 +560,18 @@ class BasicVisitor(NodeVisitor):
     def visit_func_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children
         return BasicFunctionCall(FUNCTIONS[func.text], BasicExpressionList([exp]))
+
+    def visit_def_fn_statement(self, node, visited_children) -> AbstractBasicStatement:
+        _, _, _, _, name, _, _, _, param, _, _, _, _, _, body, _ = visited_children
+        return BasicDefFnStatement(name, param, body, node.text.strip())
+
+    def visit_fn_exp(self, _, visited_children) -> AbstractBasicExpression:
+        _, _, name, _, _, _, arg, _, _, _ = visited_children
+        return BasicFnExpression(name, arg)
+
+    def visit_fn_name(self, node, _) -> str:
+        # Like variable names, only the first two characters count.
+        return node.text[:2]
 
     def visit_func_str_exp(self, _, visited_children) -> AbstractBasicExpression:
         func, _, _, _, exp, _, _, _ = visited_children

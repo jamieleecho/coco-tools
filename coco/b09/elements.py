@@ -461,12 +461,15 @@ class BasicIfElse(BasicIf):
             self._else_statements.visit(visitor)
 
     def basic09_text(self, indent_level: int) -> str:
+        # Each condition is preceded by the calls hoisted out of it, which
+        # ``AbstractBasicStatement.basic09_text`` emits.
         if self._else_if_statements:
             all_if_statements = [self] + self._else_if_statements
 
             exit_statements: str = "\n".join(
                 (
-                    f"{self.indent_spaces(indent_level + 1)}EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
+                    f"{AbstractBasicStatement.basic09_text(ifstmnt, indent_level + 1)}"
+                    f"EXITIF {ifstmnt.exp.basic09_text(0)} THEN\n"
                     f"{ifstmnt.statements.basic09_text(indent_level + 2)}\n"
                     f"{self.indent_spaces(indent_level + 1)}ENDEXIT"
                     for ifstmnt in all_if_statements
@@ -494,7 +497,8 @@ class BasicIfElse(BasicIf):
         )
         suffix = else_suffix + f"{self.indent_spaces(indent_level)}ENDIF"
         return (
-            f"{self.indent_spaces(indent_level)}IF {self.exp.basic09_text(0)} THEN\n"
+            f"{AbstractBasicStatement.basic09_text(self, indent_level)}"
+            f"IF {self.exp.basic09_text(0)} THEN\n"
             f"{self.statements.basic09_text(indent_level + 1)}\n"
         ) + suffix
 
@@ -1192,6 +1196,168 @@ class BasicJoystkExpression(BasicFunctionalExpression):
     def visit(self, visitor: "BasicConstructVisitor") -> None:
         super().visit(visitor)
         visitor.visit_joystk(self)
+
+
+class BasicDefFnStatement(AbstractBasicStatement):
+    """``DEF FN``, which defines a single expression function.
+
+    Basic09 has nothing like it, so every call is inlined instead (see
+    :class:`BasicFnExpression`) and the definition itself is kept only
+    as a comment. The body is not visited: it is only ever used through
+    the copies inlined at the call sites.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        param: "BasicVar",
+        body: AbstractBasicExpression,
+        source: str,
+    ):
+        super().__init__()
+        self._name = name
+        self._param = param
+        self._body = body
+        self._source = source
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def param(self) -> "BasicVar":
+        return self._param
+
+    @property
+    def body(self) -> AbstractBasicExpression:
+        return self._body
+
+    def basic09_text(self, indent_level: int) -> str:
+        # ``*)`` would end the comment early.
+        source = self._source.replace("*)", "* )")
+        return f"{super().basic09_text(indent_level)}(* {source} *)"
+
+
+class BasicFnArgAssignment(BasicAssignment):
+    """The assignment of an inlined DEF FN call's argument to its
+    parameter; see :class:`BasicFnExpression`."""
+
+
+class BasicFnExpression(AbstractBasicExpression):
+    """A call to a ``DEF FN`` function, inlined.
+
+    The parameter of a Color BASIC function shadows the variable of the
+    same name: the call does not change that variable. So the argument is
+    assigned to a variable of its own, which is substituted for the
+    parameter throughout a copy of the body, and the call is replaced by
+    that copy. The assignment is hoisted in front of the statement like
+    the calls of :class:`BasicFunctionalExpression`, which also keeps the
+    argument from being evaluated once for every use of the parameter.
+    """
+
+    # Bodies that need no parentheses to stand in for the call.
+    _ATOMIC_EXP_TYPES: tuple = (
+        BasicVar,
+        BasicArrayRef,
+        BasicParenExp,
+        BasicFunctionCall,
+        BasicFunctionalExpression,
+    )
+
+    def __init__(self, name: str, arg: AbstractBasicExpression):
+        super().__init__()
+        self._name = name
+        self._arg = arg
+        self._assignment: BasicFnArgAssignment | None = None
+        self._body: AbstractBasicExpression | None = None
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def assignment(self) -> BasicFnArgAssignment | None:
+        """The assignment of the argument to the parameter, once inlined."""
+        return self._assignment
+
+    @property
+    def body(self) -> AbstractBasicExpression | None:
+        """The body with the parameter substituted, once inlined."""
+        return self._body
+
+    def inline(self, param: "BasicVar", body: AbstractBasicExpression) -> None:
+        self._assignment = BasicFnArgAssignment(param, self._arg)
+        self._body = (
+            body
+            if isinstance(body, (*self._ATOMIC_EXP_TYPES, BasicFnExpression))
+            else BasicParenExp(body)
+        )
+
+    def basic09_text(self, indent_level: int) -> str:
+        if self._body is None:
+            return f"FN{self._name}({self._arg.basic09_text(indent_level)})"
+        return self._body.basic09_text(indent_level)
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        # The call is inlined when it is first visited, so this comes
+        # before looking at what it holds.
+        visitor.visit_exp(self)
+        if self._assignment is None or self._body is None:
+            self._arg.visit(visitor)
+            return
+        self._assignment.visit(visitor)
+        visitor.visit_inlined_fn(self)
+        self._body.visit(visitor)
+
+
+BOOLEAN_EXPRESSIONS = (
+    BasicBooleanBinaryExp,
+    BasicBooleanOpExp,
+    BasicBooleanParenExp,
+)
+
+
+def is_boolean_valued(exp: AbstractBasicConstruct) -> bool:
+    """Report whether ``exp`` evaluates to a BASIC09 BOOLEAN.
+
+    A plain :class:`BasicBinaryExp` carrying a relational operator is a
+    comparison that was parsed in a numeric context. Color BASIC hands
+    back -1 or 0 there, but BASIC09 hands back a BOOLEAN, and unary
+    sign, parentheses and the numeric binary operators all propagate
+    that BOOLEAN outwards rather than turning it into a number. So does
+    an inlined DEF FN call whose body is such a comparison.
+    """
+    if isinstance(exp, BOOLEAN_EXPRESSIONS):
+        return True
+    if isinstance(exp, BasicBinaryExp):
+        return exp.operator in RELATIONAL_OPERATORS or any(
+            is_boolean_valued(operand) for operand in (exp.exp1, exp.exp2)
+        )
+    if isinstance(exp, (BasicOpExp, BasicParenExp)):
+        return is_boolean_valued(exp.exp)
+    if isinstance(exp, BasicFnExpression):
+        return exp.body is not None and is_boolean_valued(exp.body)
+    return False
+
+
+def mixed_condition_message(condition: str) -> str:
+    return (
+        "Cannot mix a comparison with numeric operators in an IF condition: "
+        f"{condition}"
+    )
+
+
+class BasicNumericCondition(BasicBooleanBinaryExp):
+    """A numeric ``IF`` condition, compared against zero to turn it into
+    a BASIC09 condition. ``source`` is the Color BASIC condition."""
+
+    def __init__(self, exp: AbstractBasicExpression, source: str):
+        super().__init__(exp, "<>", BasicLiteral(0.0))
+        self._source = source
+
+    @property
+    def source(self) -> str:
+        return self._source
 
 
 class BasicDimStatement(AbstractBasicStatement):
