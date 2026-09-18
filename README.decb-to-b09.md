@@ -96,6 +96,13 @@ IF B < C THEN tmp_1 := -1.0 \ ELSE tmp_1 := 0.0 \ ENDIF \ A := (tmp_1) + 1.0
 
   Chained comparisons are made left to right, as in Color BASIC. A line with
   many of them can exceed BASIC09's 255 character line limit (#60).
+* Calls and comparisons are hoisted in front of the statement that holds
+  them, so in `READ` and `INPUT` they are evaluated before the statement
+  reads anything. A subscript that reads a variable the same statement is
+  about to fill sees that variable's old value: `READ I, A(INT(I))` indexes
+  `A` with `I`'s value from before the `READ`, while Color BASIC indexes it
+  with the value just read. A subscript with nothing to hoist, such as
+  `READ I, A(I)`, is unaffected.
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * When `NEXT` statements do not have an iteration variable specified, the
