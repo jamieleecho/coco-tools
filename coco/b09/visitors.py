@@ -471,9 +471,12 @@ class DeclareImplicitArraysVisitor(BasicConstructVisitor):
         String arrays get the same storage treatment as explicitly
         dimensioned ones, so a ``--default-str-storage`` or a
         per-variable size from the config file is honored here too.
+        The names are sorted so that a program always converts to the
+        same text; iterating the set directly reorders the ``DIM``
+        lines from run to run.
         """
         statements: List[BasicDimStatement] = []
-        for var in self.implicitly_declared_arrays:
+        for var in sorted(self.implicitly_declared_arrays):
             statement = BasicDimStatement(
                 [
                     BasicArrayRef(
@@ -1603,7 +1606,7 @@ class IntegerVarVisitor(BasicConstructVisitor):
     def visit_input_statement(
         self, statement: BasicInputStatement
     ) -> AbstractBasicStatement:
-        for rhs in statement._rhs_list:
+        for rhs in statement.rhs_list:
             self._taint_target(rhs)
         return statement
 
