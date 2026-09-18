@@ -1360,7 +1360,58 @@ class TestB09(unittest.TestCase):
     def test_simple_read(self) -> None:
         self.generic_test_parse(
             "10 READA$,B,D(II,JJ),E$(XX)",
-            "10 READ A$, B, arr_D(II, JJ), arr_E$(XX)",
+            "DIM arr_D(11)\nDIM arr_E$(11)\n10 READ A$, B, arr_D(II, JJ), arr_E$(XX)",
+        )
+
+    def test_read_hoists_function_call_in_subscript(self) -> None:
+        self.generic_test_parse(
+            "10 READ A(INT(B))\n20 DATA 1\n",
+            "DIM arr_A(11)\n10 RUN ecb_int(B, tmp_1) \\ READ arr_A(tmp_1)\n20 DATA 1.0",
+        )
+
+    def test_read_hoists_comparison_in_subscript(self) -> None:
+        self.generic_test_parse(
+            "10 READ A(B<C)\n20 DATA 1\n",
+            "DIM arr_A(11)\n"
+            "10 IF B < C THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF "
+            "\\ READ arr_A(tmp_1)\n"
+            "20 DATA 1.0",
+        )
+
+    def test_read_hoists_def_fn_call_in_subscript(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNA(X)=X+1\n20 READ A(FNA(B))\n30 DATA 1\n",
+            "DIM arr_A(11)\n"
+            "10 (* DEF FNA(X)=X+1 *)\n"
+            "20 fnA_1 := B \\ READ arr_A((fnA_1 + 1.0))\n"
+            "30 DATA 1.0",
+        )
+
+    def test_read_allocates_string_storage(self) -> None:
+        self.generic_test_parse(
+            "10 READ B$\n20 DATA X\n",
+            'DIM B$:STRING[200]\n10 READ B$\n20 DATA "X"',
+            default_str_storage=200,
+        )
+
+    def test_input_hoists_function_call_in_subscript(self) -> None:
+        self.generic_test_parse(
+            '10 INPUT "PICK";A(INT(B)),C(INT(D))\n',
+            "DIM arr_A(11)\n"
+            "DIM arr_C(11)\n"
+            "10 RUN _ecb_input_prefix \\ RUN ecb_int(B, tmp_1) "
+            "\\ RUN ecb_int(D, tmp_2) "
+            '\\ INPUT "PICK? ", arr_A(tmp_1), arr_C(tmp_2) '
+            "\\ RUN _ecb_input_suffix",
+        )
+
+    def test_input_allocates_string_storage(self) -> None:
+        self.generic_test_parse(
+            "10 INPUT B$\n",
+            "DIM B$:STRING[200]\n"
+            '10 RUN _ecb_input_prefix \\ INPUT "? ", B$ '
+            "\\ RUN _ecb_input_suffix",
+            default_str_storage=200,
         )
 
     def test_mars_data(self) -> None:
@@ -1372,6 +1423,8 @@ class TestB09(unittest.TestCase):
     def test_input(self) -> None:
         self.generic_test_parse(
             '10 INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
+            "DIM arr_B(11)\n"
+            "DIM arr_D$(11)\n"
             "10 RUN _ecb_input_prefix \\ "
             'INPUT "HELLO WORLD? ", A$, arr_B(1.0, 2.0, 3.0), C, '
             "arr_D$(3.0) \\ RUN _ecb_input_suffix",
@@ -1380,6 +1433,7 @@ class TestB09(unittest.TestCase):
     def test_input_no_message(self) -> None:
         self.generic_test_parse(
             "10 INPUT A$,B(1,2,3)",
+            "DIM arr_B(11)\n"
             "10 RUN _ecb_input_prefix \\ "
             'INPUT "? ", A$, arr_B(1.0, 2.0, 3.0) \\ '
             "RUN _ecb_input_suffix",
@@ -1388,6 +1442,8 @@ class TestB09(unittest.TestCase):
     def test_line_input(self) -> None:
         self.generic_test_parse(
             '10 LINE INPUT "HELLO WORLD";A$,B(1,2,3),C,D$(3)',
+            "DIM arr_B(11)\n"
+            "DIM arr_D$(11)\n"
             "10 RUN _ecb_input_prefix \\ "
             'INPUT "HELLO WORLD", A$, arr_B(1.0, 2.0, 3.0), C, '
             "arr_D$(3.0) \\ RUN _ecb_input_suffix",
@@ -1396,6 +1452,7 @@ class TestB09(unittest.TestCase):
     def test_line_input_no_message(self) -> None:
         self.generic_test_parse(
             "10 LINE INPUT A$,B(1,2,3)",
+            "DIM arr_B(11)\n"
             "10 RUN _ecb_input_prefix \\ "
             'INPUT "", A$, arr_B(1.0, 2.0, 3.0) \\ '
             "RUN _ecb_input_suffix",
@@ -1520,6 +1577,19 @@ class TestB09(unittest.TestCase):
         self.generic_test_parse(
             "10 WIDTH 80\n",
             "10 run _ecb_width(80.0, display)",
+        )
+
+    def test_width_hoists_function_call(self) -> None:
+        self.generic_test_parse(
+            "10 WIDTH INT(B)\n",
+            "10 RUN ecb_int(B, tmp_1) \\ run _ecb_width(tmp_1, display)",
+        )
+
+    def test_width_hoists_comparison(self) -> None:
+        self.generic_test_parse(
+            "10 WIDTH (A<B)+33\n",
+            "10 IF A < B THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF "
+            "\\ run _ecb_width((tmp_1) + 33.0, display)",
         )
 
     def test_locate(self) -> None:

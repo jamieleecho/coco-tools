@@ -94,9 +94,8 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 IF B < C THEN tmp_1 := -1.0 \ ELSE tmp_1 := 0.0 \ ENDIF \ A := (tmp_1) + 1.0
 ```
 
-  Chained comparisons are made left to right, as in Color BASIC. Comparisons
-  inside `READ`, `INPUT` and `WIDTH` are not converted yet (#61), and a line
-  with many of them can exceed BASIC09's 255 character line limit (#60).
+  Chained comparisons are made left to right, as in Color BASIC. A line with
+  many of them can exceed BASIC09's 255 character line limit (#60).
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * When `NEXT` statements do not have an iteration variable specified, the
