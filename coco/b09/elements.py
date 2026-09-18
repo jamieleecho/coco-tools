@@ -1719,9 +1719,9 @@ class BasicDimStatement(AbstractBasicStatement):
         ]
 
 
-class BasicReadStatement(BasicStatement):
+class BasicReadStatement(AbstractBasicStatement):
     def __init__(self, rhs_list):
-        super().__init__(None)
+        super().__init__()
         self._rhs_list = rhs_list
 
     @property
@@ -1730,29 +1730,45 @@ class BasicReadStatement(BasicStatement):
 
     def basic09_text(self, indent_level: int) -> str:
         return (
-            self.indent_spaces(indent_level)
+            super().basic09_text(indent_level)
             + "READ "
             + ", ".join(rhs.basic09_text(indent_level) for rhs in self._rhs_list)
         )
 
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
+        for rhs in self._rhs_list:
+            rhs.visit(visitor)
 
-class BasicInputStatement(BasicStatement):
+
+class BasicInputStatement(AbstractBasicStatement):
     def __init__(self, message, rhs_list):
+        super().__init__()
         self._message = message
         self._rhs_list = rhs_list
 
+    @property
+    def rhs_list(self):
+        return self._rhs_list
+
     def basic09_text(self, indent_level: int) -> str:
         prefix = (
-            self.indent_spaces(indent_level)
-            + "INPUT "
-            + self._message.basic09_text(indent_level)
-            + ", "
+            "INPUT " + self._message.basic09_text(indent_level) + ", "
             if self._message
             else "INPUT "
         )
-        return prefix + ", ".join(
-            (rhs.basic09_text(indent_level) for rhs in self._rhs_list)
+        return (
+            super().basic09_text(indent_level)
+            + prefix
+            + ", ".join(rhs.basic09_text(indent_level) for rhs in self._rhs_list)
         )
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
+        if self._message:
+            self._message.visit(visitor)
+        for rhs in self._rhs_list:
+            rhs.visit(visitor)
 
 
 class BasicVarptrExpression(AbstractBasicExpression):
@@ -1778,10 +1794,15 @@ class BasicWidthStatement(AbstractBasicStatement):
 
     def basic09_text(self, indent_level: int) -> str:
         return (
+            f"{super().basic09_text(indent_level)}"
             f"run _ecb_width("
             f"{self._expr.basic09_text(indent_level=indent_level)}, "
             f"display)"
         )
+
+    def visit(self, visitor: "BasicConstructVisitor") -> None:
+        visitor.visit_statement(self)
+        self._expr.visit(visitor)
 
 
 class BasicCircleStatement(BasicRunCall):
