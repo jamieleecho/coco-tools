@@ -1,16 +1,28 @@
 import io
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest import mock
 
+import coco
 from coco import decb_to_b09
 from coco.b09 import DEFAULT_STR_STORAGE, compiler, elements, grammar
 from coco.b09.compiler import ParseError
 from coco.b09.configs import CompilerConfigs, StringConfigs
 from coco.b09.parser import BasicVisitor
 from coco.b09.visitors import LineNumberTooLargeException, StatementCollectorVisitor
+
+# Converts the program on stdin and writes the result to stdout. Run as
+# ``python -c`` so that the conversion happens in a fresh interpreter,
+# which is the only way to pick a PYTHONHASHSEED. The program goes over
+# stdin rather than in argv to keep its newlines off the command line.
+_CONVERT_SCRIPT = (
+    "import sys; from coco.b09 import compiler; "
+    "sys.stdout.write(compiler.convert(sys.stdin.read(), procname='prog', "
+    "add_standard_prefix=True, initialize_vars=True, output_dependencies=True))"
+)
 
 
 class TestB09(unittest.TestCase):
@@ -66,6 +78,77 @@ class TestB09(unittest.TestCase):
         assert program.startswith("base 0\n")
         assert program.index("base 0\n") < program.index("DIM arr_A(")
         assert program.index("base 0\n") < program.index("DIM arr_A$(")
+
+    def test_implicit_array_dims_come_out_in_name_order(self) -> None:
+        # The names come from a set, so they are sorted before the DIMs
+        # are built: iterating the set orders them by hash, which varies
+        # from process to process.
+        self.generic_test_parse(
+            "10 Z(1) = M(2) + A(3)\n20 B$(4) = A$(5)\n",
+            "DIM arr_A(11)\n"
+            "DIM arr_A$(11)\n"
+            "DIM arr_B$(11)\n"
+            "DIM arr_M(11)\n"
+            "DIM arr_Z(11)\n"
+            "10 arr_Z(1.0) := arr_M(2.0) + arr_A(3.0)\n"
+            "20 arr_B$(4.0) := arr_A$(5.0)",
+        )
+
+    def test_conversion_does_not_depend_on_the_hash_seed(self) -> None:
+        """The same program converts to the same bytes in every process.
+
+        CPython randomizes string hashing per process, so anything the
+        output orders by iterating a set of names -- the implicitly
+        declared arrays, the variable initializers, the string storage
+        allocations, the dependencies pulled in from ``ecb.b09`` --
+        comes out shuffled from run to run unless it is sorted first.
+        """
+        program = (
+            "10 Z(1) = M(2) + A(3)\n"
+            "20 B$(4) = A$(5)\n"
+            "30 W = Q + C\n"
+            "40 D$ = E$ + F$\n"
+            "50 CLS 3\n"
+        )
+        outputs = {
+            self._convert_in_subprocess(program, hash_seed)
+            for hash_seed in ("0", "1", "2", "3", "4")
+        }
+        assert len(outputs) == 1
+        # Name the order the one output has, so that the assertion
+        # above cannot pass on five empty conversions.
+        dims = [
+            line for line in outputs.pop().split("\n") if line.startswith("DIM arr_")
+        ]
+        assert dims == [
+            "DIM arr_A(11)",
+            "DIM arr_A$(11)",
+            "DIM arr_B$(11)",
+            "DIM arr_M(11)",
+            "DIM arr_Z(11)",
+        ]
+
+    @staticmethod
+    def _convert_in_subprocess(program: str, hash_seed: str) -> str:
+        """Convert ``program`` in a fresh interpreter run with
+        ``PYTHONHASHSEED`` set to ``hash_seed``.
+
+        The seed can only be chosen before the interpreter starts, so
+        this has to be a subprocess. It runs from the directory holding
+        the ``coco`` package this test imported, so it converts with the
+        same code even when the package is not installed.
+        """
+        package_root = os.path.dirname(os.path.dirname(coco.__file__))
+        result = subprocess.run(
+            [sys.executable, "-c", _CONVERT_SCRIPT],
+            capture_output=True,
+            cwd=package_root,
+            env={**os.environ, "PYTHONHASHSEED": hash_seed},
+            input=program,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout
 
     def test_base_0_precedes_prefix_lines(self) -> None:
         program = compiler.convert(

@@ -65,6 +65,9 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   must be a numeric literal, or be given with `--fix-array-size` (see
   [Arrays sized at run time](#arrays-sized-at-run-time---fix-array-size)).
 * When translated array names are prefixed with arr_.
+* An array used without a `DIM` is declared for you as `DIM arr_X(11)`.
+  Those declarations come out in name order, so converting the same
+  program twice always produces the same output.
 * If DIMmed, variables must be DIMmed earlier in the code (lower line number)
   being used.
 * Re-DIMming variables will not work.
