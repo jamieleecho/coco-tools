@@ -2364,11 +2364,15 @@ class TestB09(unittest.TestCase):
         # INT(I) must see I after it is set to INT(X), as in Color BASIC.
         self.generic_test_parse(
             "10 FOR I = INT(X) TO INT(I) STEP 2 ^ I\n20 NEXT I",
-            "10 RUN ecb_int(X, tmp_1) \\ I := tmp_1 \\ RUN ecb_int(I, tmp_2) \\ "
-            "RUN ecb_pow(2.0, I, tmp_3) \\ tmp_to := tmp_2 \\ "
-            "tmp_step := tmp_3 \\ "
+            "10 RUN ecb_int(X, tmp_1)\n"
+            "I := tmp_1\n"
+            "RUN ecb_int(I, tmp_2)\n"
+            "RUN ecb_pow(2.0, I, tmp_3)\n"
+            "tmp_to := tmp_2\n"
+            "tmp_step := tmp_3\n"
             "IF (tmp_step >= 0.0 AND I > tmp_to) OR (tmp_step < 0.0 AND I < tmp_to) "
-            "THEN \\ tmp_to := I \\ ENDIF \\ FOR I = I TO tmp_to STEP tmp_step\n"
+            "THEN \\ tmp_to := I \\ ENDIF\n"
+            "FOR I = I TO tmp_to STEP tmp_step\n"
             "20 NEXT I",
             exact_powers=True,
         )
@@ -2713,4 +2717,83 @@ class TestB09(unittest.TestCase):
             "  ENDEXIT\n"
             "ENDLOOP\n"
             "20 END",
+        )
+
+    def test_hoisted_statements_stay_on_a_line_of_255_characters(self) -> None:
+        literal = '"' + "X" * 183 + '"'
+        output = (
+            "10 RUN ecb_int(X, tmp_1) \\ run ecb_str(tmp_1, tmp_1$) \\ "
+            f"PRINT tmp_1$; {literal}"
+        )
+        assert len(output) == 255
+        self.generic_test_parse(f"10 PRINT INT(X);{literal}", output)
+
+    def test_hoisted_statements_get_lines_of_their_own_past_255_characters(
+        self,
+    ) -> None:
+        # BASIC09 cannot load a line of 256 characters. The line number
+        # stays on the first line, so a GOTO runs all of them.
+        literal = '"' + "X" * 184 + '"'
+        self.generic_test_parse(
+            f"10 PRINT INT(X);{literal}\n20 GOTO 10",
+            "10 RUN ecb_int(X, tmp_1)\n"
+            "run ecb_str(tmp_1, tmp_1$)\n"
+            f"PRINT tmp_1$; {literal}\n"
+            "20 GOTO 10",
+        )
+
+    def test_hoisted_statements_on_lines_of_their_own_keep_the_indentation(
+        self,
+    ) -> None:
+        literal = '"' + "X" * 230 + '"'
+        self.generic_test_parse(
+            f"10 FOR I = 1 TO 2\n20 PRINT INT(X);{literal}\n30 NEXT I",
+            "10 FOR I = 1.0 TO 2.0\n"
+            "20   RUN ecb_int(X, tmp_1)\n"
+            "  run ecb_str(tmp_1, tmp_1$)\n"
+            f"  PRINT tmp_1$; {literal}\n"
+            "30 NEXT I",
+        )
+        self.generic_test_parse(
+            f"10 IF A THEN PRINT INT(X);{literal}",
+            "10 IF A <> 0.0 THEN\n"
+            "  RUN ecb_int(X, tmp_1)\n"
+            "  run ecb_str(tmp_1, tmp_1$)\n"
+            f"  PRINT tmp_1$; {literal}\n"
+            "ENDIF",
+        )
+
+    def test_only_long_lines_are_broken(self) -> None:
+        literal = '"' + "X" * 230 + '"'
+        self.generic_test_parse(
+            f"10 IF INT(A) THEN PRINT INT(X);{literal}",
+            "10 RUN ecb_int(A, tmp_1) \\ IF tmp_1 <> 0.0 THEN\n"
+            "  RUN ecb_int(X, tmp_1)\n"
+            "  run ecb_str(tmp_1, tmp_1$)\n"
+            f"  PRINT tmp_1$; {literal}\n"
+            "ENDIF",
+        )
+
+    def test_long_for_puts_its_statements_on_lines_of_their_own(self) -> None:
+        # The IF that adjusts the limit stays on one line.
+        step = " + ".join(["1"] * 40)
+        self.generic_test_parse(
+            f"10 FOR I = INT(A) TO INT(B) STEP INT(C) + {step}\n20 NEXT I",
+            "10 RUN ecb_int(A, tmp_1)\n"
+            "I := tmp_1\n"
+            "RUN ecb_int(B, tmp_2)\n"
+            "RUN ecb_int(C, tmp_3)\n"
+            "tmp_to := tmp_2\n"
+            "tmp_step := tmp_3" + " + 1.0" * 40 + "\n"
+            "IF (tmp_step >= 0.0 AND I > tmp_to) OR (tmp_step < 0.0 AND I < tmp_to) "
+            "THEN \\ tmp_to := I \\ ENDIF\n"
+            "FOR I = I TO tmp_to STEP tmp_step\n"
+            "20 NEXT I",
+        )
+
+    def test_long_input_puts_its_calls_on_lines_of_their_own(self) -> None:
+        prompt = "Y" * 230
+        self.generic_test_parse(
+            f'10 INPUT "{prompt}";A',
+            f'10 RUN _ecb_input_prefix\nINPUT "{prompt}? ", A\nRUN _ecb_input_suffix',
         )

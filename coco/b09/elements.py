@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
@@ -17,6 +18,33 @@ if TYPE_CHECKING:
 # yields a BOOLEAN instead, which it refuses to combine with numeric
 # operators.
 RELATIONAL_OPERATORS = frozenset({"=", "<>", "<", ">", "<=", ">=", "=<", "=>"})
+
+# BASIC09 cannot load a source line longer than this, counting the line
+# number and the indentation.
+MAX_LINE_LENGTH = 255
+
+# Stands for the `` \ `` between statements that the converter puts on
+# one line, such as the statements hoisted in front of a statement.
+# :class:`BasicLine` turns it into `` \ ``, or into a line break when
+# the line would otherwise be too long for BASIC09. It is a private use
+# character, which Color BASIC programs do not contain, so it is never
+# mistaken for part of a string literal or a comment.
+STATEMENT_BREAK = "\ue000"
+
+
+def break_long_line(line: str) -> str:
+    """Joins the statements separated by :data:`STATEMENT_BREAK` with
+    `` \\ `` if that fits in :data:`MAX_LINE_LENGTH` characters, and
+    otherwise puts each one on a line of its own. The first keeps the
+    line number, so a ``GOTO`` to the line still runs all of them, and
+    the others get its indentation."""
+    joined = line.replace(STATEMENT_BREAK, r" \ ")
+    if len(joined) <= MAX_LINE_LENGTH:
+        return joined
+    first, *rest = line.split(STATEMENT_BREAK)
+    match = re.match(r"(?:\d+ )?( *)", first)
+    indent = match.group(1) if match else ""
+    return "\n".join([first] + [indent + statement for statement in rest])
 
 
 class AbstractBasicConstruct(ABC):
@@ -84,7 +112,7 @@ class AbstractBasicStatement(AbstractBasicConstruct):
         return (
             f"{self.indent_spaces(indent_level)}"
             + f"{pre_assignments.basic09_text(indent_level)}"
-            + (r" \ " if self._pre_assignment_statements else "")
+            + (STATEMENT_BREAK if self._pre_assignment_statements else "")
         )
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
@@ -524,9 +552,10 @@ class BasicLine(AbstractBasicConstruct):
         self._is_referenced = val
 
     def basic09_text(self, indent_level) -> str:
+        text = self._statements.basic09_text(indent_level)
         if self._is_referenced and self._num is not None:
-            return f"{self._num} {self._statements.basic09_text(indent_level)}"
-        return f"{self._statements.basic09_text(indent_level)}"
+            text = f"{self._num} {text}"
+        return "\n".join(break_long_line(line) for line in text.split("\n"))
 
     def visit(self, visitor: "BasicConstructVisitor") -> None:
         visitor.visit_line(self)
@@ -694,7 +723,7 @@ class BasicStatements(AbstractBasicStatement):
         self._statements = statements
 
     def basic09_text(self, indent_level: int, pre_indent: bool = True) -> str:
-        joiner: str = "\n" if self._multi_line else r" \ "
+        joiner: str = "\n" if self._multi_line else STATEMENT_BREAK
         net_indent_level: int = indent_level if self._multi_line else 0
 
         prefix = (
@@ -1048,7 +1077,7 @@ class BasicForStatement(AbstractBasicStatement):
 
         return (
             self.indent_spaces(indent_level - 1)
-            + "".join(f"{statement} \\ " for statement in statements)
+            + "".join(f"{statement}{STATEMENT_BREAK}" for statement in statements)
             + f"FOR {self._var.basic09_text(indent_level)} = {start} TO {end}"
             + (f" STEP {step}" if step is not None else "")
         )

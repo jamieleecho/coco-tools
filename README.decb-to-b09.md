@@ -44,6 +44,13 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
 ## Supported constructs that need some explanation
 
 * BASIC09 does not allow strings to contain CHR$(255)
+* BASIC09 cannot load a line longer than 255 characters. The statements
+  decb-to-b09 puts in front of a statement, such as the calls that stand in for
+  `INT` or the assignments of inlined `DEF FN` arguments, are joined to it with
+  `\` when they fit on one line, and are otherwise put on lines of their own.
+  The line number stays on the first of those lines, so `GOTO` still runs all
+  of them. A single statement that is too long by itself, such as a `PRINT`
+  with many arguments, is not broken up and cannot be loaded.
 * BASIC09 does not allow programs with line number zero. To handle this, the
   zero line number is stripped as long as there are no `GOTO` or `GOSUB`
   statements to line zero.
@@ -172,9 +179,9 @@ tmp_to := arr_F(U) \ IF 1.0 > tmp_to THEN \ tmp_to := 1.0 \ ENDIF \ FOR B = 1.0 
   `X` holds. Functions are looked up by name wherever they are defined, so one
   can be called on a line before its `DEF FN`. It is an error to define a
   function twice, to call one that is never defined, or for a function to
-  call itself. Since every call is written out in full, lines that call
-  functions many times, or call functions that call other functions, can grow
-  past the length BASIC09 accepts.
+  call itself. Since every call is written out in full, a statement that calls
+  functions many times, or calls functions that call other functions, can
+  grow past the 255 characters BASIC09 accepts.
 * `FIX` is converted to BASIC09's `INT`. BASIC09's `FIX` rounds, while its
   `INT` truncates toward zero like Color BASIC's `FIX`. Color BASIC's `INT`
   rounds down and is converted to a call to `ecb_int`.
