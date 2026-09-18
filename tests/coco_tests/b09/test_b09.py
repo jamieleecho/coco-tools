@@ -1048,15 +1048,22 @@ class TestB09(unittest.TestCase):
         )
 
     def test_for(self) -> None:
-        self.generic_test_parse("11FORII=1TO20", "11 FOR II = 1.0 TO 20.0")
+        self.generic_test_parse(
+            "11FORII=1TO20\n12NEXTII",
+            "11 FOR II = 1.0 TO 20.0\n12 NEXT II",
+        )
 
     def test_for_step(self) -> None:
         self.generic_test_parse(
-            "11FORII=1TO20STEP30", "11 FOR II = 1.0 TO 20.0 STEP 30.0"
+            "11FORII=1TO20STEP30\n12NEXTII",
+            "11 FOR II = 1.0 TO 20.0 STEP 30.0\n12 NEXT II",
         )
 
     def test_next(self) -> None:
-        self.generic_test_parse("10NEXTJJ", "10 NEXT JJ")
+        self.generic_test_parse(
+            "10FORJJ=1TO2\n20NEXTJJ",
+            "10 FOR JJ = 1.0 TO 2.0\n20 NEXT JJ",
+        )
 
     def test_multiline(self) -> None:
         self.generic_test_parse(
@@ -1586,12 +1593,8 @@ class TestB09(unittest.TestCase):
 
     def test_handles_empty_next(self) -> None:
         self.generic_test_parse(
-            "10 FORX=1TO10\n20 FORY=1TO10\n30 NEXT\n40 NEXT\n50 NEXT\n",
-            "10 FOR X = 1.0 TO 10.0\n"
-            "20   FOR Y = 1.0 TO 10.0\n"
-            "30   NEXT Y\n"
-            "40 NEXT X\n"
-            "50 NEXT",
+            "10 FORX=1TO10\n20 FORY=1TO10\n30 NEXT\n40 NEXT\n",
+            "10 FOR X = 1.0 TO 10.0\n20   FOR Y = 1.0 TO 10.0\n30   NEXT Y\n40 NEXT X",
         )
 
     def test_adds_standard_prefix(self) -> None:
@@ -1937,7 +1940,9 @@ class TestB09(unittest.TestCase):
         assert "param str: STRING[128]\n" in program
 
     def test_initializes_for(self) -> None:
-        program: str = compiler.convert("10 FOR X=A TO 10", initialize_vars=True)
+        program: str = compiler.convert(
+            "10 FOR X=A TO 10\n20 NEXT X", initialize_vars=True
+        )
         assert "A := 0.0" in program
 
     def test_comment_wth_colon(self) -> None:

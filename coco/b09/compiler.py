@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import IO, List
 
 from coco import b09
-from coco.b09 import error_handler
+from coco.b09 import control_flow, error_handler
 from coco.b09.configs import CompilerConfigs
 from coco.b09.elements import (
     Basic09CodeStatement,
@@ -172,6 +172,10 @@ def convert(
     basic_prog = _parse(
         progin, exact_powers=exact_powers, fixed_array_sizes=fixed_array_sizes
     )
+
+    # Restructure the loops a line-oriented NEXT would leave crossed,
+    # while the lines are still the ones the program was written with.
+    control_flow.repair_early_loop_exits(basic_prog)
 
     if add_standard_prefix:
         # ``BASE 0`` has to come before every DIM in the procedure --
@@ -434,6 +438,9 @@ def convert(
                     ),
                 ]
             )
+
+    # make sure the control structures balance
+    control_flow.check(basic_prog)
 
     # output the program
     program = basic_prog.basic09_text(0)

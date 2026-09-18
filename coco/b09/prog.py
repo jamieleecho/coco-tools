@@ -13,6 +13,26 @@ class BasicProg(AbstractBasicConstruct):
         self._suffix_lines: List[BasicLine] = []
         self._procname: str = ""
 
+    @property
+    def lines(self) -> List[BasicLine]:
+        """The lines converted from the Color BASIC program."""
+        return self._lines
+
+    def set_lines(self, lines: List[BasicLine]) -> None:
+        self._lines = list(lines)
+
+    @property
+    def all_lines(self) -> List[BasicLine]:
+        """Every line of the procedure, in the order it is emitted."""
+        return list(
+            chain(
+                self._header_lines,
+                self._prefix_lines,
+                self._lines,
+                self._suffix_lines,
+            )
+        )
+
     def set_procname(self, procname: str):
         self._procname = procname
 
@@ -41,12 +61,7 @@ class BasicProg(AbstractBasicConstruct):
         if self._procname:
             lines.append(f"procedure {self._procname}")
         nest_counter = ForNextVisitor()
-        for line in chain(
-            self._header_lines,
-            self._prefix_lines,
-            self._lines,
-            self._suffix_lines,
-        ):
+        for line in self.all_lines:
             line.visit(nest_counter)
             lines.append(line.basic09_text(nest_counter.count))
 

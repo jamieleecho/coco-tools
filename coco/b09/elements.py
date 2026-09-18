@@ -483,6 +483,35 @@ class BasicIfElse(BasicIf):
         self._else_if_statements = else_if_statements
         self._else_statements = else_statements
 
+    @property
+    def else_if_statements(self) -> List[BasicIf]:
+        return self._else_if_statements
+
+    @property
+    def else_statements(self) -> BasicStatementsOrBasicGoto | None:
+        return self._else_statements
+
+    @classmethod
+    def from_if(
+        cls, if_statement: BasicIf, *, else_statements: BasicStatementsOrBasicGoto
+    ) -> "BasicIfElse":
+        """Return ``if_statement`` with ``else_statements`` added as its
+        ``ELSE`` branch.
+
+        The temporaries and the calls hoisted in front of the original
+        statement come along, so this can replace it in place.
+        """
+        statement = cls(
+            if_exp=if_statement.exp,
+            then_statements=if_statement.statements,
+            else_if_statements=[],
+            else_statements=else_statements,
+        )
+        statement._pre_assignment_statements = if_statement._pre_assignment_statements
+        statement._temps = if_statement._temps
+        statement._str_temps = if_statement._str_temps
+        return statement
+
     def visit(self, visitor: "BasicConstructVisitor") -> None:
         super().visit(visitor)
         statement: BasicIf
@@ -547,6 +576,10 @@ class BasicLine(AbstractBasicConstruct):
     @property
     def is_referenced(self) -> bool:
         return self._is_referenced
+
+    @property
+    def statements(self) -> AbstractBasicStatement:
+        return self._statements
 
     def set_is_referenced(self, val: bool):
         self._is_referenced = val
