@@ -26,7 +26,7 @@ wheels = [
 
 [[package]]
 name = "coco-tools"
-version = "0.27"
+version = "0.28"
 source = { editable = "." }
 dependencies = [
     { name = "colormath" },
