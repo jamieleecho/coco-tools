@@ -1585,6 +1585,68 @@ class TestB09(unittest.TestCase):
             '20 DATA "", "FOO", ""',
         )
 
+    def test_read_hoists_calls_per_item(self) -> None:
+        self.generic_test_parse(
+            "10 READ I,A(INT(I))\n20 DATA 1,2",
+            "DIM arr_A(11)\n"
+            "10 READ I \\ RUN ecb_int(I, tmp_1) \\ READ arr_A(tmp_1)\n"
+            "20 DATA 1.0, 2.0",
+        )
+
+    def test_read_hoists_comparisons_per_item(self) -> None:
+        self.generic_test_parse(
+            "10 READ I,A(I<3)\n20 DATA 1,2",
+            "DIM arr_A(11)\n"
+            "10 READ I \\ "
+            "IF I < 3.0 THEN tmp_1 := -1.0 \\ ELSE tmp_1 := 0.0 \\ ENDIF \\ "
+            "READ arr_A(tmp_1)\n"
+            "20 DATA 1.0, 2.0",
+        )
+
+    def test_read_hoists_def_fn_calls_per_item(self) -> None:
+        self.generic_test_parse(
+            "10 DEF FNA(X)=X+1\n20 READ I,A(FNA(I)),J,B(FNA(J))\n30 DATA 1,2,3,4",
+            "DIM arr_A(11)\n"
+            "DIM arr_B(11)\n"
+            "10 (* DEF FNA(X)=X+1 *)\n"
+            "20 READ I \\ fnA_1 := I \\ READ arr_A(INT((fnA_1 + 1.0))), J \\ "
+            "fnA_2 := J \\ READ arr_B(INT((fnA_2 + 1.0)))\n"
+            "30 DATA 1.0, 2.0, 3.0, 4.0",
+        )
+
+    def test_read_does_not_split_first_item(self) -> None:
+        self.generic_test_parse(
+            "10 READ A(INT(X)),B\n20 DATA 1,2",
+            "DIM arr_A(11)\n"
+            "10 RUN ecb_int(X, tmp_1) \\ READ arr_A(tmp_1), B\n"
+            "20 DATA 1.0, 2.0",
+        )
+
+    def test_read_does_not_split_without_hoisted_calls(self) -> None:
+        self.generic_test_parse(
+            "10 READ A,B(I),C\n20 DATA 1,2,3",
+            "DIM arr_B(11)\n10 READ A, arr_B(I), C\n20 DATA 1.0, 2.0, 3.0",
+        )
+
+    def test_read_empty_data_hoists_calls_per_item(self) -> None:
+        self.generic_test_parse(
+            "10 READ I,A(INT(I))\n20 DATA ,1,2",
+            "DIM arr_A(11)\n"
+            "10 READ tmp_1$ \\ RUN ecb_read_filter(tmp_1$, I) \\ "
+            "READ tmp_1$ \\ RUN ecb_int(I, tmp_1) \\ "
+            "RUN ecb_read_filter(tmp_1$, arr_A(tmp_1))\n"
+            '20 DATA "", "1.0", "2.0"',
+        )
+
+    def test_read_empty_data_hoists_calls_per_string_item(self) -> None:
+        self.generic_test_parse(
+            "10 READ I,A$(INT(I))\n20 DATA ,1,2",
+            "DIM arr_A$(11)\n"
+            "10 READ tmp_1$ \\ RUN ecb_read_filter(tmp_1$, I) \\ "
+            "RUN ecb_int(I, tmp_1) \\ READ arr_A$(tmp_1)\n"
+            '20 DATA "", "1.0", "2.0"',
+        )
+
     def test_filter_line_zero(self) -> None:
         self.generic_test_parse("0 CLS\n", "RUN ecb_cls(1, display)")
 

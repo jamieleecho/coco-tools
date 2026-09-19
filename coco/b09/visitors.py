@@ -526,6 +526,64 @@ class BasicEmptyDataElementVisitor(BasicConstructVisitor):
             )
 
 
+class HoistableExpressionVisitor(BasicConstructVisitor):
+    """Reports whether an expression holds anything that
+    :class:`BasicFunctionalExpressionPatcherVisitor` hoists in front of
+    the statement that holds it: a call it turns into a procedure call,
+    a comparison whose result is used as a number, or the argument
+    assignment of an inlined DEF FN call.
+    """
+
+    def __init__(self) -> None:
+        self._found: bool = False
+
+    @property
+    def found(self) -> bool:
+        return self._found
+
+    def visit_exp(self, exp: AbstractBasicExpression) -> None:
+        if isinstance(exp, (BasicFunctionalExpression, BasicComparisonValue)):
+            self._found = self._found or not exp.var
+        elif isinstance(exp, BasicFnExpression):
+            self._found = self._found or exp.assignment is not None
+
+
+class BasicReadStatementSplitterVisitor(BasicConstructVisitor):
+    """Gives every READ item that hoists something a READ of its own.
+
+    Hoisted calls and comparisons run in front of the statement that
+    holds them, so a subscript holding one is evaluated before the READ
+    reads anything. Color BASIC evaluates a subscript when it reaches
+    that item, after the items in front of it have been read:
+    ``READ I, A(INT(I))`` indexes ``A`` with the ``I`` the same
+    statement just read. Reading such an item with a READ of its own
+    puts the hoisted statements after the reads in front of it, since
+    each READ picks up where the one before it left off.
+    """
+
+    def visit_read_statement(
+        self, statement: BasicReadStatement
+    ) -> AbstractBasicStatement:
+        groups: List[List[AbstractBasicExpression]] = [[]]
+        for rhs in statement.rhs_list:
+            hoistable = HoistableExpressionVisitor()
+            rhs.visit(hoistable)
+            # An item that hoists in front of the whole statement reads
+            # nothing before itself, so the first group never splits.
+            if hoistable.found and groups[-1]:
+                groups.append([])
+            groups[-1].append(rhs)
+
+        if len(groups) < 2:
+            return statement
+
+        statement.rhs_list[:] = groups[0]
+        return BasicStatements(
+            [statement] + [BasicReadStatement(group) for group in groups[1:]],
+            multi_line=False,
+        )
+
+
 class BasicReadStatementPatcherVisitor(BasicConstructVisitor):
     def visit_data_statement(self, statement: BasicDataStatement) -> None:
         exp: AbstractBasicExpression
