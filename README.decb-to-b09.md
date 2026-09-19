@@ -51,6 +51,32 @@ BACKUP, CLOSE, COPY, CVN, DIR, DRIVE, DSKINI, DSKI, DSKO, EOF, FIELD, FILES, FRE
   The line number stays on the first of those lines, so `GOTO` still runs all
   of them. A single statement that is too long by itself, such as a `PRINT`
   with many arguments, is not broken up and cannot be loaded.
+* A NEXT that ends a single-line `IF ... THEN` leaves its loop early.
+  In Color BASIC, this prints the characters of `Q$` until it reaches a
+  backslash and then carries on at line 420:
+
+```basic
+410 FOR Z=3 TO LEN(Q$)
+415 IF MID$(Q$,Z,1)<>"\" THEN PRINT MID$(Q$,Z,1);: NEXT Z
+420 ...
+```
+
+  BASIC09 has no way to leave a FOR from inside an `IF`, so the NEXT is
+  moved out to the loop and the other branch jumps past it instead:
+
+```basic
+410 FOR Z = 3.0 TO LEN(Q$)
+415   IF MID$(Q$, Z, 1.0) <> "\" THEN
+    PRINT MID$(Q$, Z, 1.0);
+  ELSE
+    GOTO 420
+  ENDIF
+NEXT Z
+420 ...
+```
+
+  The NEXT has to be the last thing the `IF` does, and it has to close a
+  loop the line itself is inside of.
 * BASIC09 does not allow programs with line number zero. To handle this, the
   zero line number is stripped as long as there are no `GOTO` or `GOSUB`
   statements to line zero.
@@ -238,6 +264,26 @@ FOR II = 1 to 10
   NEXT II
 NEXT JJ
 ```
+
+* Each NEXT must close its FOR from the same place the FOR was opened.
+  Color BASIC matches the two on a stack as the program runs, so a NEXT
+  can sit inside an `IF` its FOR is outside of, or a FOR can be opened
+  inside an `IF` and closed outside it. BASIC09's FOR is a block, and a
+  program whose blocks cross that way cannot be loaded -- it fails with
+  `ERROR #69 - Unmatched Control Structure`. Rather than write out such
+  a program, decb-to-b09 reports the FOR and the NEXT that do not line
+  up. The one exception it converts is the early loop exit under
+  [Supported constructs that need some
+  explanation](#supported-constructs-that-need-some-explanation). A FOR
+  whose NEXT is only reached by a GOTO, as in:
+
+```basic
+230 FOR I=7 TO 12:IF B(I)<>0 THEN E=1:RETURN
+235 GOTO 220
+```
+
+  is reported the same way, since the loop it emits would never be
+  closed.
 
 ## Weird, unsupported Color BASIC constructs
 
