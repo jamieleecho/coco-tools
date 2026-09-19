@@ -133,12 +133,20 @@ IF B < C THEN tmp_1 := -1.0 \ ELSE tmp_1 := 0.0 \ ENDIF \ A := (tmp_1) + 1.0
   Chained comparisons are made left to right, as in Color BASIC. A line with
   many of them can exceed BASIC09's 255 character line limit (#60).
 * Calls and comparisons are hoisted in front of the statement that holds
-  them, so in `READ` and `INPUT` they are evaluated before the statement
-  reads anything. A subscript that reads a variable the same statement is
-  about to fill sees that variable's old value: `READ I, A(INT(I))` indexes
-  `A` with `I`'s value from before the `READ`, while Color BASIC indexes it
+  them, so in `INPUT` they are evaluated before the statement reads
+  anything. A subscript that reads a variable the same statement is about
+  to fill sees that variable's old value: `INPUT I, A(INT(I))` indexes `A`
+  with `I`'s value from before the `INPUT`, while Color BASIC indexes it
   with the value just read. A subscript with nothing to hoist, such as
-  `READ I, A(I)`, is unaffected.
+  `INPUT I, A(I)`, is unaffected.
+* `READ` is not affected, because an item whose subscript hoists something
+  is read by a `READ` of its own, which picks up where the one in front of
+  it left off. So `READ I, A(INT(I))` indexes `A` with the value just read,
+  as Color BASIC does:
+
+```basic
+READ I \ RUN ecb_int(I, tmp_1) \ READ arr_A(tmp_1)
+```
 * Converting numeric values into strings formats the number with NO spaces
   and one decimal point, even if the value is an integer.
 * When `NEXT` statements do not have an iteration variable specified, the

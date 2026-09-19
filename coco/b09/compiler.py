@@ -32,6 +32,7 @@ from coco.b09.visitors import (
     BasicNextPatcherVisitor,
     BasicPrintStatementPatcherVisitor,
     BasicReadStatementPatcherVisitor,
+    BasicReadStatementSplitterVisitor,
     CoerceIntegerArgsVisitor,
     ComparisonConditionVisitor,
     DeclareImplicitArraysVisitor,
@@ -240,6 +241,11 @@ def convert(
 
     # Patch INPUT statements
     basic_prog.visit(BasicInputStatementPatcherVisitor(terminal))
+
+    # Give an item whose subscript hoists a call or a comparison a READ
+    # of its own, so that what it hoists runs after the items in front
+    # of it have been read
+    basic_prog.visit(BasicReadStatementSplitterVisitor())
 
     # Patch up READ statements to handle empty DATA elements
     empty_data_elements_visitor = BasicEmptyDataElementVisitor()
