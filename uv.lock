@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 
 [[package]]
@@ -22,7 +22,7 @@ wheels = [
 
 [[package]]
 name = "coco-tools"
-version = "0.28"
+version = "0.29"
 source = { editable = "." }
 dependencies = [
     { name = "colormath" },
